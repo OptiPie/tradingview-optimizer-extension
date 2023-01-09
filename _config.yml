@@ -26,6 +26,11 @@ markdown: kramdown
 kramdown:
   input: GFM
 
+
+header_pages:
+  - rumerica/index.md
+  - about.md
+
 # Build settings
 theme: minima
 plugins:
@@ -49,6 +54,7 @@ titles_from_headings:
 relative_links:
   enabled:     true
   collections: false
+
 
 # Exclude from processing.
 # The following items will not be processed, by default.
