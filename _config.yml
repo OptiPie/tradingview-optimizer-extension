@@ -32,6 +32,10 @@ kramdown:
 theme: minima
 
 header_pages:
+  - _pages/faq.md
+  - _pages/contribution.md
+  - _pages/donate.md 
+  - _pages/contact.md
   - _pages/disclaimer.md
 
 include:
