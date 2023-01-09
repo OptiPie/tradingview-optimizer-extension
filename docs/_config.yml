@@ -37,6 +37,15 @@ baseurl: /docs/      # place folder name if the site is served in a subfolder
 theme: minima
 plugins:
   - jekyll-feed
+  - jekyll-coffeescript
+  - jekyll-default-layout
+  - jekyll-gist
+  - jekyll-github-metadata
+  - jekyll-optional-front-matter
+  - jekyll-paginate
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+  - jekyll-relative-links
 
 # Exclude from processing.
 # The following items will not be processed, by default.
