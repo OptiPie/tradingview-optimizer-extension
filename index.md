@@ -1,3 +1,9 @@
+---
+
+layout: post
+
+---
+
 <p align="left">
   <a href="https://optipe.app">
       <img src="images/optipie_app_logo_lshift2.png" alt="OptiPie" title="OptiPie" align="left"  />
