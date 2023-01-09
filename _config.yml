@@ -41,6 +41,10 @@ plugins:
   - jekyll-relative-links
   - jemoji
 
+titles_from_headings:
+  enabled:     true
+  strip_title: false
+  collections: false
 
 # Exclude from processing.
 # The following items will not be processed, by default.
