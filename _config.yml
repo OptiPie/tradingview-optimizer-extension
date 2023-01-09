@@ -47,8 +47,8 @@ titles_from_headings:
   collections: false
 
 relative_links:
-enabled:     true
-collections: false
+  enabled:     true
+  collections: false
 
 # Exclude from processing.
 # The following items will not be processed, by default.
