@@ -1,5 +1,5 @@
 ---
-permalink: /#Disclaimer
+permalink: /#disclaimer
 layout: home
 title: Disclaimer
 ---
