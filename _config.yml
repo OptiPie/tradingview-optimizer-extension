@@ -19,6 +19,10 @@
 # in the templates via {{ site.myvariable }}.
 title: "OptiPie"
 
+header_pages:
+  - test
+  - use-disclaimer-at
+
 domain: optipie.app      # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
 url: https://optipie.app # the base hostname and protocol for your site, e.g. http://example.com
 
@@ -27,9 +31,7 @@ kramdown:
   input: GFM
 
 
-header_pages:
-  - rumerica/index.md
-  - about.md
+
 
 # Build settings
 theme: minima
