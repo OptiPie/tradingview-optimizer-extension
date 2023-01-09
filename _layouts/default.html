@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+	<html>
+		<head>
+			<title>{{ page.title }}</title>
+			<!-- link to main stylesheet -->
+			<link rel="stylesheet" type="text/css" href="/css/main.css">
+			
+			<!-- meta info -->
+			<meta name="author" content="">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		</head>
+		
+		<!-- main body of webpage -->
+		<body style="background-color:gainsboro;">
+			<!-- webpage tabs -->
+			<nav>
+	    		<ul>
+	        		<li><a href="/">Home</a></li>
+		        	<li><a href="/about">About</a></li>
+					<li><a href="/projects">Projects</a></li>
+	        		<li><a href="https://trencyclopedia.github.io/mydocs/" target="_blank">MyDocs文档</a></li>
+				<li><a href="https://trencyclopedia.github.io/posts/" target="_blank">Posts</a></li>
+					<li><a href="/blog">Blogs</a></li>
+	    		</ul>
+			</nav>
+			
+			<!-- webpage content -->
+			<div class="container">
+				{{ content }}
+			</div><!-- /.container -->
+			
+			
+			<footer>
+				<ul>
+				<li><a href="mailto:trencyclopedia@gmail.com">email</a></li>
+				<li><a href="https://github.com/trencyclopedia">github.com/trencyclopedia</a></li>
+				</ul>
+			</footer>
+		</body>
+	</html>
