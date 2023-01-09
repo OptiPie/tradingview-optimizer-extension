@@ -19,8 +19,6 @@
 # in the templates via {{ site.myvariable }}.
 title: "OptiPie"
 
-header_pages:
-  - _pages/disclaimer.md
 
 domain: optipie.app      # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
 url: https://optipie.app # the base hostname and protocol for your site, e.g. http://example.com
@@ -30,10 +28,15 @@ kramdown:
   input: GFM
 
 
-
-
 # Build settings
 theme: minima
+
+header_pages:
+  - _pages/disclaimer.md
+
+include:
+    - _pages
+
 plugins:
   - jekyll-feed
   - jekyll-coffeescript
