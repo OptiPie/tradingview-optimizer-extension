@@ -45,6 +45,11 @@ plugins:
   - jekyll-relative-links
   - jekyll-readme-index
 
+readme_index:
+  enabled:          true
+  remove_originals: false
+  with_frontmatter: false
+
 # Exclude from processing.
 # The following items will not be processed, by default.
 # Any item listed under the `exclude:` key here will be automatically added to
