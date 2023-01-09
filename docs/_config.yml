@@ -46,6 +46,7 @@ plugins:
   - jekyll-readme-index
   - jekyll-titles-from-headings
   - jekyll-relative-links
+  - jekyll-readme-index
 
 # Exclude from processing.
 # The following items will not be processed, by default.
