@@ -1,7 +1,6 @@
 ---
-permalink: /about
-layout: page
-title: About me
+permalink: /#Disclaimer
+layout: home
+title: Disclaimer
 ---
 
-More details about me on this page with links to my social media profiles and so on.
