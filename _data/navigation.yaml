@@ -1,15 +1,10 @@
 main:
+  - title: "Github"
+    url: https://github.com/OptiPie/tradingview-optimizer-extension
   - title: "FAQ"
     url: /#faq-
-  - title: "Posts"
-    url: /year-archive/
-  - title: "Categories"
-    url: /categories/
-  - title: "Tags"
-    url: /tags/
-  - title: "Pages"
-    url: /page-archive/
-  - title: "Collections"
-    url: /collection-archive/
-  - title: "External Link"
-    url: https://google.com
+  - title: "Contribution"
+    url: /#contribution-%EF%B8%8F
+  - title: "Donate"
+    url: /#donate-
+
