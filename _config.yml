@@ -42,6 +42,8 @@ header_pages:
 include:
     - _pages
 
+logo: "/assets/images/optipie_app_logo.png"
+
 plugins:
   - jekyll-feed
   - jekyll-coffeescript
