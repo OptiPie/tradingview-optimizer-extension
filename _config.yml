@@ -29,7 +29,7 @@ kramdown:
 
 
 # Build settings
-theme: minima
+remote_theme: "mmistakes/minimal-mistakes@4.24.0"
 
 header_pages:
   - _pages/faq.md
@@ -53,6 +53,7 @@ plugins:
   - jekyll-titles-from-headings
   - jekyll-relative-links
   - jemoji
+  - jekyll-include-cache
 
 titles_from_headings:
   enabled:     true
