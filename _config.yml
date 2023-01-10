@@ -32,17 +32,26 @@ kramdown:
 remote_theme: "mmistakes/minimal-mistakes@4.24.0"
 minimal_mistakes_skin: "contrast" # "default", "air", "aqua", "contrast", "dark", "dirt", "neon", "mint", "plum", "sunrise"
 
-header_pages:
-  - _pages/faq.md
-  - _pages/contribution.md
-  - _pages/donate.md 
-  - _pages/contact.md
-  - _pages/disclaimer.md
-
 include:
-    - _pages
+  - _pages
 
 logo: "/assets/images/optipie_app_logo.png"
+
+atom_feed:
+  hide: true
+
+footer:
+links:
+  - label: "GitHub"
+    icon: "fab fa-fw fa-github"
+    url: "https://github.com/OptiPie/tradingview-optimizer-extension"
+  - label: "Contact"
+    icon: ""
+    url: "/#contact-"
+  - label: "Disclaimer"
+    icon: ""
+    url: /#disclaimer
+    
 
 plugins:
   - jekyll-feed
