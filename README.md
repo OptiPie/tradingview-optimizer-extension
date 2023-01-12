@@ -18,7 +18,11 @@ Easily optimize strategies, store optimization reports and make analysis via sim
 
 ## 🚀 Quick Start 
 
-YT Video here
+<div align="left">
+      <a href="https://youtu.be/GLaNRskrIyo">
+         <img src="images/ghub-youtube-thumbnail.png" style="width:100%;">
+      </a>
+</div>
 
 ## Features
 
