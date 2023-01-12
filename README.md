@@ -1,5 +1,5 @@
 <p align="left">
-  <a href="https://optipe.app">
+  <a href="https://optipie.app">
       <img src="images/optipie_app_logo_lshift2.png" alt="OptiPie" title="OptiPie" align="left"  />
   </a>
   <h1>TradingView Optimizer Extension   </h1>
