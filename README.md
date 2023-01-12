@@ -18,7 +18,11 @@ Easily optimize strategies, store optimization reports and make analysis via sim
 
 ## 🚀 Quick Start 
 
-<iframe width="560" height="315" src="https://youtu.be/GLaNRskrIyo" title="OptiPie TradingView Optimizer - Quickstart" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<div align="left">
+      <a href="https://youtu.be/GLaNRskrIyo">
+         <img src="images/ghub-youtube-thumbnail.png" style="width:100%;">
+      </a>
+</div>
 
 ## Features
 
