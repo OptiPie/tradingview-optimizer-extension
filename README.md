@@ -1,11 +1,11 @@
 <p align="left">
-  <a href="https://optipe.app">
+  <a href="https://optipie.app">
       <img src="images/optipie_app_logo_lshift2.png" alt="OptiPie" title="OptiPie" align="left"  />
   </a>
   <h1>TradingView Optimizer Extension   </h1>
 </p>
 
-[![OptiePie][optipie-badge]][optipie-url]
+[![OptiPie][optipie-badge]][optipie-url]
 [![GNU License][license-badge]][license-url]
 
 OptiPie is a strategy optimizer automation tool for TradingView written in JavaScript. 
@@ -153,7 +153,7 @@ The Company will not be liable to You or anyone else for any decision made or ac
 [license-badge]: https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square
 [license-url]: https://www.gnu.org/licenses/gpl-3.0.html
 [optipie-badge]: https://img.shields.io/badge/OptiPie-Official-brightgreen
-[optipie-url]: https://www.optipie.app
+[optipie-url]: https://optipie.app
 [chrome-store-badge]: https://img.shields.io/chrome-web-store/v/test?label=CHROME%20STORE%20DOWNLOAD&style=for-the-badge&logo=googlechrome
 [chrome-store-url]: https://chrome.google.com/webstore/category/extension
 
