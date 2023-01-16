@@ -14,7 +14,7 @@
         <ul class="visible-links">
           {%- for link in site.data.navigation.main -%}
             <li class="masthead__menu-item">
-            {% if {{ link.title }} == Download %}
+            {% if link.title == "Download" %}
             <i class="fa-solid fa-circle-down"></i>
             {% endif %}
               <a href="{{ link.url | relative_url }}"{% if link.description %} title="{{ link.description }}"{% endif %}>{{ link.title }}</a>
