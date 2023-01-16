@@ -41,6 +41,8 @@ logo: "/assets/images/optipie_app_logo.png"
 atom_feed:
   hide: true
 
+layout: single
+
 footer:
   links:
     - label: "GitHub"
