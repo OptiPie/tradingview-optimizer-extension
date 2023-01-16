@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 title: "OptiPie - TradingView Optimizer"
-masthead_title: ""
+masthead_title: " "
 description: "OptiPie - TradingView Optimizer Extension is a strategy optimizer automation tool for TradingView written in JavaScript"
 
 domain: optipie.app      # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
