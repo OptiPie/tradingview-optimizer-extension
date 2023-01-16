@@ -45,11 +45,13 @@ layout: single
 
 footer:
   links:
+    - label: "Download"
+      icon: "fa-solid fa-circle-down"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/OptiPie/tradingview-optimizer-extension"
     - label: "Contact"
-      icon: ""
+      icon: "fa-solid fa-message-text"
       url: "/#contact-"
     - label: "Disclaimer"
       icon: ""
