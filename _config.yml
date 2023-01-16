@@ -47,6 +47,7 @@ footer:
   links:
     - label: "Download"
       icon: "fa-solid fa-circle-down"
+      url: "https://chrome.google.com/webstore/category/extensions"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/OptiPie/tradingview-optimizer-extension"
