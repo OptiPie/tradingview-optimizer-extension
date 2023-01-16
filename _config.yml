@@ -17,8 +17,9 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: ""
-
+title: "OptiPie - TradingView Optimizer"
+masthead_title: ""
+description: "OptiPie - TradingView Optimizer Extension is a strategy optimizer automation tool for TradingView written in JavaScript"
 
 domain: optipie.app      # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
 url: https://optipie.app # the base hostname and protocol for your site, e.g. http://example.com
@@ -41,16 +42,16 @@ atom_feed:
   hide: true
 
 footer:
-links:
-  - label: "GitHub"
-    icon: "fab fa-fw fa-github"
-    url: "https://github.com/OptiPie/tradingview-optimizer-extension"
-  - label: "Contact"
-    icon: ""
-    url: "/#contact-"
-  - label: "Disclaimer"
-    icon: ""
-    url: /#disclaimer
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/OptiPie/tradingview-optimizer-extension"
+    - label: "Contact"
+      icon: ""
+      url: "/#contact-"
+    - label: "Disclaimer"
+      icon: ""
+      url: /#disclaimer
     
 
 plugins:
