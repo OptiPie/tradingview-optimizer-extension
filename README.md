@@ -8,7 +8,7 @@
 [![OptiPie][optipie-badge]][optipie-url]
 [![GNU License][license-badge]][license-url]
 
-OptiPie is a strategy optimizer automation tool for TradingView written in JavaScript. 
+OptiPie is an open source strategy optimizer automation tool for TradingView. 
 
 Easily optimize strategies, store optimization reports and make analysis via simple UI.
 
