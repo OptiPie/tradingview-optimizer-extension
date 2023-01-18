@@ -52,7 +52,7 @@ footer:
       icon: "fab fa-fw fa-github"
       url: "https://github.com/OptiPie/tradingview-optimizer-extension"
     - label: "Contact"
-      icon: "fa-solid fa-message-text"
+      icon: ""
       url: "/#contact-"
     - label: "Disclaimer"
       icon: ""
