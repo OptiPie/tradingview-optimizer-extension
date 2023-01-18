@@ -112,7 +112,7 @@ For any bug, issue reporting and new feature/improvement suggestions, please spe
 
 ### Contribute Code 
 
-For bug fixes, please check the [Issues](https://github.com/AtakanPehlivanoglu/tradingview-optimizer-extension/issues) if the bug has already been reported.
+For bug fixes, please check the [Issues](https://github.com/OptiPie/tradingview-optimizer-extension/issues) if the bug has already been reported.
 For any code contribution, the steps are ;
 - Open issue with appropraite label and specify the situation in detail
 - If you would like to contribute  code, merge your pull request into your local copy of the project and test the changes. Add the outcome of your testing in a comment on the pull request.  
@@ -125,7 +125,7 @@ For any code contribution, the steps are ;
 
 ## Donate ☕
 
-Coffee is the best friend of the developer! [Buy me a coffee](https://www.buymeacoffee.com/matakanpeh4) and let's make the project even better!
+Coffee is the best friend of the developer! [Buy me a coffee](https://www.buymeacoffee.com/optipieapp) and let's make the project even better!
 
 ## Contact 📞
 
