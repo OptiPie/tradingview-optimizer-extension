@@ -43,6 +43,12 @@ atom_feed:
 
 layout: single
 
+analytics:
+  provider: "google-gtag"
+  google:
+    tracking_id: "G-58T0V7053W"
+    anonymize_ip: false 
+
 footer:
   links:
     - label: "Download"
