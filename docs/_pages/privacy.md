@@ -3,8 +3,6 @@ permalink: /privacy/
 title: "Privacy Policy"
 ---
 
-# Privacy Policy
-
 ## Personal Data
 OptiPie had never collected and will never collect any personal data, sensitive data, browsing history etc. from user.
 

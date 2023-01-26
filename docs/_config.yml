@@ -49,15 +49,6 @@ analytics:
     tracking_id: "G-58T0V7053W"
     anonymize_ip: false 
 
-defaults:
-  # _pages
-  - scope:
-      path: ""
-      type: pages
-    values:
-      layout: single
-      author_profile: true
-
 
 footer:
   links:
