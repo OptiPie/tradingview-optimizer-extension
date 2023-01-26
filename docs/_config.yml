@@ -56,7 +56,7 @@ defaults:
       type: pages
     values:
       layout: single
-      author_profile: false
+      author_profile: true
 
 
 footer:
@@ -73,6 +73,9 @@ footer:
     - label: "Disclaimer"
       icon: ""
       url: /#disclaimer
+    - label: "Privacy"
+      icon: ""
+      url: /privacy
     
 
 plugins:
