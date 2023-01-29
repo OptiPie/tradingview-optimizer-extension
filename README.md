@@ -154,6 +154,6 @@ The Company will not be liable to You or anyone else for any decision made or ac
 [license-url]: https://www.gnu.org/licenses/gpl-3.0.html
 [optipie-badge]: https://img.shields.io/badge/OptiPie-Official-brightgreen
 [optipie-url]: https://optipie.app
-[chrome-store-badge]: https://img.shields.io/chrome-web-store/v/test?label=CHROME%20STORE%20DOWNLOAD&style=for-the-badge&logo=googlechrome
-[chrome-store-url]: https://chrome.google.com/webstore/category/extension
+[chrome-store-badge]: https://img.shields.io/chrome-web-store/v/fdndgpohalkoklpaopahkblpomlhmifm?label=CHROME%20STORE%20DOWNLOAD&style=for-the-badge&logo=googlechrome
+[chrome-store-url]: https://chrome.google.com/webstore/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm
 
