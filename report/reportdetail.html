@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
+  <link rel="stylesheet" href="repordetail.css">
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="container-fluid py-5 report-detail">
+      <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
+        <a href="https://optipie.app" target="_blank" class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none">
+          <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+          <span class="fs-4"></span>
+        </a>
+      </header>
+
+      <table id="table" data-toggle="table" data-sort-class="table-active" data-sortable="true"
+        data-custom-sort="customSort" data-pagination="true" data-search="true" data-show-columns="true"
+        data-buttons-prefix="btn-sm btn" data-search-align="left" style="font-size: 16px;">
+        <thead>
+          <tr>
+            <th data-field="parameters" data-sortable="true">Parameters</th>
+            <th data-field="netProfitAmount" data-sortable="true">Net Profit Amount</th>
+            <th data-field="netProfitPercent" data-sortable="true">Net Profit Percent</th>
+            <th data-field="closedTrades" data-sortable="true">Closed Trades</th>
+            <th data-field="percentProfitable" data-sortable="true">Percent Profitable</th>
+            <th data-field="profitFactor" data-sortable="true">Profit Factor</th>
+            <th data-field="maxDrawdownAmount" data-sortable="true">Max Drawdown Amount</th>
+            <th data-field="maxDrawdownPercent" data-sortable="true">Max Drawdown Percent</th>
+            <th data-field="averageTradeAmount" data-sortable="true">Average Trade Amount</th>
+            <th data-field="averageTradePercent" data-sortable="true">Average Trade Percent</th>
+            <th data-field="avgerageBarsInTrades" data-sortable="true">Average Bars In Trades</th>
+          </tr>
+        </thead>
+      </table>
+
+    </div>
+
+    <div class="container-fluid">
+      <footer class="d-flex flex-wrap justify-content-between align-items-center py-2 mb-2 mt-4 border-top">
+        <div class="col-md-4 d-flex align-items-center">
+          <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
+          </a>
+          <span class=" mb-md-0 text-muted">&copy; 2022 OptiPie</span>
+        </div>
+        <div class="col-md-4 d-flex justify-content-center">
+          <a href="https://www.buymeacoffee.com/optipieapp" target="_blank" rel="noopener noreferrer"><img
+              src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=optipieapp&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+        </div>
+        <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+          <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>
+          </li>
+          <li class="ms-1"><a href="https://optipie.app/#contact-" target="_blank"
+              class="nav-link px-2 text-muted">Contact</a></li>
+        </ul>
+      </footer>
+    </div>
+  </div>
+  <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
+  <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/libs/bootstrap-table/js/bootstrap-table.min.js"></script>
+  <script src="reportdetail.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container-fluid">
+    <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+        <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+        <span class="fs-4"></span>
+      </a>
+      <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane"
+            type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true"><i class="bi-house-door"></i>
+            Home</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-tab-pane"
+            type="button" role="tab" aria-controls="reports-tab-pane" aria-selected="false"><i class="bi-bar-chart"></i>
+            Reports</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link disabled" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane"
+            type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false"><i class="bi-person"></i>
+            Profile</button>
+        </li>
+      </ul>
+    </header>
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+        <div class="container" id="parameters">
+          <div class="row g-2 pb-2">
+            <div class="col-8">
+              <label for="inputStart1" class="form-label">1. Parameter Inputs</label>
+              <div class="input-group input-group">
+                <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">
+                <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">
+              </div>
+            </div>
+            <div class="col-4">
+              <label for="inputStep1" class="form-label">Step Size</label>
+              <input type="text" aria-label="Step" placeholder="Step" class="form-control" id="inputStep">
+            </div>
+          </div>
+        </div>
+
+        <div class="container ">
+          <div class="row align-items-center">
+            <div class="col">
+              <button type="button" class="btn btn-outline-dark btn-sm" id="addParameter"><i
+                  class="bi bi-plus-circle"></i>Add Parameter</button>
+            </div>
+            <div class="col">
+              <button type="button" class="btn btn-dark btn float-end" id="optimize"><i
+                  class="bi bi-graph-up-arrow"></i>Optimize</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="reports-tab-pane" role="tabpanel" aria-labelledby="reports-tab" tabindex="0">
+        <div class="container-fluid">
+          <div class="toolbar">
+            <button id="refresh" class="btn btn-secondary">Refresh</button>
+          </div>
+          <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
+            data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
+            data-buttons-prefix="btn-sm btn" data-search-align="left">
+            <thead>
+              <tr>
+                <th data-field="strategyID" data-visible="false">ID</th>
+                <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name</th>
+                <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
+                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter" data-cell-style="symbolColumnStyle">Symbol</th>
+                <th data-field="timePeriod" data-sortable="false">Period</th>
+                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters</th>
+                <th data-field="maxprofit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
+                <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
+                  data-events="openReportDetail">Report Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <button id="report-detail-button" type="button" class="btn btn-primary btn-sm">
+                    Open
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0"></div>
+    </div>
+  </div>
+
+
+  <div class="container-fluid footer">
+    <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 mb-1 mt-4 border-top">
+      <div class="col-md-4 d-flex align-items-center">
+        <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
+        </a>
+        <span class=" mb-md-0 text-muted">&copy; 2022 OptiPie</span>
+      </div>
+      <div class="col-md-4 d-flex">
+        <a href="https://www.buymeacoffee.com/optipieapp" target="_blank" rel="noopener noreferrer"><img
+            src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=optipieapp&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+      </div>
+      <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+        <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a></li>
+        <li class="ms-1"><a href="https://optipie.app/#contact-" target="_blank"
+            class="nav-link px-2 text-muted">Contact</a></li>
+      </ul>
+    </footer>
+  </div>
+
+  <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
+  <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/libs/bootstrap-table/js/bootstrap-table.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+
+</html>
