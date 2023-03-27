@@ -84,7 +84,8 @@ async function Process() {
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
     var strategyName = document.querySelector("div[class*=strategyGroup]").innerText
     var strategyTimePeriod = document.querySelector("div[class*=intervalTitle]").innerText
-    var strategySymbol = document.querySelector("div[id*=symbol]").querySelector("div[class*=text]").innerText
+    var title = document.querySelector("title").innerText
+    var strategySymbol = title.split(' ')[0]
     var optimizationResultsObject = Object.fromEntries(optimizationResults);
     var userInputsToString = ""
     
