@@ -82,9 +82,15 @@ async function Process() {
     }
 
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    var strategyName = document.querySelector("div[class*=strategyGroup]").innerText
-    var strategyTimePeriod = document.querySelector("div[class*=intervalTitle]").innerText
-    var title = document.querySelector("title").innerText
+    var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+    var strategyTimePeriod = ""
+    
+    var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 0){
+        strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+    }
+
+    var title = document.querySelector("title")?.innerText
     var strategySymbol = title.split(' ')[0]
     var optimizationResultsObject = Object.fromEntries(optimizationResults);
     var userInputsToString = ""
