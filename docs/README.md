@@ -20,7 +20,7 @@ Easily optimize strategies, store optimization reports and make analysis via sim
 
 <div align="left">
       <a href="https://youtu.be/GLaNRskrIyo">
-         <img src="images/ghub-youtube-thumbnail.png" style="width:100%;">
+         <img src="images/ghub-youtube-thumbnail.png" alt="OptiPie-Thumbnail" style="width:100%;">
       </a>
 </div>
 

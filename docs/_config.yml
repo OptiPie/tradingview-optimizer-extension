@@ -17,9 +17,9 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: "OptiPie - TradingView Optimizer"
+title: "OptiPie TradingView Optimizer | Start Optimizing in Seconds"
 masthead_title: " "
-description: "OptiPie - TradingView Optimizer Extension is a strategy optimizer automation tool for TradingView written in JavaScript"
+description: "Open Source Free Strategy Parameter Optimizer tool for TradingView as extension."
 
 domain: optipie.app      # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
 url: https://optipie.app # the base hostname and protocol for your site, e.g. http://example.com
@@ -46,7 +46,7 @@ layout: single
 analytics:
   provider: "google-gtag"
   google:
-    tracking_id: "G-58T0V7053W"
+    tracking_id: "G-4EW3247CHD"
     anonymize_ip: false 
 
 defaults:
