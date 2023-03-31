@@ -46,7 +46,7 @@ layout: single
 analytics:
   provider: "google-gtag"
   google:
-    tracking_id: "G-58T0V7053W"
+    tracking_id: "G-4EW3247CHD"
     anonymize_ip: false 
 
 defaults:
