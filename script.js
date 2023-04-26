@@ -13,7 +13,7 @@ async function Process() {
         window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
         userInputs = evt.detail
     }
-    
+
     window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
 
     //Wait for UserInputsEvent Callback
@@ -84,17 +84,24 @@ async function Process() {
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
     var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
     var strategyTimePeriod = ""
-    
+
     var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
-    if (timePeriodGroup.length > 0){
-        strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+    if (timePeriodGroup.length > 1) {
+        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+
+        // Check if favorite time periods exist  
+        if (selectedPeriod != null) {
+            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
+        } else {
+            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+        }
     }
 
     var title = document.querySelector("title")?.innerText
     var strategySymbol = title.split(' ')[0]
     var optimizationResultsObject = Object.fromEntries(optimizationResults);
     var userInputsToString = ""
-    
+
     userInputs.forEach((element, index) => {
         if (index == userInputs.length - 1) {
             userInputsToString += element.start + "-" + element.end
@@ -102,7 +109,7 @@ async function Process() {
             userInputsToString += element.start + "-" + element.end + " "
         }
     })
-    
+
     var reportDataMessage = {
         "strategyID": Date.now(),
         "created": Date.now(),
@@ -173,7 +180,7 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
                         var params = GetParametersFromWindow(userInputs)
-                        
+
                         if (!optimizationResults.has(params) && params != "ParameterOutOfRange") {
                             ReportBuilder(reportData, mutation)
                             optimizationResults.set(params, reportData)
