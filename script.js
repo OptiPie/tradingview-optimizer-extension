@@ -2,7 +2,7 @@
 var tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
 var maxProfit = -99999
 
-// Run Optimization Process
+// Run Optimization Process 
 Process()
 
 async function Process() {
@@ -13,7 +13,7 @@ async function Process() {
         window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
         userInputs = evt.detail
     }
-
+    
     window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
 
     //Wait for UserInputsEvent Callback
@@ -37,7 +37,7 @@ async function Process() {
             ranges.push(round + 1)
         }
     });
-    // Recursion can be used but makes it more complex and less readble code
+    // Recursion can be used but makes it more complex and less readble code 
     switch (userInputs.length) {
         case 1:
             for (let i = 0; i < ranges[0]; i++) {
@@ -83,13 +83,18 @@ async function Process() {
 
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
     var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
-    var strategyTimePeriod = document.querySelector("div[class*=intervalTitle]")?.innerText
+    var strategyTimePeriod = ""
+    
+    var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 0){
+        strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+    }
 
     var title = document.querySelector("title")?.innerText
     var strategySymbol = title.split(' ')[0]
     var optimizationResultsObject = Object.fromEntries(optimizationResults);
     var userInputsToString = ""
-
+    
     userInputs.forEach((element, index) => {
         if (index == userInputs.length - 1) {
             userInputsToString += element.start + "-" + element.end
@@ -97,7 +102,7 @@ async function Process() {
             userInputsToString += element.start + "-" + element.end + " "
         }
     })
-
+    
     var reportDataMessage = {
         "strategyID": Date.now(),
         "created": Date.now(),
@@ -133,7 +138,7 @@ async function SetUserIntervals(userInputs, optimizationResults) {
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
 }
 
-// Optimize strategy for given tvParameterIndex, increment parameter and observe mutation
+// Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
 async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults) {
     const reportData = new Object({
         netProfit: {
@@ -154,7 +159,7 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
         avgerageBarsInTrades: 0
     });
     setTimeout(() => {
-        // Hover on Input Arrows
+        // Hover on Input Arrows  
         tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
     }, 250);
     setTimeout(() => {
@@ -168,7 +173,7 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
                         var params = GetParametersFromWindow(userInputs)
-
+                        
                         if (!optimizationResults.has(params) && params != "ParameterOutOfRange") {
                             ReportBuilder(reportData, mutation)
                             optimizationResults.set(params, reportData)
@@ -218,7 +223,7 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
 
 }
 
-// Reset & Optimize (tvParameterIndex)th parameter to starting value
+// Reset & Optimize (tvParameterIndex)th parameter to starting value  
 async function ResetAndOptimizeParameter(userInputs, tvParameterIndex, optimizationResults) {
     ChangeTvInput(tvInputs[tvParameterIndex], userInputs[tvParameterIndex].start - userInputs[tvParameterIndex].stepSize)
     await sleep(500)
@@ -247,7 +252,7 @@ function ChangeTvInput(input, value) {
 
 // Increment Parameter without observing the mutation
 function IncrementParameter(tvParameterIndex) {
-    //Hover on Input Arrows
+    //Hover on Input Arrows  
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
 
     //Click on Upper Input Arrow
@@ -286,7 +291,7 @@ function ReportBuilder(reportData, mutation) {
     //1. Column
     reportData.netProfit.amount = reportDataSelector[0].querySelectorAll("div")[0].innerText
     reportData.netProfit.percent = reportDataSelector[0].querySelectorAll("div")[1].innerText
-    //2.
+    //2. 
     reportData.closedTrades = reportDataSelector[1].querySelector("div").innerText
     //3.
     reportData.percentProfitable = reportDataSelector[2].querySelector("div").innerText
