@@ -2,3 +2,7 @@
     padding-left: 7rem !important;
     padding-right: 7rem !important;
 }
+
+#download-report i{
+    margin-right: 0.2rem;
+}
