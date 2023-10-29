@@ -47,7 +47,7 @@ optimize.addEventListener("click", async () => {
     chrome.runtime.sendMessage({
       notify: {
         type: "warning",
-        content: "Inputs must be greater than 0 & 'Start' must be less than 'End'"
+        content: "'Start' value must be less than 'End' value"
       }
     });
   }
@@ -340,7 +340,7 @@ function CreateUserInputsMessage(userInputs) {
     var end = parseFloat(inputEnd)
     var step = parseFloat(inputStep)
     
-    if(start >= end || start <= 0 || end <=0 || step <= 0){
+    if(start >= end || step <= 0){
       err.message = "wrong-parameter-values"
       return err
     }
