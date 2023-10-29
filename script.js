@@ -104,9 +104,9 @@ async function Process() {
 
     userInputs.forEach((element, index) => {
         if (index == userInputs.length - 1) {
-            userInputsToString += element.start + "-" + element.end
+            userInputsToString += element.start + "→" + element.end
         } else {
-            userInputsToString += element.start + "-" + element.end + " "
+            userInputsToString += element.start + "→" + element.end + " "
         }
     })
 
