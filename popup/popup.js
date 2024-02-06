@@ -25,7 +25,6 @@ optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   var userInputs = []
-  
   // err is handled as value
   var err = CreateUserInputsMessage(userInputs)
 
@@ -36,14 +35,14 @@ optimize.addEventListener("click", async () => {
       target: { tabId: tab.id },
       files: ['injector.js']
     });
-  } else if(err.message === 'missing-parameters') {
+  } else if (err.message === 'missing-parameters') {
     chrome.runtime.sendMessage({
       notify: {
         type: "warning",
         content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
       }
     });
-  }else if(err.message === 'wrong-parameter-values'){
+  } else if (err.message === 'wrong-parameter-values') {
     chrome.runtime.sendMessage({
       notify: {
         type: "warning",
@@ -68,7 +67,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   }
 });
 
-// Create Reports Tab Table
+// Create Reports and Profile Tabs
 createReportTable()
 
 // Refresh Report Data Manually 
@@ -89,7 +88,7 @@ async function createReportTable() {
     for (const [key, value] of Object.entries(items)) {
       if (key.startsWith("report-data-")) {
         var date = new Date(value.created)
-        var formattedDate = (date.getMonth()+1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
+        var formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
         var report = {
           "strategyID": value.strategyID,
           "strategyName": value.strategyName,
@@ -104,7 +103,7 @@ async function createReportTable() {
       }
     }
     var $table = $('#table')
-    $table.bootstrapTable({data: reportData})
+    $table.bootstrapTable({ data: reportData })
     $table.bootstrapTable('load', reportData)
   });
 
@@ -178,6 +177,80 @@ window.openReportDetail = {
 
 //#endregion
 
+//#region Profile Tab
+let profileTab = document.getElementById("profile-tab")
+profileTab.addEventListener("click", async () => {
+  await createProfileTab()
+})
+
+
+async function createProfileTab() {
+  var token = ""
+  await new Promise(resolve => {
+    chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
+      if (Object.keys(response).length > 0) {
+        token = response.token
+      }
+      resolve();
+    })
+  })
+  if (token === "") {
+    setTimeout(() => {
+      document.getElementById("skeleton").style.display = 'none'
+      document.getElementById("login").style.display = 'block'
+    }, 250);
+    return
+  }
+  var userInfo;
+  userInfo = await getUserInfo(token)
+  setTimeout(() => {
+    document.getElementById("skeleton").style.display = 'none'
+    document.getElementById("profile").style.display = 'block'
+  }, 250);
+  document.getElementById("userEmail").innerText = userInfo.email
+  console.log(userInfo)
+}
+
+async function getUserInfo(token) {
+  var userInfo = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: {
+      'Authorization': 'Bearer ' + token
+    }
+  })
+    .then(response => response.json())
+
+  return userInfo
+}
+
+
+let loginButton = document.getElementById("loginButton");
+loginButton.addEventListener("click", async () => {
+  chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: true }, function (response) {
+    console.log(response)
+  })
+});
+
+let logoutButton = document.getElementById("logoutButton");
+logoutButton.addEventListener("click", async () => {
+  document.getElementById("skeleton").style.display = 'block'
+  document.getElementById("profile").style.display = 'none'
+  chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
+    var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
+    window.fetch(url);
+  })
+
+  chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
+  setTimeout(() => {
+    document.getElementById("skeleton").style.display = 'none'
+  document.getElementById("login").style.display = 'block'  
+  }, 250);
+});
+
+
+
+
+//#endregion
+
 function addParameterBlock() {
   var parameters = document.getElementById("parameters")
   var parameterCount = parameters.children.length
@@ -193,7 +266,7 @@ function addParameterBlock() {
     var orderOfParameter = parameterCount + 1
     var divToAppend = addParameterBlockHtml(orderOfParameter)
     parameters.insertAdjacentHTML('beforeend', divToAppend)
-    
+
     // Increment User's Last Parameter Count State    
     chrome.storage.local.set({ "userParameterCount": parameterCount + 1 });
 
@@ -225,7 +298,7 @@ function addParameterBlockHtml(orderOfParameter) {
   </div>'
 }
 
-function addRemoveParameterBlockEventListener(parameterCount){
+function addRemoveParameterBlockEventListener(parameterCount) {
   document.querySelectorAll(".btn-close.remove-parameters")[parameterCount - 1].addEventListener("click", async (evt) => {
     // Remove the selected row from incoming event 
     var evtPath = eventPath(evt)
@@ -312,6 +385,10 @@ function addTabEventListeners() {
   document.querySelector("#home-tab").addEventListener("click", function () {
     document.body.style.width = '560px'
   })
+
+  document.querySelector("#profile-tab").addEventListener("click", function () {
+    document.body.style.width = '560px'
+  })
 }
 // Refresh table data with refresh button
 function addRefreshDataEventListener() {
@@ -330,34 +407,36 @@ function CreateUserInputsMessage(userInputs) {
     var inputStart = parameters.children[i].querySelector("#inputStart").value
     var inputEnd = parameters.children[i].querySelector("#inputEnd").value
     var inputStep = parameters.children[i].querySelector("#inputStep").value
-    
-    if(!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)){
+
+    if (!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)) {
       err.message = "missing-parameters"
       return err
     }
-    
+
     var start = parseFloat(inputStart)
     var end = parseFloat(inputEnd)
     var step = parseFloat(inputStep)
-    
-    if(start >= end || step <= 0){
+
+    if (start >= end || step <= 0) {
       err.message = "wrong-parameter-values"
       return err
     }
-    
+
     userInputs.push({ start: inputStart, end: inputEnd, stepSize: inputStep })
   }
   return err
 }
 
+
+
 //#region Helpers 
 
 function isNumeric(str) {
-  if (typeof str != "string"){
-    return false 
-  } 
-  return !isNaN(str) && 
-    !isNaN(parseFloat(str)) 
+  if (typeof str != "string") {
+    return false
+  }
+  return !isNaN(str) &&
+    !isNaN(parseFloat(str))
 }
 
 function sleep(ms) {
@@ -373,27 +452,27 @@ function dateSorter(a, b) {
 // Reference: https://stackoverflow.com/questions/39245488/event-path-is-undefined-running-in-firefox
 function eventPath(evt) {
   var path = (evt.composedPath && evt.composedPath()) || evt.path,
-      target = evt.target;
+    target = evt.target;
 
   if (path != null) {
-      // Safari doesn't include Window, but it should.
-      return (path.indexOf(window) < 0) ? path.concat(window) : path;
+    // Safari doesn't include Window, but it should.
+    return (path.indexOf(window) < 0) ? path.concat(window) : path;
   }
 
   if (target === window) {
-      return [window];
+    return [window];
   }
 
   function getParents(node, memo) {
-      memo = memo || [];
-      var parentNode = node.parentNode;
+    memo = memo || [];
+    var parentNode = node.parentNode;
 
-      if (!parentNode) {
-          return memo;
-      }
-      else {
-          return getParents(parentNode, memo.concat(parentNode));
-      }
+    if (!parentNode) {
+      return memo;
+    }
+    else {
+      return getParents(parentNode, memo.concat(parentNode));
+    }
   }
 
   return [target].concat(getParents(target), window);

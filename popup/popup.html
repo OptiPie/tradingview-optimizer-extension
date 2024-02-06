@@ -28,8 +28,8 @@
             Reports</button>
         </li>
         <li class="nav-item" role="presentation">
-          <button class="nav-link disabled" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane"
-            type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false"><i class="bi-person"></i>
+          <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane"
+            type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false"><i class="bi-person"></i>
             Profile</button>
         </li>
       </ul>
@@ -78,9 +78,11 @@
                 <th data-field="strategyID" data-visible="false">ID</th>
                 <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name</th>
                 <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
-                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter" data-cell-style="symbolColumnStyle">Symbol</th>
+                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter"
+                  data-cell-style="symbolColumnStyle">Symbol</th>
                 <th data-field="timePeriod" data-sortable="false">Period</th>
-                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters</th>
+                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
+                </th>
                 <th data-field="maxprofit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
                 <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
                   data-events="openReportDetail">Report Detail</th>
@@ -98,7 +100,85 @@
           </table>
         </div>
       </div>
-      <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0"></div>
+      <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+        <div class="container" id="skeleton">
+          <div class="row justify-content-center">
+            <div class="col-10">
+              <div class="card" aria-hidden="true">
+                <div class="card-body">
+                  <h5 class="card-title placeholder-glow">
+                    <span class="placeholder col-6"></span>
+                  </h5>
+                  <p class="card-text placeholder-glow">
+                    <span class="placeholder col-7"></span>
+                    <span class="placeholder col-4"></span>
+                    <span class="placeholder col-4"></span>
+                    <span class="placeholder col-6"></span>
+                    <span class="placeholder col-8"></span>
+                  </p>
+                  <a href="#" tabindex="-1" class="btn btn-primary disabled placeholder col-6"></a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="container" id="login">
+          <div class="row justify-content-center align-items-center">
+            <div class="col-10">
+              <div class="card text-center">
+                <div class="card-body">
+                  <h5 class="card-title">Discover OptiPie Plus</h5>
+                  <p class="card-text">Go beyond the limits, optimize more earn more!</p>
+                  <button id="loginButton">
+                    <img src="/images/google-sign-in-original.png" alt="Sign in with Google">
+                  </button>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row align-items-center">
+                    <div class="col text-start">
+                      OptiPie Plus
+                    </div>
+                    <div class="col text-end">
+                      <button type="button" id="loginButton" class="btn btn-danger btn-sm"><i
+                          class="bi bi-box-arrow-right"></i>Logout</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="container" id="profile">
+          <div class="row justify-content-center">
+            <div class="col-10">
+              <div class="card text-center">
+                <h6 class="card-header" style="display: inline;">
+                  Welcome <p id="userEmail" style="display: inline;"></p>
+                </h6>
+                <div class="card-body">
+                  <h5 class="card-title">OptiPie Plus Membership</h5>
+                  <p class="card-text">Go beyond the limits, optimize more earn more!</p>
+                  <a href="#" class="btn btn-primary" id="upgradeButton">Upgrade to Plus Now<i
+                      class="bi bi-bag-heart-fill"></i></a>
+                  <p class="card-text"><small class="text-muted">Monthly from 4.99$</small></p>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row align-items-center">
+                    <div class="col text-start">
+                      OptiPie Plus
+                    </div>
+                    <div class="col text-end">
+                      <button type="button" id="logoutButton" class="btn btn-danger btn-sm"><i
+                          class="bi bi-box-arrow-right"></i>Logout</button>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -115,7 +195,8 @@
             src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=optipieapp&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
       </div>
       <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
-        <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a></li>
+        <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>
+        </li>
         <li class="ms-1"><a href="https://optipie.app/#contact-" target="_blank"
             class="nav-link px-2 text-muted">Contact</a></li>
       </ul>
