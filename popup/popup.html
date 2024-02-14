@@ -39,14 +39,17 @@
         <div class="container" id="parameters">
           <div class="row g-2 pb-2">
             <div class="col-8">
-              <label for="inputStart1" class="form-label">1. Parameter Inputs</label>
+              <label for="inputStart" class="form-label">1. Parameter Inputs</label>
+              <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
+                <option selected disabled>Select Parameter</option>
+              </select>
               <div class="input-group input-group">
                 <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">
                 <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">
               </div>
             </div>
             <div class="col-4">
-              <label for="inputStep1" class="form-label">Step Size</label>
+              <label for="inputStep" class="form-label">Step Size</label>
               <input type="text" aria-label="Step" placeholder="Step" class="form-control" id="inputStep">
             </div>
           </div>

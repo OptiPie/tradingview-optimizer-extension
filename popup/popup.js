@@ -1,3 +1,10 @@
+// Popup action event types
+const lockOptimizeButton = 'lockOptimizeButton'
+const unlockOptimizeButton = 'unlockOptimizeButton'
+const getParameterNames = 'getParameterNames'
+
+
+
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
 
@@ -59,10 +66,17 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   // popupAction type defines popup html UI actions according to event type
   if (properties[0] === 'popupAction') {
     var popupAction = values[0]
-    if (popupAction.event === 'lockOptimizeButton') {
-      document.querySelector("#optimize").setAttribute("disabled", "")
-    } else if (popupAction.event === 'unlockOptimizeButton') {
-      document.querySelector("#optimize").removeAttribute("disabled", "")
+    switch (popupAction.event) {
+      case lockOptimizeButton:
+        document.querySelector("#optimize").setAttribute("disabled", "")
+        break;
+      case unlockOptimizeButton:
+        document.querySelector("#optimize").removeAttribute("disabled", "")
+        break;
+      case getParameterNames:
+        console.log(values[0].message.parameterNames)
+        autoFillParameters(values[0].message.parameterNames);
+        break;
     }
   }
 });
@@ -183,6 +197,54 @@ profileTab.addEventListener("click", async () => {
   await createProfileTab()
 })
 
+injectPlusFeatures()
+
+function injectPlusFeatures() {
+  var user = GetMembershipInfo()
+  if (user.is_membership_active) {
+    getCurrentTab().then(function (tab) {
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['plus-injector.js']
+      });
+    })
+  } else {
+    chrome.storage.local.set({ "parameterNames": null });
+  }
+}
+
+async function getCurrentTab() {
+  let queryOptions = { active: true, lastFocusedWindow: true };
+  let [tab] = await chrome.tabs.query(queryOptions);
+  return tab;
+}
+
+function autoFillParameters(parameterNames) {
+  if (parameterNames.length < 1) {
+    chrome.storage.local.set({ "parameterNames": null });
+    return
+  }
+  var labels = document.querySelectorAll('label[for="inputStart"]')
+  labels.forEach(label => {
+    label.style.display = 'none'
+  });
+  var autoFillSelects = document.querySelectorAll("#selectAutoFill")
+  console.log(parameterNames)
+  for (let i = 0; i < autoFillSelects.length; i++) {
+    const autoFillSelect = autoFillSelects[i];
+    if (autoFillSelect.options.length > 1) {
+      continue;
+    }
+    autoFillSelect.style.display = 'block'
+    for (var j = 0; j < parameterNames.length; j++) {
+      var parameterName = parameterNames[j];
+      var parameterNameIndex = j; 
+      let option = new Option(parameterName,parameterNameIndex);
+      autoFillSelect.add(option);
+    }
+  }
+  chrome.storage.local.set({ "parameterNames": parameterNames });
+}
 
 async function createProfileTab() {
   var token = ""
@@ -208,7 +270,6 @@ async function createProfileTab() {
     document.getElementById("profile").style.display = 'block'
   }, 250);
   document.getElementById("userEmail").innerText = userInfo.email
-  console.log(userInfo)
 }
 
 async function getUserInfo(token) {
@@ -242,11 +303,9 @@ logoutButton.addEventListener("click", async () => {
   chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
   setTimeout(() => {
     document.getElementById("skeleton").style.display = 'none'
-  document.getElementById("login").style.display = 'block'  
+    document.getElementById("login").style.display = 'block'
   }, 250);
 });
-
-
 
 
 //#endregion
@@ -262,10 +321,19 @@ function addParameterBlock() {
       parameters.lastElementChild.querySelector(removeDiv).style = 'display:none;'
     }
 
-    //Add Parameter Block
+    // Add Parameter Block
     var orderOfParameter = parameterCount + 1
     var divToAppend = addParameterBlockHtml(orderOfParameter)
     parameters.insertAdjacentHTML('beforeend', divToAppend)
+
+    // Enable auto fill plus feature if eligible  
+    setTimeout(() => {
+      chrome.storage.local.get("parameterNames", ({ parameterNames }) => {
+        if (parameterNames != null && parameterNames.length > 0) {
+          autoFillParameters(parameterNames)
+        }
+      });
+    }, 250);
 
     // Increment User's Last Parameter Count State    
     chrome.storage.local.set({ "userParameterCount": parameterCount + 1 });
@@ -282,6 +350,9 @@ function addParameterBlockHtml(orderOfParameter) {
   return '<div class="row g-2 pb-2">\
     <div class="col-8">\
       <label for="inputStart" class="form-label">' + orderOfParameter + '. Parameter</label>\
+      <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">\
+      <option selected disabled>Select Parameter</option>\
+    </select>\
       <div class="input-group input-group">\
         <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">\
         <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">\
@@ -407,6 +478,7 @@ function CreateUserInputsMessage(userInputs) {
     var inputStart = parameters.children[i].querySelector("#inputStart").value
     var inputEnd = parameters.children[i].querySelector("#inputEnd").value
     var inputStep = parameters.children[i].querySelector("#inputStep").value
+    var index = parameters.children[i].querySelector("#selectAutoFill").selectedIndex - 1
 
     if (!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)) {
       err.message = "missing-parameters"
@@ -422,11 +494,20 @@ function CreateUserInputsMessage(userInputs) {
       return err
     }
 
-    userInputs.push({ start: inputStart, end: inputEnd, stepSize: inputStep })
+    userInputs.push({ start: inputStart, end: inputEnd, stepSize: inputStep, index: index})
   }
   return err
 }
 
+// plus membership
+function GetMembershipInfo() {
+  return {
+    email: "john@example.com",
+    is_membership_active: true,
+    is_membership_paused: false,
+    is_membership_canceled: false,
+  }
+}
 
 
 //#region Helpers 

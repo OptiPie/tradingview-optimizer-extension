@@ -33,6 +33,11 @@ body {
 #profile {
     display: none;
 }
+#selectAutoFill{
+    display: none;
+    margin-bottom: 0.25rem;
+    padding-left: 0.25rem;
+}
 
 .toolbar {
     margin-right: 1rem;
