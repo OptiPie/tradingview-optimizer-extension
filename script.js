@@ -37,49 +37,39 @@ async function Process() {
             ranges.push(round + 1)
         }
     });
-    // Recursion can be used but makes it more complex and less readble code 
-    switch (userInputs.length) {
-        case 1:
-            for (let i = 0; i < ranges[0]; i++) {
-                await OptimizeParams(userInputs, 0, optimizationResults)
+    
+    // Base call function
+    const baseCall = async () => {
+        for (let j = 0; j < ranges[0]; j++) {
+            await OptimizeParams(userInputs, 0, optimizationResults);
+        }
+    };
+
+    // Wrapper function for subsequent calls to build nested for loops
+    const wrapSubsequentCalls = async (baseCall, index) => {
+        if (index >= ranges.length) {
+            // start executing after wrapping everything in place
+            await baseCall()
+            return; 
+        }
+
+        const currentCall = async () => {
+            for (let j = 0; j < ranges[index]; j++) {
+                await baseCall();
+                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, j, index);
             }
-            break;
-        case 2:
-            for (let i = 0; i < ranges[1]; i++) {
-                for (let i = 0; i < ranges[0]; i++) {
-                    await OptimizeParams(userInputs, 0, optimizationResults)
-                }
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 1)
-            }
-            break;
-        case 3:
-            for (let i = 0; i < ranges[2]; i++) {
-                for (let i = 0; i < ranges[1]; i++) {
-                    for (let i = 0; i < ranges[0]; i++) {
-                        await OptimizeParams(userInputs, 0, optimizationResults)
-                    }
-                    await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 1)
-                }
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 2)
-            }
-            break;
-        case 4:
-            for (let i = 0; i < ranges[3]; i++) {
-                for (let i = 0; i < ranges[2]; i++) {
-                    for (let i = 0; i < ranges[1]; i++) {
-                        for (let i = 0; i < ranges[0]; i++) {
-                            await OptimizeParams(userInputs, 0, optimizationResults)
-                        }
-                        await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 1)
-                    }
-                    await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 2)
-                }
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 3)
-            }
-            break;
-        default:
-            break;
-    }
+        };
+
+        await wrapSubsequentCalls(currentCall, index + 1); // recursive call for the next level
+    };
+
+    // Function to execute nested loops
+    const executeNestedLoops = async () => {
+        await wrapSubsequentCalls(baseCall, 1); // Wrap and execute subsequent calls recursively starting from index 1
+    };
+
+    // Call the function to execute the nested loops
+    await executeNestedLoops()
 
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
     var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
@@ -240,8 +230,9 @@ async function ResetAndOptimizeParameter(userInputs, tvParameterIndex, optimizat
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
 async function ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, rangeIteration, tvParameterIndex) {
-    //Reset Inner
+    //Reset and optimze inner
     await ResetAndOptimizeParameter(userInputs, tvParameterIndex - 1, optimizationResults)
+    // Optimize outer 
     if (rangeIteration != ranges[tvParameterIndex] - 1) {
         await OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
     }
