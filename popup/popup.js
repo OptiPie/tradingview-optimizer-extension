@@ -33,7 +33,7 @@ optimize.addEventListener("click", async () => {
 
   var userInputs = []
   // err is handled as value
-  var err = CreateUserInputsMessage(userInputs)
+  var err = await CreateUserInputsMessage(userInputs)
 
   if (err.message == '') {
     chrome.storage.local.set({ "userInputs": userInputs });
@@ -74,7 +74,6 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         document.querySelector("#optimize").removeAttribute("disabled", "")
         break;
       case getParameterNames:
-        console.log(values[0].message.parameterNames)
         autoFillParameters(values[0].message.parameterNames);
         break;
     }
@@ -238,8 +237,8 @@ function autoFillParameters(parameterNames) {
     autoFillSelect.style.display = 'block'
     for (var j = 0; j < parameterNames.length; j++) {
       var parameterName = parameterNames[j];
-      var parameterNameIndex = j; 
-      let option = new Option(parameterName,parameterNameIndex);
+      var parameterNameIndex = j;
+      let option = new Option(parameterName, parameterNameIndex);
       autoFillSelect.add(option);
     }
   }
@@ -468,17 +467,21 @@ function addRefreshDataEventListener() {
   })
 }
 // Create user inputs message, return err.message if validation fails 
-function CreateUserInputsMessage(userInputs) {
+async function CreateUserInputsMessage(userInputs) {
   var err = new Error("")
   var parameters = document.getElementById("parameters")
 
   var parameterCount = parameters.children.length
+  var firstAutoFillOptions = parameters.children[0].querySelector("#selectAutoFill").options.length
+
+  var parameterNamesObj = await chrome.storage.local.get("parameterNames")
 
   for (let i = 0; i < parameterCount; i++) {
     var inputStart = parameters.children[i].querySelector("#inputStart").value
     var inputEnd = parameters.children[i].querySelector("#inputEnd").value
     var inputStep = parameters.children[i].querySelector("#inputStep").value
     var index = parameters.children[i].querySelector("#selectAutoFill").selectedIndex - 1
+    var parameterName = parameters.children[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
 
     if (!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)) {
       err.message = "missing-parameters"
@@ -494,7 +497,17 @@ function CreateUserInputsMessage(userInputs) {
       return err
     }
 
-    userInputs.push({ start: inputStart, end: inputEnd, stepSize: inputStep, index: index})
+    // no selection for parameter name, autofill parameter name in order for plus users 
+    if (index == -1 && firstAutoFillOptions > 1) {
+      parameterName = parameterNamesObj?.parameterNames[i]
+    }
+
+    // autoFill feature is not active
+    if (firstAutoFillOptions <= 1) {
+      parameterName = null
+    }
+
+    userInputs.push({ start: inputStart, end: inputEnd, stepSize: inputStep, parameterIndex: index, parameterName: parameterName })
   }
   return err
 }
