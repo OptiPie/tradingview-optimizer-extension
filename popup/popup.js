@@ -3,8 +3,6 @@ const lockOptimizeButton = 'lockOptimizeButton'
 const unlockOptimizeButton = 'unlockOptimizeButton'
 const getParameterNames = 'getParameterNames'
 
-
-
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
 
@@ -223,12 +221,13 @@ function autoFillParameters(parameterNames) {
     chrome.storage.local.set({ "parameterNames": null });
     return
   }
+  // hide labels, show selectors
   var labels = document.querySelectorAll('label[for="inputStart"]')
   labels.forEach(label => {
     label.style.display = 'none'
   });
+
   var autoFillSelects = document.querySelectorAll("#selectAutoFill")
-  console.log(parameterNames)
   for (let i = 0; i < autoFillSelects.length; i++) {
     const autoFillSelect = autoFillSelects[i];
     if (autoFillSelect.options.length > 1) {
@@ -241,6 +240,8 @@ function autoFillParameters(parameterNames) {
       let option = new Option(parameterName, parameterNameIndex);
       autoFillSelect.add(option);
     }
+    // default selection by paramaeter order
+    autoFillSelect.selectedIndex = i + 1
   }
   chrome.storage.local.set({ "parameterNames": parameterNames });
 }

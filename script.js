@@ -3,12 +3,13 @@ var tvInputs = document.querySelectorAll("div[data-name='indicator-properties-di
 var tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 var maxProfit = -99999
 
+var userInputs = []
+var optimizationResults = new Map();
+
 // Run Optimization Process 
 Process()
 
 async function Process() {
-    var userInputs = []
-
     //Construct UserInputs with callback
     var userInputsEventCallback = function (evt) {
         window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
@@ -19,7 +20,6 @@ async function Process() {
 
     //Wait for UserInputsEvent Callback
     await sleep(750)
-    var optimizationResults = new Map();
 
     // sort userInputs before starting optimization 
     userInputs.sort(function (a, b) {
@@ -34,7 +34,7 @@ async function Process() {
         // fix index for free users
         if (element.parameterIndex == -1) {
             element.parameterIndex = index
-        } 
+        }
         if (index == 0) {
             range = (element.end - element.start) / element.stepSize
             var roundedRange = Math.round(range * 100) / 100
@@ -45,12 +45,12 @@ async function Process() {
             ranges.push(roundedRange)
         }
     });
-    await SetUserIntervals(userInputs, optimizationResults)
+    await SetUserIntervals()
     console.log(userInputs)
     // Base call function
     const baseCall = async () => {
         for (let j = 0; j < ranges[0]; j++) {
-            await OptimizeParams(userInputs, userInputs[0].parameterIndex, optimizationResults);
+            await OptimizeParams(userInputs[0].parameterIndex);
         }
     };
 
@@ -65,7 +65,7 @@ async function Process() {
         const currentCall = async () => {
             for (let j = 0; j < ranges[index]; j++) {
                 await baseCall();
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, j, index);
+                await ResetInnerOptimizeOuterParameter(ranges, j, index);
             }
         };
 
@@ -128,7 +128,7 @@ async function Process() {
 }
 
 // Set User Given Intervals Before Optimization Starts
-async function SetUserIntervals(userInputs, optimizationResults) {
+async function SetUserIntervals() {
     for (let i = 0; i < userInputs.length; i++) {
         var userInput = userInputs[i]
         await sleep(500);
@@ -141,7 +141,7 @@ async function SetUserIntervals(userInputs, optimizationResults) {
         if (currentParameter == userInputs[i].start) {
             await IncrementParameter(userInput.parameterIndex)
         } else {
-            await OptimizeParams(userInputs, userInput.parameterIndex, optimizationResults)
+            await OptimizeParams(userInput.parameterIndex)
         }
 
         await sleep(500);
@@ -150,7 +150,7 @@ async function SetUserIntervals(userInputs, optimizationResults) {
 }
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
-async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults) {
+async function OptimizeParams(tvParameterIndex) {
     const reportData = new Object({
         netProfit: {
             amount: 0,
@@ -167,7 +167,8 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
             amount: 0,
             percent: ""
         },
-        avgerageBarsInTrades: 0
+        avgerageBarsInTrades: 0,
+        detailedParameters: []
     });
     setTimeout(() => {
         // Hover on Input Arrows  
@@ -185,20 +186,22 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
             mutations.every(function (mutation) {
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
-                        var params = GetParametersFromWindow(userInputs)
-
-                        if (!optimizationResults.has(params) && params != "ParameterOutOfRange") {
+                        var result = GetParametersFromWindow(userInputs)
+                        var parameters = result.parameters
+                        console.log(result)
+                        if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
                             ReportBuilder(reportData, mutation)
-                            optimizationResults.set(params, reportData)
+                            reportData.detailedParameters = result.detailedParameters
+                            optimizationResults.set(parameters, reportData)
                             //Update Max Profit
                             replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
                             profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
                             if (profit > maxProfit) {
                                 maxProfit = profit
                             }
-                            resolve("Optimization param added to map: " + params + " Profit: " + optimizationResults.get(params).netProfit.amount)
-                        } else if (optimizationResults.has(params)) {
-                            resolve("Optimization param already exist " + params)
+                            resolve("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
+                        } else if (optimizationResults.has(parameters)) {
+                            resolve("Optimization param already exist " + parameters)
                         } else {
                             resolve("Parameter is out of range, omitted")
                         }
@@ -237,23 +240,23 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
-async function ResetAndOptimizeParameter(userInputs, tvParameterIndex, resetValue, optimizationResults) {
+async function ResetAndOptimizeParameter(tvParameterIndex, resetValue) {
     ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
     await sleep(500)
-    await OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
+    await OptimizeParams(tvParameterIndex)
     await sleep(500)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
-async function ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, rangeIteration, index) {
+async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
     var previousTvParameterIndex = userInputs[index - 1].parameterIndex
     var tvParameterIndex = userInputs[index].parameterIndex
     var resetValue = userInputs[index - 1].start - userInputs[index - 1].stepSize
     //Reset and optimze inner
-    await ResetAndOptimizeParameter(userInputs, previousTvParameterIndex, resetValue, optimizationResults)
+    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue)
     // Optimize outer unless it's last iteration
     if (rangeIteration != ranges[index] - 1) {
-        await OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
+        await OptimizeParams(tvParameterIndex)
     }
 }
 
@@ -283,8 +286,12 @@ function IncrementParameter(tvParameterIndex) {
 }
 
 // Get Currently active parameters from Tv Strategy Options Window and format them
-function GetParametersFromWindow(userInputs) {
+function GetParametersFromWindow() {
     var parameters = "";
+    var result = new Object({
+        parameters: "",
+        detailedParameters: []
+    });
 
     for (let i = 0; i < userInputs.length; i++) {
         var userInput = userInputs[i]
@@ -297,8 +304,15 @@ function GetParametersFromWindow(userInputs) {
         } else {
             parameters += tvInputs[userInput.parameterIndex].value + ", "
         }
+        if (userInput.parameterName != null){
+            result.detailedParameters.push({
+                name : userInput.parameterName,
+                value : tvInputs[userInput.parameterIndex].value,
+            })
+        }
     }
-    return parameters
+    result.parameters = parameters
+    return result
 }
 
 // Build Report data from performance overview
