@@ -10,6 +10,7 @@ var optimizationResults = new Map();
 Process()
 
 async function Process() {
+    var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = function (evt) {
         window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
@@ -17,6 +18,13 @@ async function Process() {
     }
 
     window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
+    
+    var stopOptimizationEventCallback = function (evt) {
+        window.removeEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false)
+        shouldStop = evt.detail.event.isTrusted
+    }
+
+    window.addEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false);
 
     //Wait for UserInputsEvent Callback
     await sleep(750)
@@ -25,7 +33,7 @@ async function Process() {
     userInputs.sort(function (a, b) {
         return a.parameterIndex - b.parameterIndex;
     });
-    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 3 Parameters max, will be unlimited for plus users.
+    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 3 Parameters max, will be up to 8 for plus users.
     var ranges = [];
 
     // Create user input ranges with given step size for each parameter
@@ -46,10 +54,12 @@ async function Process() {
         }
     });
     await SetUserIntervals()
-    console.log(userInputs)
     // Base call function
     const baseCall = async () => {
         for (let j = 0; j < ranges[0]; j++) {
+            if (shouldStop){
+                break;
+            }
             await OptimizeParams(userInputs[0].parameterIndex);
         }
     };
@@ -64,6 +74,9 @@ async function Process() {
 
         const currentCall = async () => {
             for (let j = 0; j < ranges[index]; j++) {
+                if (shouldStop){
+                    break;
+                }
                 await baseCall();
                 await ResetInnerOptimizeOuterParameter(ranges, j, index);
             }
@@ -188,7 +201,6 @@ async function OptimizeParams(tvParameterIndex) {
                     if (mutation.oldValue != mutation.target.data) {
                         var result = GetParametersFromWindow(userInputs)
                         var parameters = result.parameters
-                        console.log(result)
                         if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
                             ReportBuilder(reportData, mutation)
                             reportData.detailedParameters = result.detailedParameters

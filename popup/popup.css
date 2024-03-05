@@ -11,6 +11,16 @@ body {
     margin-right: 0.4rem;
 }
 
+#stop i {
+    margin-right: 0.2rem;
+}
+
+#stop {
+    display: none;
+    margin-right: 0.6rem;
+    margin-top: 0.25rem;
+}
+
 #loginButton {
     border: none;
     cursor: pointer;

@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         document.querySelector("#optimize").removeAttribute("disabled", "")
         break;
       case getParameterNames:
-        autoFillParameters(values[0].message.parameterNames);
+        autoFillParameters(popupAction.message.parameterNames);
         break;
     }
   }
@@ -205,10 +205,35 @@ function injectPlusFeatures() {
         files: ['plus-injector.js']
       });
     })
+
+    let stopOptimization = document.getElementById("stop")
+    stopOptimization.addEventListener("click", async (clickEvent) => {
+      getCurrentTab().then(function (tab) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: stopOptimizationEvent,
+          args: [JSON.stringify(clickEvent)],
+        });
+      })
+      stopOptimization.setAttribute("disabled", "")
+    })
+    stopOptimization.style.display = 'block'
   } else {
     chrome.storage.local.set({ "parameterNames": null });
   }
 }
+
+// dispatch stop optimization event for plus users by clicking stop button
+function stopOptimizationEvent(clickEvent) {
+  var event = JSON.parse(clickEvent)
+  var evt = new CustomEvent("StopOptimizationEvent", {
+    detail: {
+      event: event
+    }
+  });
+  window.dispatchEvent(evt);
+}
+
 
 async function getCurrentTab() {
   let queryOptions = { active: true, lastFocusedWindow: true };
