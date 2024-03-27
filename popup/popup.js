@@ -29,7 +29,10 @@ addParameter.addEventListener("click", async () => {
 optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  var userInputs = []
+  var userInputs = new Object({
+    parameters : [],
+    timeFrames: [],
+  })
   // err is handled as value
   var err = await CreateUserInputsMessage(userInputs)
 
@@ -218,6 +221,37 @@ function injectPlusFeatures() {
       stopOptimization.setAttribute("disabled", "")
     })
     stopOptimization.style.display = 'block'
+
+    $('#selectTimeFrame').multiselect({
+      buttonClass: 'form-select',
+      templates: {
+        button: '<button type="button" class="multiselect dropdown-toggle" data-bs-toggle="dropdown"><span class="multiselect-selected-text"></span></button>',
+      },
+      buttonWidth: '85.75px',
+      nonSelectedText: 'Time',
+      maxHeight: "270",
+      buttonText: function (options, select) {
+        if (options.length === 0) {
+          return 'Time';
+        }
+        else if (options.length > 3) {
+          return '...';
+        }
+        else {
+          var labels = [];
+          options.each(function () {
+            if ($(this).attr('label') !== undefined) {
+              labels.push($(this).attr('label'));
+            }
+            else {
+              var timeFrameTitle = TimeFrameMap.get($(this).html())
+              labels.push(timeFrameTitle);
+            }
+          });
+          return labels.join(', ') + '';
+        }
+      }
+    });
   } else {
     chrome.storage.local.set({ "parameterNames": null });
   }
@@ -258,7 +292,7 @@ function autoFillParameters(parameterNames) {
     if (autoFillSelect.options.length > 1) {
       continue;
     }
-    autoFillSelect.style.display = 'block'
+    autoFillSelect.style.display = 'inline-block'
     for (var j = 0; j < parameterNames.length; j++) {
       var parameterName = parameterNames[j];
       var parameterNameIndex = j;
@@ -533,8 +567,17 @@ async function CreateUserInputsMessage(userInputs) {
       parameterName = null
     }
 
-    userInputs.push({ start: inputStart, end: inputEnd, stepSize: inputStep, parameterIndex: index, parameterName: parameterName })
+    userInputs.parameters.push({ start: inputStart, end: inputEnd, stepSize: inputStep, parameterIndex: index, parameterName: parameterName })
   }
+  
+  var selected = []
+  $('#selectTimeFrame option:selected').each(function () {
+    selected.push([$(this).val(), $(this).data('order')]);
+  });
+
+  if (selected.length > 0) {
+    userInputs.timeFrames = selected
+  } 
   return err
 }
 
@@ -542,12 +585,35 @@ async function CreateUserInputsMessage(userInputs) {
 function GetMembershipInfo() {
   return {
     email: "john@example.com",
-    is_membership_active: true,
+    is_membership_active: false,
     is_membership_paused: false,
     is_membership_canceled: false,
   }
 }
 
+var TimeFrameMap = new Map([
+  ['1 second', '1s'],
+  ['5 seconds', '5s'],
+  ['10 seconds', '10s'],
+  ['15 seconds', '15s'],
+  ['30 seconds', '30s'],
+  ['1 minute', '1m'],
+  ['3 minutes', '3m'],
+  ['5 minutes', '5m'],
+  ['15 minutes', '15m'],
+  ['30 minutes', '30m'],
+  ['45 minutes', '45m'],
+  ['1 hour', '1h'],
+  ['2 hours', '2h'],
+  ['3 hours', '3h'],
+  ['4 hours', '4h'],
+  ['1 day', 'D'],
+  ['1 week', 'W'],
+  ['1 month', 'M'],
+  ['3 months', '3M'],
+  ['6 months', '6M'],
+  ['12 months', '12M'],
+]);
 
 //#region Helpers 
 

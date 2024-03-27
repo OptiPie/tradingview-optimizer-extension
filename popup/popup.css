@@ -15,6 +15,19 @@ body {
     margin-right: 0.2rem;
 }
 
+#timeFrame {
+    position: absolute;
+    top: 8.5rem;
+}
+
+#timeFrame .btn-group {
+    padding-right: 0.15rem;
+}
+
+#timeFrame .btn-group .multiselect {
+    font-size: .850rem;
+}
+
 #stop {
     display: none;
     margin-right: 0.6rem;

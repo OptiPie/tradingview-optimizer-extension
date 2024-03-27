@@ -5,6 +5,7 @@
   <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
+  <link rel="stylesheet" href="/libs/bootstrap-multiselect/css/bootstrap-multiselect.min.css" />
   <link rel="stylesheet" href="popup.css">
 </head>
 
@@ -36,13 +37,41 @@
     </header>
     <div class="tab-content" id="myTabContent">
       <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+        <div class="container" id="timeFrame">
+          <select multiple="multiple" class="sm" id="selectTimeFrame">
+            <option disabled>Time</option>
+            <option value="1S">1 second</option>
+            <option value="5S">5 seconds</option>
+            <option value="10S">10 seconds</option>
+            <option value="15S">15 seconds</option>
+            <option value="30S">30 seconds</option>
+            <option value="1">1 minute</option>
+            <option value="2">2 minutes</option>
+            <option value="3">3 minutes</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="120">2 hours</option>
+            <option value="180">3 hours</option>
+            <option value="240">4 hours</option>
+            <option value="1D">1 day</option>
+            <option value="1W">1 week</option>
+            <option value="1M">1 month</option>
+            <option value="3M">3 months</option>
+            <option value="6M">6 months</option>
+            <option value="12M">12 months</option>
+          </select>  
+        </div>
         <div class="container" id="parameters">
           <div class="row g-2 pb-2">
             <div class="col-8">
               <label for="inputStart" class="form-label">1. Parameter Inputs</label>
-              <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
-                <option selected disabled>Select Parameter</option>
-              </select>
+                <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
+                  <option selected disabled>Select Parameter</option>
+                </select>  
               <div class="input-group input-group">
                 <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">
                 <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">
@@ -62,7 +91,7 @@
                   class="bi bi-plus-circle"></i>Add Parameter</button>
             </div>
             <div class="col">
-                <button type="button" class="btn btn-dark btn float-end" id="optimize"><i
+              <button type="button" class="btn btn-dark btn float-end" id="optimize"><i
                   class="bi bi-graph-up-arrow"></i>Optimize</button>
               <button type="button" class="btn btn-danger btn btn-sm float-end" id="stop"><i
                   class="bi bi-stop-circle-fill"></i>Stop</button>
@@ -211,6 +240,7 @@
   <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
   <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="/libs/bootstrap-table/js/bootstrap-table.min.js"></script>
+  <script src="/libs/bootstrap-multiselect/js/bootstrap-multiselect.min.js"></script>
   <script src="popup.js"></script>
 </body>
 

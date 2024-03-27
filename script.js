@@ -2,8 +2,9 @@
 var tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
 var tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 var maxProfit = -99999
-
+// user parameters and time frames
 var userInputs = []
+var userTimeFrames = []
 var optimizationResults = new Map();
 
 // Run Optimization Process 
@@ -14,11 +15,12 @@ async function Process() {
     //Construct UserInputs with callback
     var userInputsEventCallback = function (evt) {
         window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
-        userInputs = evt.detail
+        userInputs = evt.detail.parameters
+        userTimeFrames = evt.detail.timeFrames
     }
 
     window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
-    
+
     var stopOptimizationEventCallback = function (evt) {
         window.removeEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false)
         shouldStop = evt.detail.event.isTrusted
@@ -28,7 +30,6 @@ async function Process() {
 
     //Wait for UserInputsEvent Callback
     await sleep(750)
-
     // sort userInputs before starting optimization 
     userInputs.sort(function (a, b) {
         return a.parameterIndex - b.parameterIndex;
@@ -53,91 +54,118 @@ async function Process() {
             ranges.push(roundedRange)
         }
     });
-    await SetUserIntervals()
-    // Base call function
-    const baseCall = async () => {
-        for (let j = 0; j < ranges[0]; j++) {
-            if (shouldStop){
-                break;
-            }
-            await OptimizeParams(userInputs[0].parameterIndex);
-        }
-    };
 
-    // Wrapper function for subsequent calls to build nested for loops
-    const wrapSubsequentCalls = async (baseCall, index) => {
-        if (index >= ranges.length) {
-            // start executing after wrapping everything in place
-            await baseCall()
-            return;
-        }
+    if (userTimeFrames == null || userTimeFrames.length <= 0) {
+        // no time frame selection or free user flow
+        await OptimizeStrategy()
+    } else {
+        for (let i = 0; i < userTimeFrames.length; i++) {
+            // open time intervals dropdown and change it
+            await sleep(500)
+            document.querySelector("#header-toolbar-intervals div[class*='menuContent']").click()
 
-        const currentCall = async () => {
-            for (let j = 0; j < ranges[index]; j++) {
-                if (shouldStop){
+            var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+            await sleep(2000)
+            document.querySelector(timeIntervalQuery).click()
+            await sleep(2000)
+            
+            await OptimizeStrategy()
+            // reset global variables for new strategy optimization and for new timeframe
+            optimizationResults = new Map();
+            maxProfit = -99999
+        }
+    }
+    
+    // Optimize strategey for the currently chosen timeframe
+    async function OptimizeStrategy() {
+        await SetUserIntervals()
+
+        // Base call function
+        const baseCall = async () => {
+            for (let j = 0; j < ranges[0]; j++) {
+                if (shouldStop) {
                     break;
                 }
-                await baseCall();
-                await ResetInnerOptimizeOuterParameter(ranges, j, index);
+                await OptimizeParams(userInputs[0].parameterIndex);
             }
         };
 
-        await wrapSubsequentCalls(currentCall, index + 1); // recursive call for the next level
-    };
+        // Wrapper function for subsequent calls to build nested for loops
+        const wrapSubsequentCalls = async (baseCall, index) => {
+            if (index >= ranges.length) {
+                // start executing after wrapping everything in place
+                await baseCall()
+                return;
+            }
 
-    // Function to execute nested loops
-    const executeNestedLoops = async () => {
-        await wrapSubsequentCalls(baseCall, 1); // Wrap and execute subsequent calls recursively starting from index 1
-    };
+            const currentCall = async () => {
+                for (let j = 0; j < ranges[index]; j++) {
+                    if (shouldStop) {
+                        break;
+                    }
+                    await baseCall();
+                    await ResetInnerOptimizeOuterParameter(ranges, j, index);
+                }
+            };
 
-    // Call the function to execute the nested loops
-    await executeNestedLoops()
+            await wrapSubsequentCalls(currentCall, index + 1); // recursive call for the next level
+        };
 
-    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
-    var strategyTimePeriod = ""
+        // Function to execute nested loops
+        const executeNestedLoops = async () => {
+            await wrapSubsequentCalls(baseCall, 1); // Wrap and execute subsequent calls recursively starting from index 1
+        };
 
-    var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
-    if (timePeriodGroup.length > 1) {
-        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+        // Call the function to execute the nested loops
+        await executeNestedLoops()
 
-        // Check if favorite time periods exist  
-        if (selectedPeriod != null) {
-            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
-        } else {
-            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+        //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+        var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+        var strategyTimePeriod = ""
+
+        var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+        if (timePeriodGroup.length > 1) {
+            selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+
+            // Check if favorite time periods exist  
+            if (selectedPeriod != null) {
+                strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
+            } else {
+                strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+            }
         }
+
+        var title = document.querySelector("title")?.innerText
+        var strategySymbol = title.split(' ')[0]
+        var optimizationResultsObject = Object.fromEntries(optimizationResults);
+        var userInputsToString = ""
+
+        userInputs.forEach((element, index) => {
+            if (element.parameterName != null) {
+                userInputsToString += element.parameterName + ": "
+            }
+            if (index == userInputs.length - 1) {
+                userInputsToString += element.start + "→" + element.end
+            } else {
+                userInputsToString += element.start + "→" + element.end + " "
+            }
+        })
+
+        var reportDataMessage = {
+            "strategyID": Date.now(),
+            "created": Date.now(),
+            "strategyName": strategyName,
+            "symbol": strategySymbol,
+            "timePeriod": strategyTimePeriod,
+            "parameters": userInputsToString,
+            "maxProfit": maxProfit,
+            "reportData": optimizationResultsObject
+        }
+        // Send Optimization Report to injector
+        var evt = new CustomEvent("ReportDataEvent", { detail: reportDataMessage });
+        window.dispatchEvent(evt);
     }
 
-    var title = document.querySelector("title")?.innerText
-    var strategySymbol = title.split(' ')[0]
-    var optimizationResultsObject = Object.fromEntries(optimizationResults);
-    var userInputsToString = ""
-
-    userInputs.forEach((element, index) => {
-        if (element.parameterName != null) {
-            userInputsToString += element.parameterName + ": "
-        }
-        if (index == userInputs.length - 1) {
-            userInputsToString += element.start + "→" + element.end
-        } else {
-            userInputsToString += element.start + "→" + element.end + " "
-        }
-    })
-
-    var reportDataMessage = {
-        "strategyID": Date.now(),
-        "created": Date.now(),
-        "strategyName": strategyName,
-        "symbol": strategySymbol,
-        "timePeriod": strategyTimePeriod,
-        "parameters": userInputsToString,
-        "maxProfit": maxProfit,
-        "reportData": optimizationResultsObject
-    }
-    // Send Optimization Report to injector
-    var evt = new CustomEvent("ReportDataEvent", { detail: reportDataMessage });
-    window.dispatchEvent(evt);
 }
 
 // Set User Given Intervals Before Optimization Starts
@@ -316,10 +344,10 @@ function GetParametersFromWindow() {
         } else {
             parameters += tvInputs[userInput.parameterIndex].value + ", "
         }
-        if (userInput.parameterName != null){
+        if (userInput.parameterName != null) {
             result.detailedParameters.push({
-                name : userInput.parameterName,
-                value : tvInputs[userInput.parameterIndex].value,
+                name: userInput.parameterName,
+                value: tvInputs[userInput.parameterIndex].value,
             })
         }
     }

@@ -26,9 +26,6 @@ var reportDataEventCallback = function (evt) {
       }
     });
   }
-
-
-  window.removeEventListener("ReportDataEvent", reportDataEventCallback, false)
 }
 
 // Add ReportData Callback if script.js injected successfully
