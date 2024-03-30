@@ -147,7 +147,7 @@ async function Process() {
             if (index == userInputs.length - 1) {
                 userInputsToString += element.start + "→" + element.end
             } else {
-                userInputsToString += element.start + "→" + element.end + " "
+                userInputsToString += element.start + "→" + element.end + "<br>"
             }
         })
 

@@ -16,6 +16,7 @@ body {
 }
 
 #timeFrame {
+    display: none;
     position: absolute;
     top: 8.5rem;
 }

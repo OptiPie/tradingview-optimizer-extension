@@ -34,17 +34,20 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.type === "clearAllCachedAuthTokens") {
-      chrome.identity.getAuthToken({ interactive: false }, function (token) {
-        chrome.identity.removeCachedAuthToken({ token: token }, function () {});
-        chrome.identity.clearAllCachedAuthTokens();
-      });
+    chrome.identity.getAuthToken({ interactive: false }, function (token) {
+      chrome.identity.removeCachedAuthToken({ token: token }, function () { });
+      chrome.identity.clearAllCachedAuthTokens();
+    });
   }
   return true
 });
 
 
 chrome.runtime.onStartup.addListener(() => {
-  chrome.storage.local.set({ "userParameterCount": 1, "inputStart0": null, "inputEnd0": null, "inputStep0": null }, function () {
+  chrome.storage.local.set({
+    "userParameterCount": 1, "inputStart0": null, "inputEnd0": null, "inputStep0": null,
+    "userTimeFrames": null, "selectAutoFill0": null
+  }, function () {
     console.log("User parameter count state set to 0 at start up");
   });
 })

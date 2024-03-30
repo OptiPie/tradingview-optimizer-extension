@@ -5,32 +5,29 @@ const getParameterNames = 'getParameterNames'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
+let freeParameterLimit = 4
+let plusParameterLimit = 8
 
 // Initialize popup html according to last user parameter count state
 chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
   for (let i = 1; i < userParameterCount; i++) {
-    addParameterBlock()
+    addParameterBlock(plusParameterLimit)
   }
   setLastUserParameters(userParameterCount)
 });
-
 // Tab event listeners to change body width 
 addTabEventListeners()
 
 // Save Inputs EventListener for first parameters as default
 addSaveInputEventListener(0)
-
-// Add Parameter Button Event Listener
-addParameter.addEventListener("click", async () => {
-  addParameterBlock()
-});
+addSaveAutoFillSelectionListener(0)
 
 // Add start optimize event listener
 optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   var userInputs = new Object({
-    parameters : [],
+    parameters: [],
     timeFrames: [],
   })
   // err is handled as value
@@ -197,11 +194,36 @@ profileTab.addEventListener("click", async () => {
   await createProfileTab()
 })
 
-injectPlusFeatures()
+ProcessPlusFeatures();
 
-function injectPlusFeatures() {
-  var user = GetMembershipInfo()
+// wrap plus feature injector with google auth
+async function ProcessPlusFeatures(){
+  var token = ""
+  await new Promise(resolve => {
+    chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
+      if (Object.keys(response).length > 0) {
+        token = response.token
+      }
+      resolve();
+    })
+  })
+  if (token === "") {
+    // clean parameter names
+    chrome.storage.local.set({ "parameterNames": null });
+    return
+  }
+  var userInfo;
+  userInfo = await getUserInfo(token)
+  await injectPlusFeatures(userInfo.email)  
+}
+
+// inject plus features for eligible users
+async function injectPlusFeatures(userEmail) {
+  var parameterLimit = freeParameterLimit
+  var user = await GetMembershipInfo(userEmail)
   if (user.is_membership_active) {
+    // change parameter limit up to 8
+    parameterLimit = plusParameterLimit
     getCurrentTab().then(function (tab) {
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -250,31 +272,54 @@ function injectPlusFeatures() {
           });
           return labels.join(', ') + '';
         }
+      },
+      onChange: async function (option, checked, select) {
+        var timeFrameValue = option[0].value
+        var userTimeFramesObj = await chrome.storage.local.get("userTimeFrames")
+        var userTimeFrames = []
+        if (Object.keys(userTimeFramesObj).length > 0 && userTimeFramesObj.userTimeFrames != null) {
+          userTimeFrames = userTimeFramesObj.userTimeFrames
+        }
+        if (checked) {
+          userTimeFrames.push(timeFrameValue)
+        } else {
+          for (let i = 0; i < userTimeFrames.length; i++) {
+            if (userTimeFrames[i] == timeFrameValue) {
+              userTimeFrames.splice(i, 1)
+            }
+          }
+        }
+        chrome.storage.local.set({ "userTimeFrames": userTimeFrames })
       }
     });
-  } else {
-    chrome.storage.local.set({ "parameterNames": null });
+    chrome.storage.local.get("userTimeFrames", ({ userTimeFrames }) => {
+      $('#selectTimeFrame').multiselect('select', userTimeFrames, false);
+    });
+    document.getElementById("timeFrame").style.display = 'block'
+  }
+  // Add Parameter Button Event Listener, with 'parameterLimit'
+  addParameter.addEventListener("click", async () => {
+    addParameterBlock(parameterLimit)
+  });
+
+  // dispatch stop optimization event for plus users by clicking stop button
+  function stopOptimizationEvent(clickEvent) {
+    var event = JSON.parse(clickEvent)
+    var evt = new CustomEvent("StopOptimizationEvent", {
+      detail: {
+        event: event
+      }
+    });
+    window.dispatchEvent(evt);
   }
 }
-
-// dispatch stop optimization event for plus users by clicking stop button
-function stopOptimizationEvent(clickEvent) {
-  var event = JSON.parse(clickEvent)
-  var evt = new CustomEvent("StopOptimizationEvent", {
-    detail: {
-      event: event
-    }
-  });
-  window.dispatchEvent(evt);
-}
-
 
 async function getCurrentTab() {
   let queryOptions = { active: true, lastFocusedWindow: true };
   let [tab] = await chrome.tabs.query(queryOptions);
   return tab;
 }
-
+//
 function autoFillParameters(parameterNames) {
   if (parameterNames.length < 1) {
     chrome.storage.local.set({ "parameterNames": null });
@@ -299,8 +344,14 @@ function autoFillParameters(parameterNames) {
       let option = new Option(parameterName, parameterNameIndex);
       autoFillSelect.add(option);
     }
-    // default selection by paramaeter order
-    autoFillSelect.selectedIndex = i + 1
+
+    chrome.storage.local.get(["selectAutoFill" + i], function (result) {
+      var userValue = i
+      if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= parameterNames.length - 1) {
+        userValue = result["selectAutoFill" + i]
+      }
+      autoFillSelect.value = userValue
+    });
   }
   chrome.storage.local.set({ "parameterNames": parameterNames });
 }
@@ -317,16 +368,14 @@ async function createProfileTab() {
   })
   if (token === "") {
     setTimeout(() => {
-      document.getElementById("skeleton").style.display = 'none'
-      document.getElementById("login").style.display = 'block'
+      hideSkeleton("login")
     }, 250);
     return
   }
   var userInfo;
   userInfo = await getUserInfo(token)
   setTimeout(() => {
-    document.getElementById("skeleton").style.display = 'none'
-    document.getElementById("profile").style.display = 'block'
+    hideSkeleton("profile")
   }, 250);
   document.getElementById("userEmail").innerText = userInfo.email
 }
@@ -346,14 +395,12 @@ async function getUserInfo(token) {
 let loginButton = document.getElementById("loginButton");
 loginButton.addEventListener("click", async () => {
   chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: true }, function (response) {
-    console.log(response)
   })
 });
 
 let logoutButton = document.getElementById("logoutButton");
 logoutButton.addEventListener("click", async () => {
-  document.getElementById("skeleton").style.display = 'block'
-  document.getElementById("profile").style.display = 'none'
+  showSkeleton("profile")
   chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
     var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
     window.fetch(url);
@@ -361,19 +408,18 @@ logoutButton.addEventListener("click", async () => {
 
   chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
   setTimeout(() => {
-    document.getElementById("skeleton").style.display = 'none'
-    document.getElementById("login").style.display = 'block'
+    hideSkeleton("login")
   }, 250);
 });
 
 
 //#endregion
 
-function addParameterBlock() {
+function addParameterBlock(parameterLimit) {
   var parameters = document.getElementById("parameters")
   var parameterCount = parameters.children.length
 
-  if (parameterCount < 4) {
+  if (parameterCount < parameterLimit) {
     // Hide Last Remove Div for added parameters
     if (parameterCount > 1) {
       var removeDiv = "#remove" + parameterCount + ""
@@ -402,6 +448,7 @@ function addParameterBlock() {
 
     // Save Inputs EventListener for rest of the parameters
     addSaveInputEventListener(parameterCount)
+    addSaveAutoFillSelectionListener(parameterCount)
   }
 }
 
@@ -449,7 +496,8 @@ function addRemoveParameterBlockEventListener(parameterCount) {
     var start = "inputStart" + parameterCount
     var end = "inputEnd" + parameterCount
     var step = "inputStep" + parameterCount
-    chrome.storage.local.set({ [start]: null, [end]: null, [step]: null });
+    var autoFill = "selectAutoFill" + parameterCount
+    chrome.storage.local.set({ [start]: null, [end]: null, [step]: null, [autoFill]: null });
 
 
     //Show previously added hidden remove button
@@ -486,6 +534,9 @@ async function setLastUserParameters(parameterCount) {
       }
       document.querySelectorAll("#inputStep")[i].value = userValue
     });
+    setTimeout(() => {
+
+    }, 100);
   }
 }
 // Save last user inputs to storage as state
@@ -504,6 +555,14 @@ function addSaveInputEventListener(parameterCount) {
     var step = "inputStep" + parameterCount
     var value = document.querySelectorAll("#inputStep")[parameterCount].value
     chrome.storage.local.set({ [step]: value });
+  });
+}
+// Save last user selected time frame(s) as state
+function addSaveAutoFillSelectionListener(parameterCount) {
+  document.querySelectorAll("#selectAutoFill")[parameterCount].addEventListener("change", (event) => {
+    var key = "selectAutoFill" + parameterCount
+    var value = event.target.value
+    chrome.storage.local.set({ [key]: value });
   });
 }
 // Dynamically change html body size 
@@ -569,7 +628,7 @@ async function CreateUserInputsMessage(userInputs) {
 
     userInputs.parameters.push({ start: inputStart, end: inputEnd, stepSize: inputStep, parameterIndex: index, parameterName: parameterName })
   }
-  
+
   var selected = []
   $('#selectTimeFrame option:selected').each(function () {
     selected.push([$(this).val(), $(this).data('order')]);
@@ -577,20 +636,44 @@ async function CreateUserInputsMessage(userInputs) {
 
   if (selected.length > 0) {
     userInputs.timeFrames = selected
-  } 
+  }
   return err
 }
 
 // plus membership
-function GetMembershipInfo() {
-  return {
-    email: "john@example.com",
-    is_membership_active: false,
-    is_membership_paused: false,
-    is_membership_canceled: false,
-  }
-}
+async function GetMembershipInfo(userEmail) {
 
+  const opGetMembershipInfoURL = "https://api-stg.optipie.app/api/v1/user/membership/"
+  var request = opGetMembershipInfoURL + userEmail
+  // Make a GET request to auth api
+  var user = await fetch(request)
+    .then(response => {
+      if (!response.ok) {
+        if (response.status === 404) {
+          return {
+            data: {
+              email: userEmail,
+              is_membership_active: false,  
+            }
+          }
+        }
+        else {
+          throw new Error('Network response was not ok');
+        }
+      }
+      return response.json();
+    })
+    .then(response => {
+      return response.data
+    })
+    .catch(error => {
+      console.error("Error: ", error)
+      return null
+    });
+
+  return user;
+}
+// Timeframe mapping from long to short name
 var TimeFrameMap = new Map([
   ['1 second', '1s'],
   ['5 seconds', '5s'],
@@ -598,6 +681,7 @@ var TimeFrameMap = new Map([
   ['15 seconds', '15s'],
   ['30 seconds', '30s'],
   ['1 minute', '1m'],
+  ['2 minutes', '2m'],
   ['3 minutes', '3m'],
   ['5 minutes', '5m'],
   ['15 minutes', '15m'],
@@ -616,6 +700,16 @@ var TimeFrameMap = new Map([
 ]);
 
 //#region Helpers 
+
+function hideSkeleton(elementToShow) {
+  document.getElementById("skeleton").style.display = 'none'
+  document.getElementById(elementToShow).style.display = 'block'
+}
+
+function showSkeleton(elementToHide) {
+  document.getElementById("skeleton").style.display = 'block'
+  document.getElementById(elementToHide).style.display = 'none'
+}
 
 function isNumeric(str) {
   if (typeof str != "string") {
