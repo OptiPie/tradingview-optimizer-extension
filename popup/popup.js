@@ -534,9 +534,6 @@ async function setLastUserParameters(parameterCount) {
       }
       document.querySelectorAll("#inputStep")[i].value = userValue
     });
-    setTimeout(() => {
-
-    }, 100);
   }
 }
 // Save last user inputs to storage as state
