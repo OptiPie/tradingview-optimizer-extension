@@ -29,6 +29,18 @@ body {
     font-size: .850rem;
 }
 
+#skeleton-time-frame{
+    display: none;
+    position: absolute;
+    top: 8.5rem;
+}
+
+#skeleton-stop{
+    display: none;
+    position: absolute;
+    padding-top: 0.25rem;
+}
+
 #stop {
     display: none;
     margin-right: 0.6rem;

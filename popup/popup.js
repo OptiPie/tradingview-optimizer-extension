@@ -197,7 +197,7 @@ profileTab.addEventListener("click", async () => {
 ProcessPlusFeatures();
 
 // wrap plus feature injector with google auth
-async function ProcessPlusFeatures(){
+async function ProcessPlusFeatures() {
   var token = ""
   await new Promise(resolve => {
     chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
@@ -210,11 +210,15 @@ async function ProcessPlusFeatures(){
   if (token === "") {
     // clean parameter names
     chrome.storage.local.set({ "parameterNames": null });
+    // Add Parameter Button Event Listener, with 'parameterLimit'
+    addParameter.addEventListener("click", async () => {
+      addParameterBlock(freeParameterLimit)
+    });
     return
   }
   var userInfo;
   userInfo = await getUserInfo(token)
-  await injectPlusFeatures(userInfo.email)  
+  await injectPlusFeatures(userInfo.email)
 }
 
 // inject plus features for eligible users
@@ -222,6 +226,8 @@ async function injectPlusFeatures(userEmail) {
   var parameterLimit = freeParameterLimit
   var user = await GetMembershipInfo(userEmail)
   if (user.is_membership_active) {
+    showSkeleton("timeFrame", "time-frame")
+    showSkeleton("stop", "stop")
     // change parameter limit up to 8
     parameterLimit = plusParameterLimit
     getCurrentTab().then(function (tab) {
@@ -242,7 +248,11 @@ async function injectPlusFeatures(userEmail) {
       })
       stopOptimization.setAttribute("disabled", "")
     })
-    stopOptimization.style.display = 'block'
+    setTimeout(() => {
+      hideSkeleton("stop", "stop")
+      stopOptimization.style.display = 'block'
+    }, 300);
+
 
     $('#selectTimeFrame').multiselect({
       buttonClass: 'form-select',
@@ -295,7 +305,10 @@ async function injectPlusFeatures(userEmail) {
     chrome.storage.local.get("userTimeFrames", ({ userTimeFrames }) => {
       $('#selectTimeFrame').multiselect('select', userTimeFrames, false);
     });
-    document.getElementById("timeFrame").style.display = 'block'
+    setTimeout(() => {
+      hideSkeleton("timeFrame", "time-frame")
+      document.getElementById("timeFrame").style.display = 'block'
+    }, 200);
   }
   // Add Parameter Button Event Listener, with 'parameterLimit'
   addParameter.addEventListener("click", async () => {
@@ -368,14 +381,14 @@ async function createProfileTab() {
   })
   if (token === "") {
     setTimeout(() => {
-      hideSkeleton("login")
+      hideSkeleton("login", "profile")
     }, 250);
     return
   }
   var userInfo;
   userInfo = await getUserInfo(token)
   setTimeout(() => {
-    hideSkeleton("profile")
+    hideSkeleton("profile", "profile")
   }, 250);
   document.getElementById("userEmail").innerText = userInfo.email
 }
@@ -400,7 +413,7 @@ loginButton.addEventListener("click", async () => {
 
 let logoutButton = document.getElementById("logoutButton");
 logoutButton.addEventListener("click", async () => {
-  showSkeleton("profile")
+  showSkeleton("profile", "profile")
   chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
     var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
     window.fetch(url);
@@ -408,7 +421,7 @@ logoutButton.addEventListener("click", async () => {
 
   chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
   setTimeout(() => {
-    hideSkeleton("login")
+    hideSkeleton("login", "profile")
   }, 250);
 });
 
@@ -650,7 +663,7 @@ async function GetMembershipInfo(userEmail) {
           return {
             data: {
               email: userEmail,
-              is_membership_active: false,  
+              is_membership_active: false,
             }
           }
         }
@@ -698,13 +711,13 @@ var TimeFrameMap = new Map([
 
 //#region Helpers 
 
-function hideSkeleton(elementToShow) {
-  document.getElementById("skeleton").style.display = 'none'
+function hideSkeleton(elementToShow, skeletonId) {
+  document.getElementById("skeleton-" + skeletonId).style.display = 'none'
   document.getElementById(elementToShow).style.display = 'block'
 }
 
-function showSkeleton(elementToHide) {
-  document.getElementById("skeleton").style.display = 'block'
+function showSkeleton(elementToHide, skeletonId) {
+  document.getElementById("skeleton-" + skeletonId).style.display = 'block'
   document.getElementById(elementToHide).style.display = 'none'
 }
 
