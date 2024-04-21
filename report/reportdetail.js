@@ -6,9 +6,12 @@ let strategyID = params.strategyID;
 
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
   var reportDetailData = []
+  var timePeriodValue = Object.values(item)[0].timePeriod
   var values = Object.values(item)[0].reportData
   var detailedParameters = Object.values(values)[0].detailedParameters
-
+  var timePeriod = document.querySelector("#timePeriod")
+  timePeriod.textContent = timePeriodValue
+  
   for (const [key, value] of Object.entries(values)) {
     var reportDetail = {
       "parameters": key,
@@ -56,7 +59,7 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
 });
 
 // hides all drop down parameters initially
-function hideDropDownParameters(){
+function hideDropDownParameters() {
   var dropdownLabels = document.querySelectorAll(".dropdown-menu-right label")
   for (let i = 0; i < dropdownLabels.length; i++) {
     var label = dropdownLabels[i]

@@ -3,6 +3,10 @@
     padding-right: 7rem !important;
 }
 
+#timePeriod{
+    font-weight: bold;
+}
+
 #download-report i{
     margin-right: 0.2rem;
 }

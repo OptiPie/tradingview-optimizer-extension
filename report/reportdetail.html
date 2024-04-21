@@ -19,17 +19,31 @@
         </a>
       </header>
 
-      <div id="toolbar">
-        <button type="button" class="btn btn-primary btn float-end" id="download-report"><i
-            class="bi bi-cloud-download"></i>
-          Download
-          Report</button>
+      <div class="container" id="toolbar">
+        <div class="row align-items-center">
+          <div class="col-2">
+            <span>
+              Period:
+            </span>
+          </div>
+          <div class="col-2">
+            <span id="timePeriod">
+              1 hour
+              <span>
+          </div>
+          <div class="col-8">
+            <button type="button" class="btn btn-primary btn float-end" id="download-report"><i
+                class="bi bi-cloud-download"></i>
+              Download
+              Report</button>
+          </div>
+        </div>
       </div>
 
       <table id="table" data-toggle="table" data-sort-class="table-active" data-sortable="true" data-toolbar="#toolbar"
         data-toolbar-align="right" data-custom-sort="customSort" data-pagination="true" data-search="true"
-        data-show-columns="true" data-search-align="left" data-buttons-align="left"
-        data-visible-search="true" style="font-size: 16px;">
+        data-show-columns="true" data-search-align="left" data-buttons-align="left" data-visible-search="true"
+        style="font-size: 16px;">
         <thead>
           <tr>
             <th data-field="parameters" data-sortable="true">Parameters</th>
@@ -54,7 +68,6 @@
           </tr>
         </thead>
       </table>
-
     </div>
 
     <div class="container-fluid">
