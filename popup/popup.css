@@ -58,6 +58,10 @@ body {
     margin-right: 0.4rem;
 }
 
+#upgradeButton {
+    margin-top: 0.5rem;
+}
+
 #upgradeButton i {
     margin-left: 0.4rem;
 }
@@ -69,6 +73,35 @@ body {
 #profile {
     display: none;
 }
+
+#paidUser {
+    display: none;
+}
+
+#benefits {
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+#benefits li{ 
+    background-color: #d1e7dd82; 
+}
+
+#benefits li i{
+    margin-right: 0.3rem;
+}
+
+#membershipRenewal span h6{
+    margin-top: 0.3rem;
+}
+
+#membershipRenewal button{
+    margin-top: 0.3rem;
+}
+
+#membershipRenewal button i{
+    margin-right: 0.3rem;
+}
+
 #selectAutoFill{
     display: none;
     margin-bottom: 0.25rem;

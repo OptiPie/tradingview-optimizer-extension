@@ -390,7 +390,13 @@ async function createProfileTab() {
   setTimeout(() => {
     hideSkeleton("profile", "profile")
   }, 250);
-  document.getElementById("userEmail").innerText = userInfo.email
+  document.querySelector("#freeUser #userEmail").innerText = userInfo.email
+  var user = await GetMembershipInfo(userInfo.email)
+  if (user.is_membership_active) {
+    document.getElementById("freeUser").style.display = 'none'
+    document.getElementById("paidUser").style.display = 'flex'
+    document.querySelector("#paidUser #userEmail").innerText = userInfo.email
+  }
 }
 
 async function getUserInfo(token) {
@@ -411,19 +417,22 @@ loginButton.addEventListener("click", async () => {
   })
 });
 
-let logoutButton = document.getElementById("logoutButton");
-logoutButton.addEventListener("click", async () => {
-  showSkeleton("profile", "profile")
-  chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
-    var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
-    window.fetch(url);
-  })
+let logoutButtons = document.querySelectorAll("#logoutButton")
+logoutButtons.forEach(logoutButton => {
+  logoutButton.addEventListener("click", async () => {
+    showSkeleton("profile", "profile")
+    chrome.runtime.sendMessage({ type: "getAuthToken", isInteractive: false }, function (response) {
+      var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
+      window.fetch(url);
+    })
+  
+    chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
+    setTimeout(() => {
+      hideSkeleton("login", "profile")
+    }, 250);
+  });
+})
 
-  chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
-  setTimeout(() => {
-    hideSkeleton("login", "profile")
-  }, 250);
-});
 
 
 //#endregion

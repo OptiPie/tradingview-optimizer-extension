@@ -171,8 +171,30 @@
             <div class="col-10">
               <div class="card text-center">
                 <div class="card-body">
-                  <h5 class="card-title">Discover OptiPie Plus</h5>
-                  <p class="card-text">Go beyond the limits, optimize more earn more!</p>
+                  <h5 class="card-title">Discover OptiPie Plus Benefits</h5>
+                  <span class="card-text">Go beyond the limits, Try Plus Now!</span>
+                  <div class="card-body">
+                    <div class="card text-start border-light" id="benefits">
+                      <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
+                            Report</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 4 Parameters</h6>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                   <button id="loginButton">
                     <img src="/images/google-sign-in-original.png" alt="Sign in with Google">
                   </button>
@@ -193,18 +215,40 @@
           </div>
         </div>
         <div class="container" id="profile">
-          <div class="row justify-content-center">
+          <div class="row justify-content-center" id="freeUser">
             <div class="col-10">
               <div class="card text-center">
                 <h6 class="card-header" style="display: inline;">
-                  Welcome <p id="userEmail" style="display: inline;"></p>
+                  Welcome, <p id="userEmail" style="display: inline;"></p>
                 </h6>
                 <div class="card-body">
                   <h5 class="card-title">OptiPie Plus Membership</h5>
-                  <p class="card-text">Go beyond the limits, optimize more earn more!</p>
-                  <a href="#" class="btn btn-primary" id="upgradeButton">Upgrade to Plus Now<i
-                      class="bi bi-bag-heart-fill"></i></a>
-                  <p class="card-text"><small class="text-muted">Monthly from 4.99$</small></p>
+                  <div class="card-body">
+                    <div class="card text-start border-light" id="benefits">
+                      <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
+                            Report</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 8 Parameters</h6>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <span class="card-text">Go beyond the limits, Try Now!</span>
+                  <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" class="btn btn-primary"
+                    id="upgradeButton">Upgrade to Plus<i class="bi bi-bag-heart-fill"></i></a>
+                  <p class="card-text"><small class="text-muted">Monthly from 5$</small></p>
                 </div>
                 <div class="card-footer text-muted">
                   <div class="row align-items-center">
@@ -215,7 +259,64 @@
                       <button type="button" id="logoutButton" class="btn btn-danger btn-sm"><i
                           class="bi bi-box-arrow-right"></i>Logout</button>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row justify-content-center" id="paidUser">
+            <div class="col-10">
+              <div class="card text-center">
+                <h6 class="card-header" style="display: inline;">
+                  Welcome, <p id="userEmail" style="display: inline;"></p>
+                </h6>
+                <div class="card-body">
+                  <h5 class="card-title">OptiPie Plus Benefits</h5>
+                  <div class="card-body">
+                    <div class="card text-start border-light" id="benefits">
+                      <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
+                            Report</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 8 Parameters</h6>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="container" id="membershipRenewal">
+                    <div class="row">
+                      <div class="col-6">
+                        <span class="badge text-dark">Membership Renewal<h6 class="text-start">05.15.2024</h6></span>
+                      </div>
+                      <div class="col-6">
+                        <button type="button" class="btn btn-primary btn-sm"><i class="bi bi-person"></i>Manage
+                          Account</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
+
+                <div class="card-footer text-muted">
+                  <div class="row align-items-center">
+                    <div class="col text-start">
+                      OptiPie Plus
+                    </div>
+                    <div class="col text-end">
+                      <button type="button" id="logoutButton" class="btn btn-danger btn-sm"><i
+                          class="bi bi-box-arrow-right"></i>Logout</button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -253,7 +253,7 @@ async function OptimizeParams(tvParameterIndex) {
             });
         });
 
-        var element = document.querySelector("div[class*=backtesting-content-wrapper]")
+        var element = document.querySelector("div[class*=backtesting][class*=deep-history]")
         let options = {
             childList: true,
             subtree: true,
