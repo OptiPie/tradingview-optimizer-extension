@@ -396,6 +396,13 @@ async function createProfileTab() {
     document.getElementById("freeUser").style.display = 'none'
     document.getElementById("paidUser").style.display = 'flex'
     document.querySelector("#paidUser #userEmail").innerText = userInfo.email
+    var membershipPeriodEndDate = new Date(user.current_membership_period_end * 1000)
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var year = membershipPeriodEndDate.getFullYear();
+    var month = months[membershipPeriodEndDate.getMonth()];
+    var date = membershipPeriodEndDate.getDate();
+    var time = date + ' ' + month + ' ' + year + ' '
+    document.querySelector("#membershipRenewal h6").textContent = time;
   }
 }
 
