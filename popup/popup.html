@@ -13,8 +13,13 @@
   <div class="container-fluid">
     <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
       <a href="https://optipie.app" target="_blank"
-        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none" id="normalLogo">
         <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+        <span class="fs-4"></span>
+      </a>
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none" id="plusLogo">
+        <img src="/images/optipie_plus_app_logo.png" alt="OptiPie Plus logo" width="208" height="96">
         <span class="fs-4"></span>
       </a>
       <ul class="nav nav-tabs" id="myTab" role="tablist">
@@ -170,9 +175,11 @@
           <div class="row justify-content-center align-items-center">
             <div class="col-10">
               <div class="card text-center">
+                <div class="container" id="plusLogoInline">
+                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">  
+                </div>
                 <div class="card-body">
                   <h5 class="card-title">Discover OptiPie Plus Benefits</h5>
-                  <span class="card-text">Go beyond the limits, Try Plus Now!</span>
                   <div class="card-body">
                     <div class="card text-start border-light" id="benefits">
                       <ul class="list-group list-group-flush">
@@ -195,6 +202,7 @@
                       </ul>
                     </div>
                   </div>
+                  <span class="card-text">Go beyond the limits, Try Plus Now!</span>
                   <button id="loginButton">
                     <img src="/images/google-sign-in-original.png" alt="Sign in with Google">
                   </button>
@@ -221,8 +229,10 @@
                 <h6 class="card-header" style="display: inline;">
                   Welcome, <p id="userEmail" style="display: inline;"></p>
                 </h6>
+                <div class="container" id="plusLogoInline">
+                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">  
+                </div>
                 <div class="card-body">
-                  <h5 class="card-title">OptiPie Plus Membership</h5>
                   <div class="card-body">
                     <div class="card text-start border-light" id="benefits">
                       <ul class="list-group list-group-flush">
@@ -336,8 +346,7 @@
         <span class=" mb-md-0 text-muted">&copy; 2022 OptiPie</span>
       </div>
       <div class="col-md-4 d-flex">
-        <a href="https://www.buymeacoffee.com/optipieapp" target="_blank" rel="noopener noreferrer"><img
-            src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=optipieapp&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+        <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
       </div>
       <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
         <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>
@@ -347,7 +356,6 @@
       </ul>
     </footer>
   </div>
-
   <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
   <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="/libs/bootstrap-table/js/bootstrap-table.min.js"></script>

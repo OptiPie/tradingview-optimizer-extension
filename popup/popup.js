@@ -21,6 +21,33 @@ addTabEventListeners()
 // Save Inputs EventListener for first parameters as default
 addSaveInputEventListener(0)
 addSaveAutoFillSelectionListener(0)
+updateUserUI()
+
+// non-functional UI changes made with storage
+function updateUserUI(){
+  chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
+    if(isPlusUser){
+      // show plus logo
+      var logo = document.getElementById("normalLogo")
+      logo.style.cssText = 'display:none !important';
+      var plusLogo = document.getElementById("plusLogo")
+      plusLogo.style.cssText = 'display:block !important'
+      // remove plus upgrade button 
+      var plusUpgrade = document.getElementById("plusUpgrade")
+      plusUpgrade.style.display = 'none'
+    }else{
+      // hide plus logo
+      var plusLogo = document.getElementById("plusLogo")
+      plusLogo.style.cssText = 'display:none !important'
+      var logo = document.getElementById("normalLogo")
+      logo.style.cssText = 'display:block !important';
+      // add plus upgrade button 
+      var plusUpgrade = document.getElementById("plusUpgrade")
+      plusUpgrade.style.display = 'block'
+    }
+  });
+}
+
 
 // Add start optimize event listener
 optimize.addEventListener("click", async () => {
@@ -214,6 +241,8 @@ async function ProcessPlusFeatures() {
     addParameter.addEventListener("click", async () => {
       addParameterBlock(freeParameterLimit)
     });
+    chrome.storage.local.set({ "isPlusUser": false });
+    updateUserUI()
     return
   }
   var userInfo;
@@ -226,6 +255,9 @@ async function injectPlusFeatures(userEmail) {
   var parameterLimit = freeParameterLimit
   var user = await GetMembershipInfo(userEmail)
   if (user.is_membership_active) {
+    chrome.storage.local.set({ "isPlusUser": true });
+    updateUserUI()
+    // show skeletons first for features
     showSkeleton("timeFrame", "time-frame")
     showSkeleton("stop", "stop")
     // change parameter limit up to 8
@@ -309,6 +341,8 @@ async function injectPlusFeatures(userEmail) {
       hideSkeleton("timeFrame", "time-frame")
       document.getElementById("timeFrame").style.display = 'block'
     }, 200);
+  }else{
+    chrome.storage.local.set({ "isPlusUser": false });
   }
   // Add Parameter Button Event Listener, with 'parameterLimit'
   addParameter.addEventListener("click", async () => {
@@ -437,6 +471,8 @@ logoutButtons.forEach(logoutButton => {
     setTimeout(() => {
       hideSkeleton("login", "profile")
     }, 250);
+    chrome.storage.local.set({ "isPlusUser": false });
+    updateUserUI()
   });
 })
 

@@ -15,10 +15,27 @@ body {
     margin-right: 0.2rem;
 }
 
+#plusLogo {
+    display: none !important;
+}
+
+
+#plusUpgrade {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    background-color: #FD0;
+    letter-spacing: .03rem
+}
+
+#plusUpgrade i {
+    color: white;
+}
+
 #timeFrame {
     display: none;
     position: absolute;
-    top: 8.5rem;
+    top: 9.3rem;
 }
 
 #timeFrame .btn-group {
@@ -48,6 +65,7 @@ body {
 }
 
 #loginButton {
+    margin-top: 0.7rem;
     border: none;
     cursor: pointer;
     appearance: none;
@@ -64,6 +82,11 @@ body {
 
 #upgradeButton i {
     margin-left: 0.4rem;
+}
+
+#plusLogoInline {
+    width: 50%;
+    height: auto;
 }
 
 #login {
@@ -83,7 +106,7 @@ body {
 }
 
 #benefits li{ 
-    background-color: #d1e7dd82; 
+    background-color: #f9f6ec; 
 }
 
 #benefits li i{

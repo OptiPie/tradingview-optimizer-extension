@@ -34,7 +34,7 @@ async function Process() {
     userInputs.sort(function (a, b) {
         return a.parameterIndex - b.parameterIndex;
     });
-    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 3 Parameters max, will be up to 8 for plus users.
+    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 4 Parameters max, will be up to 8 for plus users.
     var ranges = [];
 
     // Create user input ranges with given step size for each parameter

@@ -17,7 +17,7 @@
     ]
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; script-src-elem 'self' 'unsafe-inline'; img-src 'self' https://img.buymeacoffee.com https://www.googleapis.com https://*.googleusercontent.com https://*.optipie.app/* data:;"
+    "extension_pages": "script-src 'self'; object-src 'self'; script-src-elem 'self' 'unsafe-inline'; img-src 'self' https://img.buymeacoffee.com https://cdn.buymeacoffee.com https://www.googleapis.com https://*.googleusercontent.com https://*.optipie.app/* data:;"
   },
   "background": {
     "service_worker": "background.js"
