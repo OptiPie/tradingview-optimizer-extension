@@ -54,6 +54,11 @@ No, OptiPie TradingView Optimizer Extension has no affiliation with TradingView.
 ### Is it safe to use extension?
 There hasn't been any reported account suspension happened yet but always [Use at Your Own Risk Disclaimer](#use-at-your-own-risk-disclaimer)
 
+### Why Step Size doesn't work as expected?
+OptiPie Step Size should always match Pinescript Step Size for the given input 'X'.
+
+See [How to match different OptiPie Step Size?](https://github.com/OptiPie/tradingview-optimizer-extension/issues/24)
+
 ### Why clicking Optimize button pops up error message on a different page?
 Make sure that TradingView tab and Strategy Settings window is opened before starting optimization.
 
@@ -155,5 +160,6 @@ The Company will not be liable to You or anyone else for any decision made or ac
 [optipie-badge]: https://img.shields.io/badge/OptiPie-Official-brightgreen
 [optipie-url]: https://optipie.app
 [chrome-store-badge]: https://img.shields.io/chrome-web-store/v/fdndgpohalkoklpaopahkblpomlhmifm?label=CHROME%20STORE%20DOWNLOAD&style=for-the-badge&logo=googlechrome
-[chrome-store-url]: https://chrome.google.com/webstore/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm
+[chrome-store-url]: https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm
+
 
