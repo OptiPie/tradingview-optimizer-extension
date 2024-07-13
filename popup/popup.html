@@ -5,6 +5,7 @@
   <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
+  <link rel="stylesheet" href="/libs/bootstrap-multiselect/css/bootstrap-multiselect.min.css" />
   <link rel="stylesheet" href="popup.css">
 </head>
 
@@ -12,8 +13,13 @@
   <div class="container-fluid">
     <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
       <a href="https://optipie.app" target="_blank"
-        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none" id="normalLogo">
         <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+        <span class="fs-4"></span>
+      </a>
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none" id="plusLogo">
+        <img src="/images/optipie_plus_app_logo.png" alt="OptiPie Plus logo" width="208" height="96">
         <span class="fs-4"></span>
       </a>
       <ul class="nav nav-tabs" id="myTab" role="tablist">
@@ -28,31 +34,68 @@
             Reports</button>
         </li>
         <li class="nav-item" role="presentation">
-          <button class="nav-link disabled" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane"
-            type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false"><i class="bi-person"></i>
+          <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane"
+            type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false"><i class="bi-person"></i>
             Profile</button>
         </li>
       </ul>
     </header>
     <div class="tab-content" id="myTabContent">
       <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+        <div class="container" id="skeleton-time-frame">
+          <p class="placeholder-glow">
+            <span class="placeholder col-1"></span>
+            <span class="placeholder col-1"></span>
+          </p>
+        </div>
+        <div class="container" id="timeFrame">
+          <select multiple="multiple" class="sm" id="selectTimeFrame">
+            <option disabled>Time</option>
+            <option value="1S">1 second</option>
+            <option value="5S">5 seconds</option>
+            <option value="10S">10 seconds</option>
+            <option value="15S">15 seconds</option>
+            <option value="30S">30 seconds</option>
+            <option value="1">1 minute</option>
+            <option value="2">2 minutes</option>
+            <option value="3">3 minutes</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="120">2 hours</option>
+            <option value="180">3 hours</option>
+            <option value="240">4 hours</option>
+            <option value="1D">1 day</option>
+            <option value="1W">1 week</option>
+            <option value="1M">1 month</option>
+            <option value="3M">3 months</option>
+            <option value="6M">6 months</option>
+            <option value="12M">12 months</option>
+          </select>
+        </div>
         <div class="container" id="parameters">
           <div class="row g-2 pb-2">
             <div class="col-8">
-              <label for="inputStart1" class="form-label">1. Parameter Inputs</label>
+              <label for="inputStart" class="form-label">1. Parameter Inputs</label>
+              <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
+                <option selected disabled>Select Parameter</option>
+              </select>
               <div class="input-group input-group">
                 <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">
                 <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">
               </div>
             </div>
             <div class="col-4">
-              <label for="inputStep1" class="form-label">Step Size</label>
+              <label for="inputStep" class="form-label">Step Size</label>
               <input type="text" aria-label="Step" placeholder="Step" class="form-control" id="inputStep">
             </div>
           </div>
         </div>
 
-        <div class="container ">
+        <div class="container">
           <div class="row align-items-center">
             <div class="col">
               <button type="button" class="btn btn-outline-dark btn-sm" id="addParameter"><i
@@ -61,6 +104,12 @@
             <div class="col">
               <button type="button" class="btn btn-dark btn float-end" id="optimize"><i
                   class="bi bi-graph-up-arrow"></i>Optimize</button>
+              <div class="container" id="skeleton-stop">
+                <span class="placeholder col-2" style="width: 15%;"></span>
+                <span class="placeholder col-1" style="width:5%;"></span>
+              </div>
+              <button type="button" class="btn btn-danger btn btn-sm float-end" id="stop"><i
+                  class="bi bi-stop-circle-fill"></i>Stop</button>
             </div>
           </div>
         </div>
@@ -78,9 +127,11 @@
                 <th data-field="strategyID" data-visible="false">ID</th>
                 <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name</th>
                 <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
-                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter" data-cell-style="symbolColumnStyle">Symbol</th>
+                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter"
+                  data-cell-style="symbolColumnStyle">Symbol</th>
                 <th data-field="timePeriod" data-sortable="false">Period</th>
-                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters</th>
+                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
+                </th>
                 <th data-field="maxprofit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
                 <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
                   data-events="openReportDetail">Report Detail</th>
@@ -98,7 +149,191 @@
           </table>
         </div>
       </div>
-      <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0"></div>
+      <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+        <div class="container" id="skeleton-profile">
+          <div class="row justify-content-center">
+            <div class="col-10">
+              <div class="card" aria-hidden="true">
+                <div class="card-body">
+                  <h5 class="card-title placeholder-glow">
+                    <span class="placeholder col-6"></span>
+                  </h5>
+                  <p class="card-text placeholder-glow">
+                    <span class="placeholder col-7"></span>
+                    <span class="placeholder col-4"></span>
+                    <span class="placeholder col-4"></span>
+                    <span class="placeholder col-6"></span>
+                    <span class="placeholder col-8"></span>
+                  </p>
+                  <a href="#" tabindex="-1" class="btn btn-primary disabled placeholder col-6"></a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="container" id="login">
+          <div class="row justify-content-center align-items-center">
+            <div class="col-10">
+              <div class="card text-center">
+                <div class="container" id="plusLogoInline">
+                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">  
+                </div>
+                <div class="card-body">
+                  <h5 class="card-title">Discover OptiPie Plus Benefits</h5>
+                  <div class="card-body">
+                    <div class="card text-start border-light" id="benefits">
+                      <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
+                            Report</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 4 Parameters</h6>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <span class="card-text">Go beyond the limits, Try Plus Now!</span>
+                  <button id="loginButton">
+                    <img src="/images/google-sign-in-original.png" alt="Sign in with Google">
+                  </button>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row align-items-center">
+                    <div class="col text-start">
+                      OptiPie Plus
+                    </div>
+                    <div class="col text-end">
+                      <button type="button" id="loginButton" class="btn btn-danger btn-sm"><i
+                          class="bi bi-box-arrow-right"></i>Logout</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="container" id="profile">
+          <div class="row justify-content-center" id="freeUser">
+            <div class="col-10">
+              <div class="card text-center">
+                <h6 class="card-header" style="display: inline;">
+                  Welcome, <p id="userEmail" style="display: inline;"></p>
+                </h6>
+                <div class="container" id="plusLogoInline">
+                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">  
+                </div>
+                <div class="card-body">
+                  <div class="card-body">
+                    <div class="card text-start border-light" id="benefits">
+                      <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
+                            Report</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 8 Parameters</h6>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <span class="card-text">Go beyond the limits, Try Now!</span>
+                  <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" class="btn btn-primary"
+                    id="upgradeButton">Upgrade to Plus<i class="bi bi-bag-heart-fill"></i></a>
+                  <p class="card-text"><small class="text-muted">Monthly from 5$</small></p>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row align-items-center">
+                    <div class="col text-start">
+                      OptiPie Plus
+                    </div>
+                    <div class="col text-end">
+                      <button type="button" id="logoutButton" class="btn btn-danger btn-sm"><i
+                          class="bi bi-box-arrow-right"></i>Logout</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row justify-content-center" id="paidUser">
+            <div class="col-10">
+              <div class="card text-center">
+                <h6 class="card-header" style="display: inline;">
+                  Welcome, <p id="userEmail" style="display: inline;"></p>
+                </h6>
+                <div class="card-body">
+                  <h5 class="card-title">OptiPie Plus Benefits</h5>
+                  <div class="card-body">
+                    <div class="card text-start border-light" id="benefits">
+                      <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
+                            Report</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
+                        </li>
+                        <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 8 Parameters</h6>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="container" id="membershipRenewal">
+                    <div class="row">
+                      <div class="col-6">
+                        <span class="badge text-dark">Membership Renewal<h6 class="text-start">05.15.2024</h6></span>
+                      </div>
+                      <div class="col-6">
+                        <a type="button" class="btn btn-primary btn-sm" href="https://studio.buymeacoffee.com/my-account/payments/memberships" target="_blank"><i class="bi bi-person"></i>Manage
+                          Account</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div class="card-footer text-muted">
+                  <div class="row align-items-center">
+                    <div class="col text-start">
+                      OptiPie Plus
+                    </div>
+                    <div class="col text-end">
+                      <button type="button" id="logoutButton" class="btn btn-danger btn-sm"><i
+                          class="bi bi-box-arrow-right"></i>Logout</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -108,23 +343,23 @@
       <div class="col-md-4 d-flex align-items-center">
         <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
         </a>
-        <span class=" mb-md-0 text-muted">&copy; 2022 OptiPie</span>
+        <span class=" mb-md-0 text-muted">&copy; 2024 OptiPie</span>
       </div>
       <div class="col-md-4 d-flex">
-        <a href="https://www.buymeacoffee.com/optipieapp" target="_blank" rel="noopener noreferrer"><img
-            src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=optipieapp&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+        <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
       </div>
       <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
-        <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a></li>
+        <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>
+        </li>
         <li class="ms-1"><a href="https://optipie.app/#contact-" target="_blank"
             class="nav-link px-2 text-muted">Contact</a></li>
       </ul>
     </footer>
   </div>
-
   <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
   <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="/libs/bootstrap-table/js/bootstrap-table.min.js"></script>
+  <script src="/libs/bootstrap-multiselect/js/bootstrap-multiselect.min.js"></script>
   <script src="popup.js"></script>
 </body>
 

@@ -1,22 +1,148 @@
-body{
-    width: 560px;   
+body {
+    width: 560px;
     transition: all .2s ease-in-out;
 }
-#addParameter i{
+
+#addParameter i {
     margin-right: 0.2rem;
 }
-#optimize i{
+
+#optimize i {
     margin-right: 0.4rem;
 }
-.toolbar{
+
+#stop i {
+    margin-right: 0.2rem;
+}
+
+#plusLogo {
+    display: none !important;
+}
+
+
+#plusUpgrade {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    background-color: #FD0;
+    letter-spacing: .03rem
+}
+
+#plusUpgrade i {
+    color: white;
+}
+
+#timeFrame {
+    display: none;
+    position: absolute;
+    top: 9.3rem;
+}
+
+#timeFrame .btn-group {
+    padding-right: 0.15rem;
+}
+
+#timeFrame .btn-group .multiselect {
+    font-size: .850rem;
+}
+
+#skeleton-time-frame{
+    display: none;
+    position: absolute;
+    top: 8.5rem;
+}
+
+#skeleton-stop{
+    display: none;
+    position: absolute;
+    padding-top: 0.25rem;
+}
+
+#stop {
+    display: none;
+    margin-right: 0.6rem;
+    margin-top: 0.25rem;
+}
+
+#loginButton {
+    margin-top: 0.7rem;
+    border: none;
+    cursor: pointer;
+    appearance: none;
+    background-color: inherit;
+}
+
+#logoutButton i {
+    margin-right: 0.4rem;
+}
+
+#upgradeButton {
+    margin-top: 0.5rem;
+}
+
+#upgradeButton i {
+    margin-left: 0.4rem;
+}
+
+#plusLogoInline {
+    width: 50%;
+    height: auto;
+}
+
+#login {
+    display: none;
+}
+
+#profile {
+    display: none;
+}
+
+#paidUser {
+    display: none;
+}
+
+#benefits {
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+#benefits li{ 
+    background-color: #f9f6ec; 
+}
+
+#benefits li i{
+    margin-right: 0.3rem;
+}
+
+#membershipRenewal span h6{
+    margin-top: 0.3rem;
+}
+
+#membershipRenewal button{
+    margin-top: 0.3rem;
+}
+
+#membershipRenewal button i{
+    margin-right: 0.3rem;
+}
+
+#selectAutoFill{
+    display: none;
+    margin-bottom: 0.25rem;
+    padding-left: 0.25rem;
+}
+
+.toolbar {
     margin-right: 1rem;
 }
-table#table thead{
+
+table#table thead {
     font-size: 13px;
 }
-table#table tbody{
+
+table#table tbody {
     font-size: 12px;
 }
-.container-fluid.footer{
+
+.container-fluid.footer {
     font-size: 14px;
 }

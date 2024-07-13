@@ -1,7 +1,7 @@
 {
   "name": "OptiPie TradingView Optimizer",
   "description": "TradingView Parameter Optimizer as an extension",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "manifest_version": 3,
   "icons": {
     "16": "images/icons/optipie16.png",
@@ -9,8 +9,15 @@
     "48": "images/icons/optipie48.png",
     "128": "images/icons/optipie128.png"
   },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAipzSUO0RweP5fn6ewIMcvV2t3EGat0YacQVnD8bkaJAUD5RVMQFZUEbZ+GK+4ed6uyM40K4MQj808lBJzZzdmG2ZUg7p5fVxUddegotgE/dRyuGgur8Ys+RqVrYskbl1GhXdPc8SSyhD3F7GdJ3uhHquUzfHHGuV/ObD0XRTxcPNHLU176X8ioumHSReCkslyztUn/mAjeRTyXhcAw8T3APrZ/xKV5KIradNnmUQj04LdswZOzHcB/K8IaAlIm/x/31b05DERXLyI2lvS41c8QRKV/n3IA1hAXdY+YRl1xY3N/FrSrY589GgfImdDkkCO58UFngRs+TZlspC1BViQQIDAQAB",
+  "oauth2": {
+    "client_id": "818139307172-o9irb6c2cud765c2pjvns7t1a40e047l.apps.googleusercontent.com",
+    "scopes": [
+      "email"
+    ]
+  },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; script-src-elem 'self' 'unsafe-inline'; img-src 'self' https://img.buymeacoffee.com data:;"
+    "extension_pages": "script-src 'self'; object-src 'self'; script-src-elem 'self' 'unsafe-inline'; img-src 'self' https://img.buymeacoffee.com https://cdn.buymeacoffee.com https://www.googleapis.com https://*.googleusercontent.com https://*.optipie.app/* data:;"
   },
   "background": {
     "service_worker": "background.js"
@@ -19,7 +26,9 @@
     "storage",
     "activeTab",
     "scripting",
-    "notifications"
+    "notifications",
+    "identity",
+    "identity.email"
   ],
   "action": {
     "default_popup": "popup/popup.html"
@@ -33,5 +42,8 @@
         "https://*.tradingview.com/*"
       ]
     }
+  ],
+  "host_permissions": [
+    "https://*.optipie.app/*"
   ]
 }

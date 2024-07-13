@@ -1,152 +1,197 @@
 // Select all input values
 var tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
+var tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 var maxProfit = -99999
+// user parameters and time frames
+var userInputs = []
+var userTimeFrames = []
+var optimizationResults = new Map();
 
 // Run Optimization Process 
 Process()
 
 async function Process() {
-    var userInputs = []
-
+    var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = function (evt) {
         window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
-        userInputs = evt.detail
+        userInputs = evt.detail.parameters
+        userTimeFrames = evt.detail.timeFrames
     }
 
     window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
 
+    var stopOptimizationEventCallback = function (evt) {
+        window.removeEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false)
+        shouldStop = evt.detail.event.isTrusted
+    }
+
+    window.addEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false);
+
     //Wait for UserInputsEvent Callback
     await sleep(750)
-
-    var optimizationResults = new Map();
-
-    await SetUserIntervals(userInputs, optimizationResults)
-    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 4 Parameters max
+    // sort userInputs before starting optimization 
+    userInputs.sort(function (a, b) {
+        return a.parameterIndex - b.parameterIndex;
+    });
+    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 4 Parameters max, will be up to 8 for plus users.
     var ranges = [];
 
     // Create user input ranges with given step size for each parameter
     userInputs.forEach((element, index) => {
         var range = 0
+        // fix index for free users
+        if (element.parameterIndex == -1) {
+            element.parameterIndex = index
+        }
         if (index == 0) {
             range = (element.end - element.start) / element.stepSize
-            ranges.push(Math.round(range * 100) / 100)
+            var roundedRange = Math.round(range * 100) / 100
+            ranges.push(roundedRange)
         } else {
             range = ((element.end - element.start) / element.stepSize)
-            var round = Math.round(range * 100) / 100
-            ranges.push(round + 1)
+            var roundedRange = (Math.round(range * 100) / 100) + 1
+            ranges.push(roundedRange)
         }
     });
-    // Recursion can be used but makes it more complex and less readble code 
-    switch (userInputs.length) {
-        case 1:
-            for (let i = 0; i < ranges[0]; i++) {
-                await OptimizeParams(userInputs, 0, optimizationResults)
-            }
-            break;
-        case 2:
-            for (let i = 0; i < ranges[1]; i++) {
-                for (let i = 0; i < ranges[0]; i++) {
-                    await OptimizeParams(userInputs, 0, optimizationResults)
-                }
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 1)
-            }
-            break;
-        case 3:
-            for (let i = 0; i < ranges[2]; i++) {
-                for (let i = 0; i < ranges[1]; i++) {
-                    for (let i = 0; i < ranges[0]; i++) {
-                        await OptimizeParams(userInputs, 0, optimizationResults)
-                    }
-                    await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 1)
-                }
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 2)
-            }
-            break;
-        case 4:
-            for (let i = 0; i < ranges[3]; i++) {
-                for (let i = 0; i < ranges[2]; i++) {
-                    for (let i = 0; i < ranges[1]; i++) {
-                        for (let i = 0; i < ranges[0]; i++) {
-                            await OptimizeParams(userInputs, 0, optimizationResults)
-                        }
-                        await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 1)
-                    }
-                    await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 2)
-                }
-                await ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, i, 3)
-            }
-            break;
-        default:
-            break;
-    }
 
-    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
-    var strategyTimePeriod = ""
+    if (userTimeFrames == null || userTimeFrames.length <= 0) {
+        // no time frame selection or free user flow
+        await OptimizeStrategy()
+    } else {
+        for (let i = 0; i < userTimeFrames.length; i++) {
+            // open time intervals dropdown and change it
+            await sleep(500)
+            document.querySelector("#header-toolbar-intervals div[class*='menuContent']").click()
 
-    var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
-    if (timePeriodGroup.length > 1) {
-        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
-
-        // Check if favorite time periods exist  
-        if (selectedPeriod != null) {
-            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
-        } else {
-            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+            var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+            await sleep(2000)
+            document.querySelector(timeIntervalQuery).click()
+            await sleep(2000)
+            
+            await OptimizeStrategy()
+            // reset global variables for new strategy optimization and for new timeframe
+            optimizationResults = new Map();
+            maxProfit = -99999
         }
     }
+    
+    // Optimize strategey for the currently chosen timeframe
+    async function OptimizeStrategy() {
+        await SetUserIntervals()
 
-    var title = document.querySelector("title")?.innerText
-    var strategySymbol = title.split(' ')[0]
-    var optimizationResultsObject = Object.fromEntries(optimizationResults);
-    var userInputsToString = ""
+        // Base call function
+        const baseCall = async () => {
+            for (let j = 0; j < ranges[0]; j++) {
+                if (shouldStop) {
+                    break;
+                }
+                await OptimizeParams(userInputs[0].parameterIndex);
+            }
+        };
 
-    userInputs.forEach((element, index) => {
-        if (index == userInputs.length - 1) {
-            userInputsToString += element.start + "→" + element.end
-        } else {
-            userInputsToString += element.start + "→" + element.end + " "
+        // Wrapper function for subsequent calls to build nested for loops
+        const wrapSubsequentCalls = async (baseCall, index) => {
+            if (index >= ranges.length) {
+                // start executing after wrapping everything in place
+                await baseCall()
+                return;
+            }
+
+            const currentCall = async () => {
+                for (let j = 0; j < ranges[index]; j++) {
+                    if (shouldStop) {
+                        break;
+                    }
+                    await baseCall();
+                    await ResetInnerOptimizeOuterParameter(ranges, j, index);
+                }
+            };
+
+            await wrapSubsequentCalls(currentCall, index + 1); // recursive call for the next level
+        };
+
+        // Function to execute nested loops
+        const executeNestedLoops = async () => {
+            await wrapSubsequentCalls(baseCall, 1); // Wrap and execute subsequent calls recursively starting from index 1
+        };
+
+        // Call the function to execute the nested loops
+        await executeNestedLoops()
+
+        //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+        var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+        var strategyTimePeriod = ""
+
+        var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+        if (timePeriodGroup.length > 1) {
+            selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+
+            // Check if favorite time periods exist  
+            if (selectedPeriod != null) {
+                strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
+            } else {
+                strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+            }
         }
-    })
 
-    var reportDataMessage = {
-        "strategyID": Date.now(),
-        "created": Date.now(),
-        "strategyName": strategyName,
-        "symbol": strategySymbol,
-        "timePeriod": strategyTimePeriod,
-        "parameters": userInputsToString,
-        "maxProfit": maxProfit,
-        "reportData": optimizationResultsObject
+        var title = document.querySelector("title")?.innerText
+        var strategySymbol = title.split(' ')[0]
+        var optimizationResultsObject = Object.fromEntries(optimizationResults);
+        var userInputsToString = ""
+
+        userInputs.forEach((element, index) => {
+            if (element.parameterName != null) {
+                userInputsToString += element.parameterName + ": "
+            }
+            if (index == userInputs.length - 1) {
+                userInputsToString += element.start + "→" + element.end
+            } else {
+                userInputsToString += element.start + "→" + element.end + "<br>"
+            }
+        })
+
+        var reportDataMessage = {
+            "strategyID": Date.now(),
+            "created": Date.now(),
+            "strategyName": strategyName,
+            "symbol": strategySymbol,
+            "timePeriod": strategyTimePeriod,
+            "parameters": userInputsToString,
+            "maxProfit": maxProfit,
+            "reportData": optimizationResultsObject
+        }
+        // Send Optimization Report to injector
+        var evt = new CustomEvent("ReportDataEvent", { detail: reportDataMessage });
+        window.dispatchEvent(evt);
     }
-    // Send Optimization Report to injector
-    var evt = new CustomEvent("ReportDataEvent", { detail: reportDataMessage });
-    window.dispatchEvent(evt);
+
 }
 
 // Set User Given Intervals Before Optimization Starts
-async function SetUserIntervals(userInputs, optimizationResults) {
+async function SetUserIntervals() {
     for (let i = 0; i < userInputs.length; i++) {
-        await sleep(1000);
-        var currentParameter = tvInputs[i].value
+        var userInput = userInputs[i]
+        await sleep(500);
+
+        var currentParameter = tvInputs[userInput.parameterIndex].value
         var num = userInputs[i].start - userInputs[i].stepSize
 
-        ChangeTvInput(tvInputs[i], Math.round(num * 100) / 100)
+        ChangeTvInput(tvInputs[userInput.parameterIndex], Math.round(num * 100) / 100)
 
         if (currentParameter == userInputs[i].start) {
-            await IncrementParameter(i)
+            await IncrementParameter(userInput.parameterIndex)
         } else {
-            await OptimizeParams(userInputs, i, optimizationResults)
+            await OptimizeParams(userInput.parameterIndex)
         }
 
-        await sleep(1000);
+        await sleep(500);
     }
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
 }
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
-async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults) {
+async function OptimizeParams(tvParameterIndex) {
     const reportData = new Object({
         netProfit: {
             amount: 0,
@@ -163,7 +208,8 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
             amount: 0,
             percent: ""
         },
-        avgerageBarsInTrades: 0
+        avgerageBarsInTrades: 0,
+        detailedParameters: []
     });
     setTimeout(() => {
         // Hover on Input Arrows  
@@ -171,7 +217,9 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
     }, 250);
     setTimeout(() => {
         // Click on Upper Input Arrow
-        document.querySelectorAll("button[class*=controlIncrease]")[tvParameterIndex].click()
+        tvInputControls[tvParameterIndex]
+            .querySelector("button[class*=controlIncrease]")
+            .click()
     }, 750);
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
@@ -179,20 +227,21 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
             mutations.every(function (mutation) {
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
-                        var params = GetParametersFromWindow(userInputs)
-
-                        if (!optimizationResults.has(params) && params != "ParameterOutOfRange") {
+                        var result = GetParametersFromWindow(userInputs)
+                        var parameters = result.parameters
+                        if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
                             ReportBuilder(reportData, mutation)
-                            optimizationResults.set(params, reportData)
+                            reportData.detailedParameters = result.detailedParameters
+                            optimizationResults.set(parameters, reportData)
                             //Update Max Profit
                             replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
                             profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
                             if (profit > maxProfit) {
                                 maxProfit = profit
                             }
-                            resolve("Optimization param added to map: " + params + " Profit: " + optimizationResults.get(params).netProfit.amount)
-                        } else if (optimizationResults.has(params)) {
-                            resolve("Optimization param already exist " + params)
+                            resolve("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
+                        } else if (optimizationResults.has(parameters)) {
+                            resolve("Optimization param already exist " + parameters)
                         } else {
                             resolve("Parameter is out of range, omitted")
                         }
@@ -231,19 +280,23 @@ async function OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
-async function ResetAndOptimizeParameter(userInputs, tvParameterIndex, optimizationResults) {
-    ChangeTvInput(tvInputs[tvParameterIndex], userInputs[tvParameterIndex].start - userInputs[tvParameterIndex].stepSize)
+async function ResetAndOptimizeParameter(tvParameterIndex, resetValue) {
+    ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
     await sleep(500)
-    await OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
+    await OptimizeParams(tvParameterIndex)
     await sleep(500)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
-async function ResetInnerOptimizeOuterParameter(userInputs, ranges, optimizationResults, rangeIteration, tvParameterIndex) {
-    //Reset Inner
-    await ResetAndOptimizeParameter(userInputs, tvParameterIndex - 1, optimizationResults)
-    if (rangeIteration != ranges[tvParameterIndex] - 1) {
-        await OptimizeParams(userInputs, tvParameterIndex, optimizationResults)
+async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
+    var previousTvParameterIndex = userInputs[index - 1].parameterIndex
+    var tvParameterIndex = userInputs[index].parameterIndex
+    var resetValue = userInputs[index - 1].start - userInputs[index - 1].stepSize
+    //Reset and optimze inner
+    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue)
+    // Optimize outer unless it's last iteration
+    if (rangeIteration != ranges[index] - 1) {
+        await OptimizeParams(tvParameterIndex)
     }
 }
 
@@ -265,7 +318,7 @@ function IncrementParameter(tvParameterIndex) {
     //Click on Upper Input Arrow
     var promise = new Promise((resolve, reject) => {
         setTimeout(() => {
-            document.querySelectorAll("button[class*=controlIncrease]")[tvParameterIndex].click()
+            tvInputControls[tvParameterIndex].querySelector("button[class*=controlIncrease]").click()
             resolve("");
         }, 500);
     });
@@ -273,22 +326,33 @@ function IncrementParameter(tvParameterIndex) {
 }
 
 // Get Currently active parameters from Tv Strategy Options Window and format them
-function GetParametersFromWindow(userInputs) {
+function GetParametersFromWindow() {
     var parameters = "";
+    var result = new Object({
+        parameters: "",
+        detailedParameters: []
+    });
 
     for (let i = 0; i < userInputs.length; i++) {
-        if (userInputs[i].start > parseFloat(tvInputs[i].value) || parseFloat(tvInputs[i].value) > userInputs[i].end) {
+        var userInput = userInputs[i]
+        if (userInput.start > parseFloat(tvInputs[userInput.parameterIndex].value) || parseFloat(tvInputs[userInput.parameterIndex].value) > userInput.end) {
             parameters = "ParameterOutOfRange"
             break
         }
-
         if (i == userInputs.length - 1) {
-            parameters += tvInputs[i].value
+            parameters += tvInputs[userInput.parameterIndex].value
         } else {
-            parameters += tvInputs[i].value + ", "
+            parameters += tvInputs[userInput.parameterIndex].value + ", "
+        }
+        if (userInput.parameterName != null) {
+            result.detailedParameters.push({
+                name: userInput.parameterName,
+                value: tvInputs[userInput.parameterIndex].value,
+            })
         }
     }
-    return parameters
+    result.parameters = parameters
+    return result
 }
 
 // Build Report data from performance overview
