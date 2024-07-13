@@ -4,6 +4,9 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 
 let strategyID = params.strategyID;
 
+// update non-functional UI components for free/plus users
+updateUserUI();
+
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
   var reportDetailData = []
   var timePeriodValue = Object.values(item)[0].timePeriod
@@ -72,6 +75,31 @@ function hideDropDownParameters() {
       label.style.display = 'none'
     }
   }
+}
+
+// non-functional UI changes made with storage
+function updateUserUI(){
+  chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
+    if(isPlusUser){
+      // show plus logo
+      var logo = document.getElementById("normalLogo")
+      logo.style.cssText = 'display:none !important';
+      var plusLogo = document.getElementById("plusLogo")
+      plusLogo.style.cssText = 'display:block !important'
+      // remove plus upgrade button 
+      var plusUpgrade = document.getElementById("plusUpgrade")
+      plusUpgrade.style.display = 'none'
+    }else{
+      // hide plus logo
+      var plusLogo = document.getElementById("plusLogo")
+      plusLogo.style.cssText = 'display:none !important'
+      var logo = document.getElementById("normalLogo")
+      logo.style.cssText = 'display:block !important';
+      // add plus upgrade button 
+      var plusUpgrade = document.getElementById("plusUpgrade")
+      plusUpgrade.style.display = 'block'
+    }
+  });
 }
 
 function downloadCSVReport(reportDetailData) {
