@@ -262,7 +262,7 @@ async function injectPlusFeatures(userEmail) {
     showSkeleton("stop", "stop")
     // change parameter limit up to 8
     parameterLimit = plusParameterLimit
-    getCurrentTab().then(function (tab) {
+    await getCurrentTab().then(function (tab) {
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['plus-injector.js']
@@ -271,7 +271,7 @@ async function injectPlusFeatures(userEmail) {
 
     let stopOptimization = document.getElementById("stop")
     stopOptimization.addEventListener("click", async (clickEvent) => {
-      getCurrentTab().then(function (tab) {
+      await getCurrentTab().then(function (tab) {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: stopOptimizationEvent,
