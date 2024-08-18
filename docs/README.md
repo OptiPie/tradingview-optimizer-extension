@@ -62,7 +62,7 @@ Join the OptiPie Plus Membership, discover amazing features, go beyond the limit
       </a>
 </div>
 
-### [Try OptiPie Plus](https://www.buymeacoffee.com/optipieapp/membership)
+### [Try OptiPie Plus 🌟](https://www.buymeacoffee.com/optipieapp/membership)
 
 ## FAQ ❓ 
 
