@@ -46,6 +46,24 @@ All optimization reports are saved locally using `chrome.storage` API thus can b
 
 During your Chrome Session, last entered parameter inputs are stored in a state to make updates easier. 
 
+## 🌟 OptiPie Plus Membership
+Join the OptiPie Plus Membership, discover amazing features, go beyond the limits! 
+- ###  ⏰ Multi-Timeframe Optimization
+- ###  ✅ Selectable Parameters
+- ###  🛑 Stoppable Optimization with Partial Report
+- ###  📊 Extended Report Data
+- ###  🔓 Optimize Strategies Up to 8 Parameters
+
+### Features in Action
+
+<div align="left">
+      <a href="https://youtu.be/3nOgFyPmspU">
+         <img src="images/plus-thumbnail.png" alt="OptiPie-Thumbnail" style="width:100%;">
+      </a>
+</div>
+
+## [Try OptiPie Plus Now](https://www.buymeacoffee.com/optipieapp/membership)
+
 ## FAQ ❓ 
 
 ### Is this an official TradingView extension?
