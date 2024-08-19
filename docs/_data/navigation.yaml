@@ -1,4 +1,6 @@
 main:
+  - title: "Try Plus"
+    url: "https://www.buymeacoffee.com/optipieapp/membership"
   - title: "Download"
     url: "https://chrome.google.com/webstore/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
   - title: "Github"
@@ -7,6 +9,4 @@ main:
     url: /#faq-
   - title: "Contribution"
     url: /#contribution-%EF%B8%8F
-  - title: "Donate"
-    url: "https://www.buymeacoffee.com/optipieapp"
 
