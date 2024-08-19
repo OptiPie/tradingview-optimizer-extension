@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
+  <link rel="stylesheet" href="repordetail.css">
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="container-fluid py-5 report-detail">
+      <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
+        <a href="https://optipie.app" target="_blank"
+          class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="normalLogo">
+          <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+          <span class="fs-4"></span>
+        </a>
+        <a href="https://optipie.app" target="_blank"
+          class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="plusLogo">
+          <img src="/images/optipie_plus_app_logo.png" alt="OptiPie Plus logo" width="208" height="96">
+          <span class="fs-4"></span>
+        </a>
+      </header>
+
+      <div class="container" id="toolbar">
+        <div class="row align-items-center">
+          <div class="col-2">
+            <span>
+              Period:
+            </span>
+          </div>
+          <div class="col-2">
+            <span id="timePeriod">
+              1 hour
+              <span>
+          </div>
+          <div class="col-8">
+            <button type="button" class="btn btn-primary btn float-end" id="download-report"><i
+                class="bi bi-cloud-download"></i>
+              Download
+              Report</button>
+          </div>
+        </div>
+      </div>
+
+      <table id="table" data-toggle="table" data-sort-class="table-active" data-sortable="true" data-toolbar="#toolbar"
+        data-toolbar-align="right" data-custom-sort="customSort" data-pagination="true" data-search="true"
+        data-show-columns="true" data-search-align="left" data-buttons-align="left" data-visible-search="true"
+        style="font-size: 16px;">
+        <thead>
+          <tr>
+            <th data-field="parameters" data-sortable="true">Parameters</th>
+            <th data-field="parameter1" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter2" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter3" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter4" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter5" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter6" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter7" data-sortable="true" data-visible="false"></th>
+            <th data-field="parameter8" data-sortable="true" data-visible="false"></th>
+            <th data-field="netProfitAmount" data-sortable="true">Net Profit Amount</th>
+            <th data-field="netProfitPercent" data-sortable="true">Net Profit Percent</th>
+            <th data-field="closedTrades" data-sortable="true">Closed Trades</th>
+            <th data-field="percentProfitable" data-sortable="true">Percent Profitable</th>
+            <th data-field="profitFactor" data-sortable="true">Profit Factor</th>
+            <th data-field="maxDrawdownAmount" data-sortable="true">Max Drawdown Amount</th>
+            <th data-field="maxDrawdownPercent" data-sortable="true">Max Drawdown Percent</th>
+            <th data-field="averageTradeAmount" data-sortable="true">Average Trade Amount</th>
+            <th data-field="averageTradePercent" data-sortable="true">Average Trade Percent</th>
+            <th data-field="avgerageBarsInTrades" data-sortable="true">Average Bars In Trades</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <div class="container-fluid">
+      <footer class="d-flex flex-wrap justify-content-between align-items-center py-2 mb-2 mt-4 border-top">
+        <div class="col-md-4 d-flex align-items-center">
+          <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
+          </a>
+          <span class=" mb-md-0 text-muted">&copy; 2024 OptiPie</span>
+        </div>
+        <div class="col-md-4 d-flex justify-content-center">
+          <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
+        </div>
+        <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+          <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>
+          </li>
+          <li class="ms-1"><a href="https://optipie.app/#contact-" target="_blank"
+              class="nav-link px-2 text-muted">Contact</a></li>
+        </ul>
+      </footer>
+    </div>
+  </div>
+  <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
+  <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/libs/bootstrap-table/js/bootstrap-table.min.js"></script>
+  <script src="reportdetail.js"></script>
+</body>
+
+</html>

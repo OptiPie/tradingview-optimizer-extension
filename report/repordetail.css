@@ -1,0 +1,28 @@
+.report-detail{
+    padding-left: 7rem !important;
+    padding-right: 7rem !important;
+}
+
+#timePeriod{
+    font-weight: bold;
+}
+
+#download-report i{
+    margin-right: 0.2rem;
+}
+
+#plusLogo {
+    display: none !important;
+}
+
+#plusUpgrade {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    background-color: #FD0;
+    letter-spacing: .03rem
+}
+
+#plusUpgrade i {
+    color: white;
+}

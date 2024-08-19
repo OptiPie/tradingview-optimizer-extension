@@ -9,7 +9,7 @@ OptiPie had never collected and will never collect any personal data, sensitive 
 OptiPie only stores 'www.buymeacoffee.com' membership data of OptiPie Plus users in order to make users login via their Google Accounts.
 
 OptiPie uses Google APIs(OAuth) for Google Sign-in process and only uses 'Email' information of the user to check
-whether the user has OptiPie Plus membership or not through verified OptiPie APIs.
+whether the user has OptiPie Plus membership or not throught verified OptiPie APIs.
 
 OptiPie Plus user's data are not being collected by extension, data is being processed and sent to OptiPie by the 'www.buymeacoffee.com', with the OptiPie Plus user's consent through processor.
 
