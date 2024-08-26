@@ -62,7 +62,13 @@ async function Process() {
         for (let i = 0; i < userTimeFrames.length; i++) {
             // open time intervals dropdown and change it
             await sleep(500)
-            document.querySelector("#header-toolbar-intervals div[class*='menuContent']").click()
+            
+            var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent']")
+            // check if user has favorite time frames selected
+            if (timeIntervalDropdown == null){
+                timeIntervalDropdown = document.querySelector("#header-toolbar-intervals button[data-tooltip*='Time']")
+            }
+            timeIntervalDropdown.click()
 
             var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
             await sleep(2000)
@@ -397,7 +403,7 @@ function sleep(ms) {
             });
         });
 
-        var element = document.querySelector(".backtesting-content-wrapper.widgetContainer-Lo3sdooi")
+        var element = document.querySelector("div[class*=backtesting][class*=deep-history]")
         let options = {
             attributes: false,
             childList: true,
