@@ -198,25 +198,27 @@ async function SetUserIntervals() {
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
 async function OptimizeParams(tvParameterIndex) {
-    const reportData = new Object({
-        netProfit: {
-            amount: 0,
-            percent: ""
-        },
-        closedTrades: 0,
-        percentProfitable: "",
-        profitFactor: 0.0,
-        maxDrawdown: {
-            amount: 0,
-            percent: ""
-        },
-        averageTrade: {
-            amount: 0,
-            percent: ""
-        },
-        avgerageBarsInTrades: 0,
-        detailedParameters: []
-    });
+    function newReportData(){
+        return  new Object({
+            netProfit: {
+                amount: 0,
+                percent: ""
+            },
+            closedTrades: 0,
+            percentProfitable: "",
+            profitFactor: 0.0,
+            maxDrawdown: {
+                amount: 0,
+                percent: ""
+            },
+            averageTrade: {
+                amount: 0,
+                percent: ""
+            },
+            avgerageBarsInTrades: 0,
+            detailedParameters: []
+        });
+    }
     setTimeout(() => {
         // Hover on Input Arrows  
         tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
@@ -233,24 +235,8 @@ async function OptimizeParams(tvParameterIndex) {
             mutations.every(function (mutation) {
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
-                        var result = GetParametersFromWindow(userInputs)
-                        var parameters = result.parameters
-                        if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-                            ReportBuilder(reportData, mutation)
-                            reportData.detailedParameters = result.detailedParameters
-                            optimizationResults.set(parameters, reportData)
-                            //Update Max Profit
-                            replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
-                            profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
-                            if (profit > maxProfit) {
-                                maxProfit = profit
-                            }
-                            resolve("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
-                        } else if (optimizationResults.has(parameters)) {
-                            resolve("Optimization param already exist " + parameters)
-                        } else {
-                            resolve("Parameter is out of range, omitted")
-                        }
+                        var result = saveOptimizationReport(userInputs, newReportData(), mutation)
+                        resolve(result)
                         observer.disconnect()
                         return false
                     }
@@ -272,8 +258,10 @@ async function OptimizeParams(tvParameterIndex) {
     });
 
     const p2 = new Promise((resolve, reject) => {
+        
         setTimeout(() => {
-            reject("Timeout exceed");
+            var result = saveOptimizationReport(userInputs, newReportData(), null)
+            reject("Timeout exceeded, " + result);
         }, 10 * 1000);
     });
 
@@ -283,6 +271,28 @@ async function OptimizeParams(tvParameterIndex) {
         .then()
         .catch(reason => console.log(`Rejected: ${reason}`));
 
+}
+
+
+function saveOptimizationReport(userInputs, reportData, mutation){
+    var result = GetParametersFromWindow(userInputs)
+    var parameters = result.parameters
+    if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
+        ReportBuilder(reportData, mutation)
+        reportData.detailedParameters = result.detailedParameters
+        optimizationResults.set(parameters, reportData)
+        //Update Max Profit
+        replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
+        profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
+        if (profit > maxProfit) {
+            maxProfit = profit
+        }
+        return ("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
+    } else if (optimizationResults.has(parameters)) {
+        return ("Optimization param already exist " + parameters)
+    } else {
+        return ("Parameter is out of range, omitted")
+    }
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
@@ -363,8 +373,15 @@ function GetParametersFromWindow() {
 
 // Build Report data from performance overview
 function ReportBuilder(reportData, mutation) {
-    var reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")
-
+    var reportDataSelector;
+    // if mutation is nil, save the same report as there is no report data update
+    if(mutation != null){
+        reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")    
+    }else {
+        reportDataSelector = document.querySelector("div[class*=backtesting][class*=deep-history]").
+        ownerDocument.querySelectorAll("[class^='secondRow']")
+    }
+    
     //1. Column
     reportData.netProfit.amount = reportDataSelector[0].querySelectorAll("div")[0].innerText
     reportData.netProfit.percent = reportDataSelector[0].querySelectorAll("div")[1].innerText
