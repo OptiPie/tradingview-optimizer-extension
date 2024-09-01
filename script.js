@@ -62,10 +62,10 @@ async function Process() {
         for (let i = 0; i < userTimeFrames.length; i++) {
             // open time intervals dropdown and change it
             await sleep(500)
-            
+
             var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent']")
             // check if user has favorite time frames selected
-            if (timeIntervalDropdown == null){
+            if (timeIntervalDropdown == null) {
                 timeIntervalDropdown = document.querySelector("#header-toolbar-intervals button[data-tooltip*='Time']")
             }
             timeIntervalDropdown.click()
@@ -74,14 +74,14 @@ async function Process() {
             await sleep(2000)
             document.querySelector(timeIntervalQuery).click()
             await sleep(2000)
-            
+
             await OptimizeStrategy()
             // reset global variables for new strategy optimization and for new timeframe
             optimizationResults = new Map();
             maxProfit = -99999
         }
     }
-    
+
     // Optimize strategey for the currently chosen timeframe
     async function OptimizeStrategy() {
         await SetUserIntervals()
@@ -198,8 +198,8 @@ async function SetUserIntervals() {
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
 async function OptimizeParams(tvParameterIndex) {
-    function newReportData(){
-        return  new Object({
+    function newReportData() {
+        return new Object({
             netProfit: {
                 amount: 0,
                 percent: ""
@@ -219,6 +219,11 @@ async function OptimizeParams(tvParameterIndex) {
             detailedParameters: []
         });
     }
+
+    var reportData = newReportData()
+
+    var isReportChartUpdated = false;
+
     setTimeout(() => {
         // Hover on Input Arrows  
         tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
@@ -235,10 +240,16 @@ async function OptimizeParams(tvParameterIndex) {
             mutations.every(function (mutation) {
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
-                        var result = saveOptimizationReport(userInputs, newReportData(), mutation)
+                        var result = saveOptimizationReport(userInputs, reportData, mutation)
                         resolve(result)
                         observer.disconnect()
                         return false
+                    }
+                }
+
+                if (mutation.type === 'childList' && mutation.target?.className.includes("chartContainer")) {
+                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("lightweight")) {
+                        isReportChartUpdated = true;
                     }
                 }
                 return true
@@ -258,27 +269,33 @@ async function OptimizeParams(tvParameterIndex) {
     });
 
     const p2 = new Promise((resolve, reject) => {
-        
         setTimeout(() => {
-            var result = saveOptimizationReport(userInputs, newReportData(), null)
-            reject("Timeout exceeded, " + result);
+            reject("Timeout exceeded")
         }, 10 * 1000);
     });
 
-    await sleep(1000)
+    await sleep(500)
     // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
-        .catch(reason => console.log(`Rejected: ${reason}`));
-
+        .catch((reason) => {
+            console.log(`Rejected: ${reason}`)
+            if (isReportChartUpdated) {
+                // try to save previous report if next iteration has same data
+                saveOptimizationReport(userInputs, newReportData(), null)
+            }
+        });
 }
 
 
-function saveOptimizationReport(userInputs, reportData, mutation){
+function saveOptimizationReport(userInputs, reportData, mutation) {
     var result = GetParametersFromWindow(userInputs)
     var parameters = result.parameters
     if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-        ReportBuilder(reportData, mutation)
+        var error = ReportBuilder(reportData, mutation)
+        if (error != null) {
+            return error.message
+        }
         reportData.detailedParameters = result.detailedParameters
         optimizationResults.set(parameters, reportData)
         //Update Max Profit
@@ -375,13 +392,17 @@ function GetParametersFromWindow() {
 function ReportBuilder(reportData, mutation) {
     var reportDataSelector;
     // if mutation is nil, save the same report as there is no report data update
-    if(mutation != null){
-        reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")    
-    }else {
+    if (mutation != null) {
+        reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")
+    } else {
         reportDataSelector = document.querySelector("div[class*=backtesting][class*=deep-history]").
-        ownerDocument.querySelectorAll("[class^='secondRow']")
+            ownerDocument.querySelectorAll("[class^='secondRow']")
     }
-    
+
+    if (reportDataSelector == null || reportDataSelector.length <= 0) {
+        return new Error("report data is not available")
+    }
+
     //1. Column
     reportData.netProfit.amount = reportDataSelector[0].querySelectorAll("div")[0].innerText
     reportData.netProfit.percent = reportDataSelector[0].querySelectorAll("div")[1].innerText
