@@ -62,20 +62,26 @@ async function Process() {
         for (let i = 0; i < userTimeFrames.length; i++) {
             // open time intervals dropdown and change it
             await sleep(500)
-            document.querySelector("#header-toolbar-intervals div[class*='menuContent']").click()
+
+            var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent']")
+            // check if user has favorite time frames selected
+            if (timeIntervalDropdown == null) {
+                timeIntervalDropdown = document.querySelector("#header-toolbar-intervals button[data-tooltip*='Time']")
+            }
+            timeIntervalDropdown.click()
 
             var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
             await sleep(2000)
             document.querySelector(timeIntervalQuery).click()
             await sleep(2000)
-            
+
             await OptimizeStrategy()
             // reset global variables for new strategy optimization and for new timeframe
             optimizationResults = new Map();
             maxProfit = -99999
         }
     }
-    
+
     // Optimize strategey for the currently chosen timeframe
     async function OptimizeStrategy() {
         await SetUserIntervals()
@@ -192,25 +198,32 @@ async function SetUserIntervals() {
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
 async function OptimizeParams(tvParameterIndex) {
-    const reportData = new Object({
-        netProfit: {
-            amount: 0,
-            percent: ""
-        },
-        closedTrades: 0,
-        percentProfitable: "",
-        profitFactor: 0.0,
-        maxDrawdown: {
-            amount: 0,
-            percent: ""
-        },
-        averageTrade: {
-            amount: 0,
-            percent: ""
-        },
-        avgerageBarsInTrades: 0,
-        detailedParameters: []
-    });
+    function newReportData() {
+        return new Object({
+            netProfit: {
+                amount: 0,
+                percent: ""
+            },
+            closedTrades: 0,
+            percentProfitable: "",
+            profitFactor: 0.0,
+            maxDrawdown: {
+                amount: 0,
+                percent: ""
+            },
+            averageTrade: {
+                amount: 0,
+                percent: ""
+            },
+            avgerageBarsInTrades: 0,
+            detailedParameters: []
+        });
+    }
+
+    var reportData = newReportData()
+
+    var isReportChartUpdated = false;
+
     setTimeout(() => {
         // Hover on Input Arrows  
         tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
@@ -227,26 +240,16 @@ async function OptimizeParams(tvParameterIndex) {
             mutations.every(function (mutation) {
                 if (mutation.type === 'characterData') {
                     if (mutation.oldValue != mutation.target.data) {
-                        var result = GetParametersFromWindow(userInputs)
-                        var parameters = result.parameters
-                        if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-                            ReportBuilder(reportData, mutation)
-                            reportData.detailedParameters = result.detailedParameters
-                            optimizationResults.set(parameters, reportData)
-                            //Update Max Profit
-                            replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
-                            profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
-                            if (profit > maxProfit) {
-                                maxProfit = profit
-                            }
-                            resolve("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
-                        } else if (optimizationResults.has(parameters)) {
-                            resolve("Optimization param already exist " + parameters)
-                        } else {
-                            resolve("Parameter is out of range, omitted")
-                        }
+                        var result = saveOptimizationReport(userInputs, reportData, mutation)
+                        resolve(result)
                         observer.disconnect()
                         return false
+                    }
+                }
+
+                if (mutation.type === 'childList' && mutation.target?.className.includes("chartContainer")) {
+                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("lightweight")) {
+                        isReportChartUpdated = true;
                     }
                 }
                 return true
@@ -267,16 +270,46 @@ async function OptimizeParams(tvParameterIndex) {
 
     const p2 = new Promise((resolve, reject) => {
         setTimeout(() => {
-            reject("Timeout exceed");
+            reject("Timeout exceeded")
         }, 10 * 1000);
     });
 
-    await sleep(1000)
+    await sleep(500)
     // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
-        .catch(reason => console.log(`Rejected: ${reason}`));
+        .catch((reason) => {
+            console.log(`Rejected: ${reason}`)
+            if (isReportChartUpdated) {
+                // try to save previous report if next iteration has same data
+                saveOptimizationReport(userInputs, newReportData(), null)
+            }
+        });
+}
 
+
+function saveOptimizationReport(userInputs, reportData, mutation) {
+    var result = GetParametersFromWindow(userInputs)
+    var parameters = result.parameters
+    if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
+        var error = ReportBuilder(reportData, mutation)
+        if (error != null) {
+            return error.message
+        }
+        reportData.detailedParameters = result.detailedParameters
+        optimizationResults.set(parameters, reportData)
+        //Update Max Profit
+        replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
+        profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
+        if (profit > maxProfit) {
+            maxProfit = profit
+        }
+        return ("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
+    } else if (optimizationResults.has(parameters)) {
+        return ("Optimization param already exist " + parameters)
+    } else {
+        return ("Parameter is out of range, omitted")
+    }
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
@@ -357,7 +390,18 @@ function GetParametersFromWindow() {
 
 // Build Report data from performance overview
 function ReportBuilder(reportData, mutation) {
-    var reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")
+    var reportDataSelector;
+    // if mutation is nil, save the same report as there is no report data update
+    if (mutation != null) {
+        reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")
+    } else {
+        reportDataSelector = document.querySelector("div[class*=backtesting][class*=deep-history]").
+            ownerDocument.querySelectorAll("[class^='secondRow']")
+    }
+
+    if (reportDataSelector == null || reportDataSelector.length <= 0) {
+        return new Error("report data is not available")
+    }
 
     //1. Column
     reportData.netProfit.amount = reportDataSelector[0].querySelectorAll("div")[0].innerText
@@ -397,7 +441,7 @@ function sleep(ms) {
             });
         });
 
-        var element = document.querySelector(".backtesting-content-wrapper.widgetContainer-Lo3sdooi")
+        var element = document.querySelector("div[class*=backtesting][class*=deep-history]")
         let options = {
             attributes: false,
             childList: true,
