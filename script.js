@@ -92,7 +92,7 @@ async function Process() {
                 if (shouldStop) {
                     break;
                 }
-                await OptimizeParams(userInputs[0].parameterIndex);
+                await OptimizeParams(userInputs[0].parameterIndex, userInputs[0].stepSize);
             }
         };
 
@@ -180,24 +180,19 @@ async function SetUserIntervals() {
         var userInput = userInputs[i]
         await sleep(500);
 
-        var currentParameter = tvInputs[userInput.parameterIndex].value
-        var num = userInputs[i].start - userInputs[i].stepSize
+        var num = userInput.start - userInput.stepSize
 
         ChangeTvInput(tvInputs[userInput.parameterIndex], Math.round(num * 100) / 100)
-
-        if (currentParameter == userInputs[i].start) {
-            await IncrementParameter(userInput.parameterIndex)
-        } else {
-            await OptimizeParams(userInput.parameterIndex)
-        }
-
+            
+        await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
+    
         await sleep(500);
     }
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
 }
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
-async function OptimizeParams(tvParameterIndex) {
+async function OptimizeParams(tvParameterIndex, stepSize) {
     function newReportData() {
         return new Object({
             netProfit: {
@@ -229,11 +224,15 @@ async function OptimizeParams(tvParameterIndex) {
         tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
     }, 250);
     setTimeout(() => {
-        // Click on Upper Input Arrow
-        tvInputControls[tvParameterIndex]
-            .querySelector("button[class*=controlIncrease]")
-            .click()
-    }, 750);
+        // Calculate new step value
+        var newStepValue = parseInt(tvInputs[tvParameterIndex].value) + parseInt(stepSize)
+        console.log(newStepValue)
+        ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
+    }, 500);
+    setTimeout(() => {
+       // Click on "Ok" button
+       document.querySelector("button[data-name='submit-button']").click() 
+    }, 1500);
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
@@ -271,11 +270,11 @@ async function OptimizeParams(tvParameterIndex) {
     const p2 = new Promise((resolve, reject) => {
         setTimeout(() => {
             reject("Timeout exceeded")
-        }, 10 * 1000);
+        }, 7 * 1000);
     });
 
     await sleep(500)
-    // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
+    // Promise race the obvervation with 7 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
         .catch((reason) => {
@@ -285,6 +284,13 @@ async function OptimizeParams(tvParameterIndex) {
                 saveOptimizationReport(userInputs, newReportData(), null)
             }
         });
+    setTimeout(() => {
+    // Re-open strategy settings window
+    document.querySelector(".fixedContent-zf0MHBzY").querySelector("button").click()    
+    }, 250)
+    await sleep(500)
+    tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
+    tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 }
 
 
@@ -313,23 +319,27 @@ function saveOptimizationReport(userInputs, reportData, mutation) {
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
-async function ResetAndOptimizeParameter(tvParameterIndex, resetValue) {
+async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize) {
     ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
     await sleep(500)
-    await OptimizeParams(tvParameterIndex)
+    await OptimizeParams(tvParameterIndex, stepSize)
     await sleep(500)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
 async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
     var previousTvParameterIndex = userInputs[index - 1].parameterIndex
-    var tvParameterIndex = userInputs[index].parameterIndex
+    var currentTvParameterIndex = userInputs[index].parameterIndex
+    
     var resetValue = userInputs[index - 1].start - userInputs[index - 1].stepSize
+    
+    var previousStepSize = userInputs[index - 1].stepSize
+    var currentStepSize = userInputs[index].stepSize
     //Reset and optimze inner
-    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue)
+    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration
     if (rangeIteration != ranges[index] - 1) {
-        await OptimizeParams(tvParameterIndex)
+        await OptimizeParams(currentTvParameterIndex, currentStepSize)
     }
 }
 
