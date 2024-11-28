@@ -180,10 +180,15 @@ async function SetUserIntervals() {
         var userInput = userInputs[i]
         await sleep(500);
 
-        var num = userInput.start - userInput.stepSize
-
-        ChangeTvInput(tvInputs[userInput.parameterIndex], Math.round(num * 100) / 100)
-            
+        var startValue = userInput.start - userInput.stepSize
+        
+        // reset by step size in case of a user input is as same as current tv input value 
+        if(userInput.start == tvInputs[userInput.parameterIndex].value){
+            await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
+        }else{
+            ChangeTvInput(tvInputs[userInput.parameterIndex], Math.round(startValue * 100) / 100)    
+        }
+    
         await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
     
         await sleep(500);
@@ -232,7 +237,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     setTimeout(() => {
        // Click on "Ok" button
        document.querySelector("button[data-name='submit-button']").click() 
-    }, 1500);
+    }, 750);
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
@@ -270,11 +275,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     const p2 = new Promise((resolve, reject) => {
         setTimeout(() => {
             reject("Timeout exceeded")
-        }, 7 * 1000);
+        }, 10 * 1000);
     });
 
     await sleep(500)
-    // Promise race the obvervation with 7 sec timeout in case of Startegy Test Overview window fails to load
+    // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
         .catch((reason) => {
