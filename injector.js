@@ -63,7 +63,7 @@ function InjectScriptIntoDOM() {
   chrome.storage.local.get("userInputs", ({ userInputs }) => {
     setTimeout(sendUserInputsMessage, 500, userInputs);
   });
-  
+
   function sendUserInputsMessage(userInputs) {
     var userInputsMessage = userInputs
     var evt = new CustomEvent("UserInputsEvent", { detail: userInputsMessage });
@@ -89,12 +89,12 @@ function InjectScriptIntoDOM() {
   Thanks to @RobW https://stackoverflow.com/questions/9515704/use-a-content-script-to-access-the-page-context-variables-and-functions 
 */
 
-  /* Code block to truncate all local chrome storage
-  chrome.storage.local.get(null, function (items) {
-    var allKeys = Object.keys(items);
-    var values = Object.values(items)
-    //chrome.storage.local.remove(allKeys, function () { })
-    //console.log(allKeys);
-    //console.log(values)
-  });
-  */
+/* Code block to truncate all local chrome storage
+chrome.storage.local.get(null, function (items) {
+  var allKeys = Object.keys(items);
+  var values = Object.values(items)
+  //chrome.storage.local.remove(allKeys, function () { })
+  //console.log(allKeys);
+  //console.log(values)
+});
+*/

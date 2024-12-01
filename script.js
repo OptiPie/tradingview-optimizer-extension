@@ -6,11 +6,15 @@ var maxProfit = -99999
 var userInputs = []
 var userTimeFrames = []
 var optimizationResults = new Map();
+var shouldStop = false;
 
 // Run Optimization Process 
 Process()
 
 async function Process() {
+async function Process() {
+    var shouldStop = false;
+async function Process() {    
     var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = function (evt) {
@@ -84,6 +88,7 @@ async function Process() {
 
     // Optimize strategey for the currently chosen timeframe
     async function OptimizeStrategy() {
+        shouldStop = false;
         await SetUserIntervals()
 
         // Base call function
@@ -182,13 +187,18 @@ async function SetUserIntervals() {
 
         var startValue = userInput.start - userInput.stepSize
         
+        if (isFloat(startValue)) {
+            var precision = getFloatPrecision(userInput.stepSize)
+            startValue = fixPrecision(startValue, precision)
+        }
+        
         // reset by step size in case of a user input is as same as current tv input value 
         if(userInput.start == tvInputs[userInput.parameterIndex].value){
             await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
         }else{
-            ChangeTvInput(tvInputs[userInput.parameterIndex], Math.round(startValue * 100) / 100)    
+            ChangeTvInput(tvInputs[userInput.parameterIndex], startValue)    
         }
-    
+        
         await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
     
         await sleep(500);
@@ -221,7 +231,6 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }
 
     var reportData = newReportData()
-
     var isReportChartUpdated = false;
 
     setTimeout(() => {
@@ -230,8 +239,12 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }, 250);
     setTimeout(() => {
         // Calculate new step value
-        var newStepValue = parseInt(tvInputs[tvParameterIndex].value) + parseInt(stepSize)
-        console.log(newStepValue)
+        var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
+        if (isFloat(newStepValue)) {
+            var precision = getFloatPrecision(stepSize)
+            newStepValue = fixPrecision(newStepValue, precision)
+        }
+
         ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
     }, 500);
     setTimeout(() => {
@@ -256,6 +269,12 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
                         isReportChartUpdated = true;
                     }
                 }
+                
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0){
+                    if (mutation.addedNodes[0].querySelector("div[class*=emptyStateIcon]") != null){
+                        reject(new Error("No report data, check your parameters carefully"))    
+                    }
+                }
                 return true
             });
         });
@@ -274,6 +293,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     const p2 = new Promise((resolve, reject) => {
         setTimeout(() => {
+            // expected error type, kind of warning
             reject("Timeout exceeded")
         }, 10 * 1000);
     });
@@ -282,8 +302,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
-        .catch((reason) => {
-            console.log(`Rejected: ${reason}`)
+        .catch((error) => {
+            console.log(`Rejected: ${error}`)
             if (isReportChartUpdated) {
                 // try to save previous report if next iteration has same data
                 saveOptimizationReport(userInputs, newReportData(), null)
@@ -435,6 +455,32 @@ function ReportBuilder(reportData, mutation) {
     reportData.averageTrade.percent = reportDataSelector[5].querySelectorAll("div")[1].innerText
 
     reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector("div").innerText
+}
+
+
+// isFloat to check whether given number is float or not
+function isFloat(number){
+    if (String(number).includes(".")) {
+        return true
+    }
+    return false
+}
+
+// getFloatPrecision to get precision of given float number
+function getFloatPrecision(number){
+    if (isFloat(number)) {
+        return String(number).split(".")[1].length    
+    }else {
+        // default precision value
+        return 2
+    }
+    
+}
+
+// fixPrecision handles js floating arithmetic precision problem
+function fixPrecision(value, precision){
+    var multiplier = Math.pow(10, precision)
+    return Math.round(value * multiplier) / multiplier    
 }
 
 function sleep(ms) {
