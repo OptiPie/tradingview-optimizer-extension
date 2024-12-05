@@ -11,9 +11,6 @@ var shouldStop = false;
 // Run Optimization Process 
 Process()
 
-async function Process() {
-async function Process() {
-    var shouldStop = false;
 async function Process() {    
     var shouldStop = false;
     //Construct UserInputs with callback
@@ -183,8 +180,6 @@ async function Process() {
 async function SetUserIntervals() {
     for (let i = 0; i < userInputs.length; i++) {
         var userInput = userInputs[i]
-        await sleep(500);
-
         var startValue = userInput.start - userInput.stepSize
         
         if (isFloat(startValue)) {
@@ -201,7 +196,7 @@ async function SetUserIntervals() {
         
         await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
     
-        await sleep(500);
+        await sleep(250);
     }
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
 }
@@ -233,10 +228,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     var reportData = newReportData()
     var isReportChartUpdated = false;
 
-    setTimeout(() => {
-        // Hover on Input Arrows  
-        tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
-    }, 250);
+    tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
     setTimeout(() => {
         // Calculate new step value
         var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
@@ -246,11 +238,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         }
 
         ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
-    }, 500);
+    }, 100);
     setTimeout(() => {
        // Click on "Ok" button
        document.querySelector("button[data-name='submit-button']").click() 
-    }, 750);
+    }, 300);
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
@@ -298,7 +290,6 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         }, 10 * 1000);
     });
 
-    await sleep(500)
     // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
@@ -309,11 +300,10 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
                 saveOptimizationReport(userInputs, newReportData(), null)
             }
         });
-    setTimeout(() => {
     // Re-open strategy settings window
     document.querySelector(".fixedContent-zf0MHBzY").querySelector("button").click()    
-    }, 250)
-    await sleep(500)
+
+    await sleep(250)
     tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
     tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 }
@@ -348,7 +338,6 @@ async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize)
     ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
     await sleep(500)
     await OptimizeParams(tvParameterIndex, stepSize)
-    await sleep(500)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
