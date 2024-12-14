@@ -42,6 +42,17 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   return true
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "SleepEventStart") {
+      const delay = message.delay || 3000;
+      setTimeout(() => {
+          sendResponse({ type: "SleepComplete" });
+      }, delay);
+      // Return true to indicate that the response will be sent asynchronously
+      return true;
+  }
+});
+
 
 chrome.runtime.onStartup.addListener(() => {
   chrome.storage.local.set({

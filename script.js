@@ -8,6 +8,19 @@ var userTimeFrames = []
 var optimizationResults = new Map();
 var shouldStop = false;
 
+var sleep = (ms) => new Promise((resolve) => {
+    const handler = (event) => {
+        if (event.data.type === "SleepComplete") {
+            window.removeEventListener("message", handler);
+            resolve();
+        }
+    };
+    window.addEventListener("message", handler);
+
+    // Notify injector.js about the sleep request with the delay
+    window.postMessage({ type: "SleepEventStart", delay: ms }, "*");
+});
+
 // Run Optimization Process 
 Process()
 
@@ -229,20 +242,20 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     var isReportChartUpdated = false;
 
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
-    setTimeout(() => {
-        // Calculate new step value
-        var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
-        if (isFloat(newStepValue)) {
-            var precision = getFloatPrecision(stepSize)
-            newStepValue = fixPrecision(newStepValue, precision)
-        }
+    
+    await sleep(100)
+    // Calculate new step value
+    var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
+    if (isFloat(newStepValue)) {
+        var precision = getFloatPrecision(stepSize)
+        newStepValue = fixPrecision(newStepValue, precision)
+    }
+    ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
 
-        ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
-    }, 100);
-    setTimeout(() => {
-       // Click on "Ok" button
-       document.querySelector("button[data-name='submit-button']").click() 
-    }, 300);
+    await sleep(300)
+    // Click on "Ok" button
+    document.querySelector("button[data-name='submit-button']").click() 
+    
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
@@ -471,11 +484,6 @@ function fixPrecision(value, precision){
     var multiplier = Math.pow(10, precision)
     return Math.round(value * multiplier) / multiplier    
 }
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 //Mutation Observer Code for console debugging purposes
 /*
         var observer = new MutationObserver(function (mutations) {

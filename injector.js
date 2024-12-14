@@ -28,6 +28,21 @@ var reportDataEventCallback = function (evt) {
   }
 }
 
+window.addEventListener("message", (event) => {
+  if (event.source !== window || event.data.type !== "SleepEventStart") {
+      return;
+  }
+  
+  const delay = event.data.delay;
+  // Send SleepEvent to the background script
+  chrome.runtime.sendMessage({ type: "SleepEventStart", delay }, (response) => {
+      if (response.type === "SleepComplete") {
+          // Notify script.js that the sleep is complete
+          window.postMessage({ type: "SleepComplete" }, "*");
+      }
+  });
+});
+
 // Add ReportData Callback if script.js injected successfully
 if (isInjected) {
   window.addEventListener("ReportDataEvent", reportDataEventCallback, false);
