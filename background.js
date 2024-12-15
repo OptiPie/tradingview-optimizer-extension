@@ -46,7 +46,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "SleepEventStart") {
       const delay = message.delay || 3000;
       setTimeout(() => {
-          sendResponse({ type: "SleepComplete" });
+          sendResponse({ type: "SleepEventComplete" });
       }, delay);
       // Return true to indicate that the response will be sent asynchronously
       return true;

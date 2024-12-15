@@ -10,7 +10,7 @@ var shouldStop = false;
 
 var sleep = (ms) => new Promise((resolve) => {
     const handler = (event) => {
-        if (event.data.type === "SleepComplete") {
+        if (event.data.type === "SleepEventComplete") {
             window.removeEventListener("message", handler);
             resolve();
         }
@@ -27,20 +27,26 @@ Process()
 async function Process() {    
     var shouldStop = false;
     //Construct UserInputs with callback
-    var userInputsEventCallback = function (evt) {
-        window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
-        userInputs = evt.detail.parameters
-        userTimeFrames = evt.detail.timeFrames
+    var userInputsEventCallback = (event) => {
+        var message = event.data
+        if (message.type === "UserInputsEvent") {
+            window.removeEventListener("message", userInputsEventCallback);
+            userInputs = message.detail.parameters
+            userTimeFrames = message.detail.timeFrames
+        }
     }
 
-    window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
+    window.addEventListener("message", userInputsEventCallback);
 
-    var stopOptimizationEventCallback = function (evt) {
-        window.removeEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false)
-        shouldStop = evt.detail.event.isTrusted
+    var stopOptimizationEventCallback = (event) => {
+        var message = event.data
+        if (message.type === "StopOptimizationEvent") {
+            window.removeEventListener("message", stopOptimizationEventCallback)
+            shouldStop = message.detail.event.isTrusted
+        }
     }
 
-    window.addEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false);
+    window.addEventListener("message", stopOptimizationEventCallback);
 
     //Wait for UserInputsEvent Callback
     await sleep(750)
@@ -183,8 +189,7 @@ async function Process() {
             "reportData": optimizationResultsObject
         }
         // Send Optimization Report to injector
-        var evt = new CustomEvent("ReportDataEvent", { detail: reportDataMessage });
-        window.dispatchEvent(evt);
+        window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
     }
 
 }
@@ -243,7 +248,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
     
-    await sleep(100)
+    await sleep(150)
     // Calculate new step value
     var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
     if (isFloat(newStepValue)) {

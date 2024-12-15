@@ -352,12 +352,7 @@ async function injectPlusFeatures(userEmail) {
   // dispatch stop optimization event for plus users by clicking stop button
   function stopOptimizationEvent(clickEvent) {
     var event = JSON.parse(clickEvent)
-    var evt = new CustomEvent("StopOptimizationEvent", {
-      detail: {
-        event: event
-      }
-    });
-    window.dispatchEvent(evt);
+    window.postMessage({ type: "StopOptimizationEvent", detail: { event : event} }, "*");
   }
 }
 
