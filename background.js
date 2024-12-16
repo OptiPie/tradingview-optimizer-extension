@@ -55,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update"){
-    chrome.tabs.create({url: "https://optipie.app", active: true});
+    chrome.tabs.create({url: "https://optipie.app/news/", active: true});
   }
 })
 
