@@ -6,27 +6,47 @@ var maxProfit = -99999
 var userInputs = []
 var userTimeFrames = []
 var optimizationResults = new Map();
+var shouldStop = false;
+
+var sleep = (ms) => new Promise((resolve) => {
+    const handler = (event) => {
+        if (event.data.type === "SleepEventComplete") {
+            window.removeEventListener("message", handler);
+            resolve();
+        }
+    };
+    window.addEventListener("message", handler);
+
+    // Notify injector.js about the sleep request with the delay
+    window.postMessage({ type: "SleepEventStart", delay: ms }, "*");
+});
 
 // Run Optimization Process 
 Process()
 
-async function Process() {
+async function Process() {    
     var shouldStop = false;
     //Construct UserInputs with callback
-    var userInputsEventCallback = function (evt) {
-        window.removeEventListener("UserInputsEvent", userInputsEventCallback, false)
-        userInputs = evt.detail.parameters
-        userTimeFrames = evt.detail.timeFrames
+    var userInputsEventCallback = (event) => {
+        var message = event.data
+        if (message.type === "UserInputsEvent") {
+            window.removeEventListener("message", userInputsEventCallback);
+            userInputs = message.detail.parameters
+            userTimeFrames = message.detail.timeFrames
+        }
     }
 
-    window.addEventListener("UserInputsEvent", userInputsEventCallback, false);
+    window.addEventListener("message", userInputsEventCallback);
 
-    var stopOptimizationEventCallback = function (evt) {
-        window.removeEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false)
-        shouldStop = evt.detail.event.isTrusted
+    var stopOptimizationEventCallback = (event) => {
+        var message = event.data
+        if (message.type === "StopOptimizationEvent") {
+            window.removeEventListener("message", stopOptimizationEventCallback)
+            shouldStop = message.detail.event.isTrusted
+        }
     }
 
-    window.addEventListener("StopOptimizationEvent", stopOptimizationEventCallback, false);
+    window.addEventListener("message", stopOptimizationEventCallback);
 
     //Wait for UserInputsEvent Callback
     await sleep(750)
@@ -84,6 +104,7 @@ async function Process() {
 
     // Optimize strategey for the currently chosen timeframe
     async function OptimizeStrategy() {
+        shouldStop = false;
         await SetUserIntervals()
 
         // Base call function
@@ -92,7 +113,7 @@ async function Process() {
                 if (shouldStop) {
                     break;
                 }
-                await OptimizeParams(userInputs[0].parameterIndex);
+                await OptimizeParams(userInputs[0].parameterIndex, userInputs[0].stepSize);
             }
         };
 
@@ -168,8 +189,7 @@ async function Process() {
             "reportData": optimizationResultsObject
         }
         // Send Optimization Report to injector
-        var evt = new CustomEvent("ReportDataEvent", { detail: reportDataMessage });
-        window.dispatchEvent(evt);
+        window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
     }
 
 }
@@ -178,26 +198,29 @@ async function Process() {
 async function SetUserIntervals() {
     for (let i = 0; i < userInputs.length; i++) {
         var userInput = userInputs[i]
-        await sleep(500);
-
-        var currentParameter = tvInputs[userInput.parameterIndex].value
-        var num = userInputs[i].start - userInputs[i].stepSize
-
-        ChangeTvInput(tvInputs[userInput.parameterIndex], Math.round(num * 100) / 100)
-
-        if (currentParameter == userInputs[i].start) {
-            await IncrementParameter(userInput.parameterIndex)
-        } else {
-            await OptimizeParams(userInput.parameterIndex)
+        var startValue = userInput.start - userInput.stepSize
+        
+        if (isFloat(startValue)) {
+            var precision = getFloatPrecision(userInput.stepSize)
+            startValue = fixPrecision(startValue, precision)
         }
-
-        await sleep(500);
+        
+        // reset by step size in case of a user input is as same as current tv input value 
+        if(userInput.start == tvInputs[userInput.parameterIndex].value){
+            await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
+        }else{
+            ChangeTvInput(tvInputs[userInput.parameterIndex], startValue)    
+        }
+        
+        await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
+    
+        await sleep(250);
     }
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
 }
 
 // Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
-async function OptimizeParams(tvParameterIndex) {
+async function OptimizeParams(tvParameterIndex, stepSize) {
     function newReportData() {
         return new Object({
             netProfit: {
@@ -221,19 +244,23 @@ async function OptimizeParams(tvParameterIndex) {
     }
 
     var reportData = newReportData()
-
     var isReportChartUpdated = false;
 
-    setTimeout(() => {
-        // Hover on Input Arrows  
-        tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
-    }, 250);
-    setTimeout(() => {
-        // Click on Upper Input Arrow
-        tvInputControls[tvParameterIndex]
-            .querySelector("button[class*=controlIncrease]")
-            .click()
-    }, 750);
+    tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
+    
+    await sleep(150)
+    // Calculate new step value
+    var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
+    if (isFloat(newStepValue)) {
+        var precision = getFloatPrecision(stepSize)
+        newStepValue = fixPrecision(newStepValue, precision)
+    }
+    ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
+
+    await sleep(300)
+    // Click on "Ok" button
+    document.querySelector("button[data-name='submit-button']").click() 
+    
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
@@ -250,6 +277,12 @@ async function OptimizeParams(tvParameterIndex) {
                 if (mutation.type === 'childList' && mutation.target?.className.includes("chartContainer")) {
                     if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("lightweight")) {
                         isReportChartUpdated = true;
+                    }
+                }
+                
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0){
+                    if (mutation.addedNodes[0].querySelector("div[class*=emptyStateIcon]") != null){
+                        reject(new Error("No report data, check your parameters carefully"))    
                     }
                 }
                 return true
@@ -270,21 +303,27 @@ async function OptimizeParams(tvParameterIndex) {
 
     const p2 = new Promise((resolve, reject) => {
         setTimeout(() => {
+            // expected error type, kind of warning
             reject("Timeout exceeded")
         }, 10 * 1000);
     });
 
-    await sleep(500)
     // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
-        .catch((reason) => {
-            console.log(`Rejected: ${reason}`)
+        .catch((error) => {
+            console.log(`Rejected: ${error}`)
             if (isReportChartUpdated) {
                 // try to save previous report if next iteration has same data
                 saveOptimizationReport(userInputs, newReportData(), null)
             }
         });
+    // Re-open strategy settings window
+    document.querySelector(".fixedContent-zf0MHBzY").querySelector("button").click()    
+
+    await sleep(250)
+    tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
+    tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 }
 
 
@@ -313,23 +352,26 @@ function saveOptimizationReport(userInputs, reportData, mutation) {
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
-async function ResetAndOptimizeParameter(tvParameterIndex, resetValue) {
+async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize) {
     ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
     await sleep(500)
-    await OptimizeParams(tvParameterIndex)
-    await sleep(500)
+    await OptimizeParams(tvParameterIndex, stepSize)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
 async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
     var previousTvParameterIndex = userInputs[index - 1].parameterIndex
-    var tvParameterIndex = userInputs[index].parameterIndex
+    var currentTvParameterIndex = userInputs[index].parameterIndex
+    
     var resetValue = userInputs[index - 1].start - userInputs[index - 1].stepSize
+    
+    var previousStepSize = userInputs[index - 1].stepSize
+    var currentStepSize = userInputs[index].stepSize
     //Reset and optimze inner
-    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue)
+    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration
     if (rangeIteration != ranges[index] - 1) {
-        await OptimizeParams(tvParameterIndex)
+        await OptimizeParams(currentTvParameterIndex, currentStepSize)
     }
 }
 
@@ -422,10 +464,31 @@ function ReportBuilder(reportData, mutation) {
     reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector("div").innerText
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+
+// isFloat to check whether given number is float or not
+function isFloat(number){
+    if (String(number).includes(".")) {
+        return true
+    }
+    return false
 }
 
+// getFloatPrecision to get precision of given float number
+function getFloatPrecision(number){
+    if (isFloat(number)) {
+        return String(number).split(".")[1].length    
+    }else {
+        // default precision value
+        return 2
+    }
+    
+}
+
+// fixPrecision handles js floating arithmetic precision problem
+function fixPrecision(value, precision){
+    var multiplier = Math.pow(10, precision)
+    return Math.round(value * multiplier) / multiplier    
+}
 //Mutation Observer Code for console debugging purposes
 /*
         var observer = new MutationObserver(function (mutations) {

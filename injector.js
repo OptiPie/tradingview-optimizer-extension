@@ -1,36 +1,54 @@
 var isInjected = InjectScriptIntoDOM()
 
 // Handle Optimization Report coming from script.js
-var reportDataEventCallback = function (evt) {
-  // Unlock optimize button
-  chrome.runtime.sendMessage({
-    popupAction: {
-      event: "unlockOptimizeButton"
-    }
-  });
-  var reportKey = "report-data-" + evt.detail.strategyID
-  if(Object.keys(evt.detail.reportData).length > 0){
-    chrome.storage.local.set({ [reportKey]: evt.detail }, function(){
-      chrome.runtime.sendMessage({
-        notify: {
-          type: "success",
-          content: "Optimization Completed Successfully & Added to Reports"
-        }
-      });
-    })    
-  }else{
+var reportDataEventCallback = (event) => {
+  var message = event.data
+  if (message.type === "ReportDataEvent") {
+    // Unlock optimize button
     chrome.runtime.sendMessage({
-      notify: {
-        type: "warning",
-        content: "Optimization Failed - Try again and follow the steps carefully"
+      popupAction: {
+        event: "unlockOptimizeButton"
       }
     });
+    var reportKey = "report-data-" + message.detail.strategyID
+    if (Object.keys(message.detail.reportData).length > 0) {
+      chrome.storage.local.set({ [reportKey]: message.detail }, function () {
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "success",
+            content: "Optimization Completed Successfully & Added to Reports"
+          }
+        });
+      })
+    } else {
+      chrome.runtime.sendMessage({
+        notify: {
+          type: "warning",
+          content: "Optimization Failed - Try again and follow the steps carefully"
+        }
+      });
+    }
   }
 }
 
+window.addEventListener("message", (event) => {
+  if (event.source !== window || event.data.type !== "SleepEventStart") {
+    return;
+  }
+
+  const delay = event.data.delay;
+  // Send SleepEvent to the background script
+  chrome.runtime.sendMessage({ type: "SleepEventStart", delay }, (response) => {
+    if (response.type === "SleepEventComplete") {
+      // Notify script.js that the sleep is complete
+      window.postMessage({ type: "SleepEventComplete" }, "*");
+    }
+  });
+});
+
 // Add ReportData Callback if script.js injected successfully
 if (isInjected) {
-  window.addEventListener("ReportDataEvent", reportDataEventCallback, false);
+  window.addEventListener("message", reportDataEventCallback, false);
   // Lock optimize button to prevent accidental multiple submissions
   chrome.runtime.sendMessage({
     popupAction: {
@@ -63,11 +81,9 @@ function InjectScriptIntoDOM() {
   chrome.storage.local.get("userInputs", ({ userInputs }) => {
     setTimeout(sendUserInputsMessage, 500, userInputs);
   });
-  
+
   function sendUserInputsMessage(userInputs) {
-    var userInputsMessage = userInputs
-    var evt = new CustomEvent("UserInputsEvent", { detail: userInputsMessage });
-    window.dispatchEvent(evt);
+    window.postMessage({ type: "UserInputsEvent", detail: userInputs }, "*");
   }
   return true
 }
@@ -89,12 +105,12 @@ function InjectScriptIntoDOM() {
   Thanks to @RobW https://stackoverflow.com/questions/9515704/use-a-content-script-to-access-the-page-context-variables-and-functions 
 */
 
-  /* Code block to truncate all local chrome storage
-  chrome.storage.local.get(null, function (items) {
-    var allKeys = Object.keys(items);
-    var values = Object.values(items)
-    //chrome.storage.local.remove(allKeys, function () { })
-    //console.log(allKeys);
-    //console.log(values)
-  });
-  */
+/* Code block to truncate all local chrome storage
+chrome.storage.local.get(null, function (items) {
+  var allKeys = Object.keys(items);
+  var values = Object.values(items)
+  //chrome.storage.local.remove(allKeys, function () { })
+  //console.log(allKeys);
+  //console.log(values)
+});
+*/

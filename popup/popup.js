@@ -352,12 +352,7 @@ async function injectPlusFeatures(userEmail) {
   // dispatch stop optimization event for plus users by clicking stop button
   function stopOptimizationEvent(clickEvent) {
     var event = JSON.parse(clickEvent)
-    var evt = new CustomEvent("StopOptimizationEvent", {
-      detail: {
-        event: event
-      }
-    });
-    window.dispatchEvent(evt);
+    window.postMessage({ type: "StopOptimizationEvent", detail: { event : event} }, "*");
   }
 }
 
@@ -746,6 +741,7 @@ var TimeFrameMap = new Map([
   ['2 minutes', '2m'],
   ['3 minutes', '3m'],
   ['5 minutes', '5m'],
+  ['10 minutes', '10m'],
   ['15 minutes', '15m'],
   ['30 minutes', '30m'],
   ['45 minutes', '45m'],
