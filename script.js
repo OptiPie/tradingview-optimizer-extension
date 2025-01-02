@@ -6,7 +6,6 @@ var maxProfit = -99999
 var userInputs = []
 var userTimeFrames = []
 var optimizationResults = new Map();
-var shouldStop = false;
 
 var sleep = (ms) => new Promise((resolve) => {
     const handler = (event) => {
@@ -91,9 +90,9 @@ async function Process() {
             timeIntervalDropdown.click()
 
             var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(2000)
+            await sleep(1000)
             document.querySelector(timeIntervalQuery).click()
-            await sleep(2000)
+            await sleep(1000)
 
             await OptimizeStrategy()
             // reset global variables for new strategy optimization and for new timeframe
@@ -257,7 +256,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }
     ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
 
-    await sleep(300)
+    await sleep(200)
     // Click on "Ok" button
     document.querySelector("button[data-name='submit-button']").click() 
     
@@ -282,6 +281,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
                 
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0){
                     if (mutation.addedNodes[0].querySelector("div[class*=emptyStateIcon]") != null){
+                        isReportChartUpdated = false;
                         reject(new Error("No report data, check your parameters carefully"))    
                     }
                 }
@@ -318,10 +318,12 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
                 saveOptimizationReport(userInputs, newReportData(), null)
             }
         });
+    
+    await sleep(100)
     // Re-open strategy settings window
     document.querySelector(".fixedContent-zf0MHBzY").querySelector("button").click()    
 
-    await sleep(250)
+    await sleep(100)
     tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
     tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
 }
@@ -354,7 +356,7 @@ function saveOptimizationReport(userInputs, reportData, mutation) {
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
 async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize) {
     ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
-    await sleep(500)
+    await sleep(300)
     await OptimizeParams(tvParameterIndex, stepSize)
 }
 

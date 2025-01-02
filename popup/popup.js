@@ -5,8 +5,8 @@ const getParameterNames = 'getParameterNames'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
-let freeParameterLimit = 4
-let plusParameterLimit = 8
+let freeParameterLimit = 5
+let plusParameterLimit = 20
 
 // Initialize popup html according to last user parameter count state
 chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
@@ -260,7 +260,7 @@ async function injectPlusFeatures(userEmail) {
     // show skeletons first for features
     showSkeleton("timeFrame", "time-frame")
     showSkeleton("stop", "stop")
-    // change parameter limit up to 8
+    // change parameter limit up for plus users
     parameterLimit = plusParameterLimit
     await getCurrentTab().then(function (tab) {
       chrome.scripting.executeScript({
