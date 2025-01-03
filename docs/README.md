@@ -52,7 +52,7 @@ Join the OptiPie Plus Membership, discover amazing features, go beyond the limit
 - ###  ✅ Selectable Parameters
 - ###  🛑 Stoppable Optimization with Partial Report
 - ###  📊 Extended Report Data
-- ###  🔓 Optimize Strategies Up to 8 Parameters
+- ###  🔓 Optimize Strategies Up to 20 Parameters
 
 ### Features in Action
 
