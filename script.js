@@ -55,7 +55,7 @@ async function Process() {
     });
     // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 4 Parameters max, will be up to 8 for plus users.
     var ranges = [];
-
+    console.log(userInputs)
     // Create user input ranges with given step size for each parameter
     userInputs.forEach((element, index) => {
         var range = 0

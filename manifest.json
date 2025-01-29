@@ -28,7 +28,8 @@
     "scripting",
     "notifications",
     "identity",
-    "identity.email"
+    "identity.email",
+    "unlimitedStorage"
   ],
   "action": {
     "default_popup": "popup/popup.html"
@@ -36,7 +37,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "script.js"
+        "script.js",
+        "plus/get-selectable-parameter-options.js"
       ],
       "matches": [
         "https://*.tradingview.com/*"

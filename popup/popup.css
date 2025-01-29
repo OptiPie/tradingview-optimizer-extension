@@ -131,6 +131,10 @@ body {
     padding-left: 0.25rem;
 }
 
+#selectParameter{
+    display: none;
+}
+
 .toolbar {
     margin-right: 1rem;
 }

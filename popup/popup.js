@@ -1,12 +1,63 @@
 // Popup action event types
 const lockOptimizeButton = 'lockOptimizeButton'
 const unlockOptimizeButton = 'unlockOptimizeButton'
-const getParameterNames = 'getParameterNames'
+const getTvParameters = 'getTvParameters'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
 let freeParameterLimit = 5
 let plusParameterLimit = 20
+
+
+
+
+function initSelectParameter(options) {
+  $('#selectParameter').multiselect({
+    buttonClass: 'form-select',
+    templates: {
+      button: '<button type="button" class="multiselect dropdown-toggle" data-bs-toggle="dropdown"><span class="multiselect-selected-text"></span></button>',
+    },
+    nonSelectedText: 'Time',
+    maxHeight: "270",
+    buttonText: function (options, select) {
+      if (options.length === 0) {
+        return 'Select Parameters';
+      }
+      else if (options.length > 3) {
+        return '...';
+      }
+      else {
+
+        var labels = [];
+        options.each(function () {
+          if ($(this).attr('label') !== undefined) {
+            labels.push($(this).attr('label'));
+          }
+        });
+        return labels.join(', ') + '';
+
+      }
+    },
+    onChange: async function (option, checked, select) {
+
+    }
+  });
+
+  // Populate the select element
+  const multiselectElement = document.getElementById('selectParameter');
+  options.forEach(option => {
+      const opt = document.createElement('option');
+      opt.value = option.value;
+      opt.textContent = option.content;
+      multiselectElement.appendChild(opt);
+  });
+
+  // Refresh the multiselect to reflect changes
+  $('#selectParameter').multiselect('rebuild');
+
+
+
+}
 
 // Initialize popup html according to last user parameter count state
 chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
@@ -24,9 +75,9 @@ addSaveAutoFillSelectionListener(0)
 updateUserUI()
 
 // non-functional UI changes made with storage
-function updateUserUI(){
+function updateUserUI() {
   chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
-    if(isPlusUser){
+    if (isPlusUser) {
       // show plus logo
       var logo = document.getElementById("normalLogo")
       logo.style.cssText = 'display:none !important';
@@ -35,7 +86,7 @@ function updateUserUI(){
       // remove plus upgrade button 
       var plusUpgrade = document.getElementById("plusUpgrade")
       plusUpgrade.style.display = 'none'
-    }else{
+    } else {
       // hide plus logo
       var plusLogo = document.getElementById("plusLogo")
       plusLogo.style.cssText = 'display:none !important'
@@ -98,8 +149,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       case unlockOptimizeButton:
         document.querySelector("#optimize").removeAttribute("disabled", "")
         break;
-      case getParameterNames:
-        autoFillParameters(popupAction.message.parameterNames);
+      case getTvParameters:
+        autoFillParameters(popupAction.message.tvParameters);
         break;
     }
   }
@@ -235,8 +286,8 @@ async function ProcessPlusFeatures() {
     })
   })
   if (token === "") {
-    // clean parameter names
-    chrome.storage.local.set({ "parameterNames": null });
+    // clean tv parameters
+    chrome.storage.local.set({ "tvParameters": null });
     // Add Parameter Button Event Listener, with 'parameterLimit'
     addParameter.addEventListener("click", async () => {
       addParameterBlock(freeParameterLimit)
@@ -265,10 +316,22 @@ async function injectPlusFeatures(userEmail) {
     await getCurrentTab().then(function (tab) {
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['plus-injector.js']
+        files: ['plus/get-tv-parameters.js']
       });
     })
-
+    
+    var tvParametersObj = await chrome.storage.local.get("tvParameters")
+    if (tvParametersObj != null){
+      var tvParameters = tvParametersObj.tvParameters
+    for (let i = 0; i < tvParameters.length; i++) {
+      var tvParameter = tvParameters[i]
+      console.log(tvParameter)
+      if (tvParameter.type == "Selectable") {
+        initSelectParameter(tvParameter.options)
+      }
+      }  
+    }
+    
     let stopOptimization = document.getElementById("stop")
     stopOptimization.addEventListener("click", async (clickEvent) => {
       await getCurrentTab().then(function (tab) {
@@ -341,7 +404,7 @@ async function injectPlusFeatures(userEmail) {
       hideSkeleton("timeFrame", "time-frame")
       document.getElementById("timeFrame").style.display = 'block'
     }, 200);
-  }else{
+  } else {
     chrome.storage.local.set({ "isPlusUser": false });
   }
   // Add Parameter Button Event Listener, with 'parameterLimit'
@@ -352,7 +415,7 @@ async function injectPlusFeatures(userEmail) {
   // dispatch stop optimization event for plus users by clicking stop button
   function stopOptimizationEvent(clickEvent) {
     var event = JSON.parse(clickEvent)
-    window.postMessage({ type: "StopOptimizationEvent", detail: { event : event} }, "*");
+    window.postMessage({ type: "StopOptimizationEvent", detail: { event: event } }, "*");
   }
 }
 
@@ -362,9 +425,9 @@ async function getCurrentTab() {
   return tab;
 }
 //
-function autoFillParameters(parameterNames) {
-  if (parameterNames.length < 1) {
-    chrome.storage.local.set({ "parameterNames": null });
+function autoFillParameters(tvParameters) {
+  if (tvParameters.length < 1) {
+    chrome.storage.local.set({ "tvParameters": null });
     return
   }
   // hide labels, show selectors
@@ -380,22 +443,22 @@ function autoFillParameters(parameterNames) {
       continue;
     }
     autoFillSelect.style.display = 'inline-block'
-    for (var j = 0; j < parameterNames.length; j++) {
-      var parameterName = parameterNames[j];
-      var parameterNameIndex = j;
-      let option = new Option(parameterName, parameterNameIndex);
+    for (var j = 0; j < tvParameters.length; j++) {
+      var tvParameterName = tvParameters[j].name;
+      var tvParameterNameIndex = j;
+      let option = new Option(tvParameterName, tvParameterNameIndex);
       autoFillSelect.add(option);
     }
 
     chrome.storage.local.get(["selectAutoFill" + i], function (result) {
       var userValue = i
-      if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= parameterNames.length - 1) {
+      if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
         userValue = result["selectAutoFill" + i]
       }
       autoFillSelect.value = userValue
     });
   }
-  chrome.storage.local.set({ "parameterNames": parameterNames });
+  chrome.storage.local.set({ "tvParameters": tvParameters });
 }
 
 async function createProfileTab() {
@@ -426,7 +489,7 @@ async function createProfileTab() {
     document.getElementById("paidUser").style.display = 'flex'
     document.querySelector("#paidUser #userEmail").innerText = userInfo.email
     var membershipPeriodEndDate = new Date(user.current_membership_period_end * 1000)
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     var year = membershipPeriodEndDate.getFullYear();
     var month = months[membershipPeriodEndDate.getMonth()];
     var date = membershipPeriodEndDate.getDate();
@@ -461,7 +524,7 @@ logoutButtons.forEach(logoutButton => {
       var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
       window.fetch(url);
     })
-  
+
     chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
     setTimeout(() => {
       hideSkeleton("login", "profile")
@@ -493,9 +556,9 @@ function addParameterBlock(parameterLimit) {
 
     // Enable auto fill plus feature if eligible  
     setTimeout(() => {
-      chrome.storage.local.get("parameterNames", ({ parameterNames }) => {
-        if (parameterNames != null && parameterNames.length > 0) {
-          autoFillParameters(parameterNames)
+      chrome.storage.local.get("tvParameters", ({ tvParameters }) => {
+        if (tvParameters != null && tvParameters.length > 0) {
+          autoFillParameters(tvParameters)
         }
       });
     }, 250);
@@ -650,7 +713,7 @@ async function CreateUserInputsMessage(userInputs) {
   var parameterCount = parameters.children.length
   var firstAutoFillOptions = parameters.children[0].querySelector("#selectAutoFill").options.length
 
-  var parameterNamesObj = await chrome.storage.local.get("parameterNames")
+  var tvParametersObj = await chrome.storage.local.get("tvParameters")
 
   for (let i = 0; i < parameterCount; i++) {
     var inputStart = parameters.children[i].querySelector("#inputStart").value
@@ -658,6 +721,7 @@ async function CreateUserInputsMessage(userInputs) {
     var inputStep = parameters.children[i].querySelector("#inputStep").value
     var index = parameters.children[i].querySelector("#selectAutoFill").selectedIndex - 1
     var parameterName = parameters.children[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
+    var parameterType, parameterOptions
 
     if (!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)) {
       err.message = "missing-parameters"
@@ -675,7 +739,8 @@ async function CreateUserInputsMessage(userInputs) {
 
     // no selection for parameter name, autofill parameter name in order for plus users 
     if (index == -1 && firstAutoFillOptions > 1) {
-      parameterName = parameterNamesObj?.parameterNames[i]
+      var tvParameter = tvParametersObj?.tvParameters[i]
+      parameterName = tvParameter.name
     }
 
     // autoFill feature is not active
@@ -683,7 +748,15 @@ async function CreateUserInputsMessage(userInputs) {
       parameterName = null
     }
 
-    userInputs.parameters.push({ start: inputStart, end: inputEnd, stepSize: inputStep, parameterIndex: index, parameterName: parameterName })
+    userInputs.parameters.push({
+      start: inputStart,
+      end: inputEnd,
+      stepSize: inputStep,
+      parameterIndex: index,
+      parameterName: parameterName,
+      parameterType: parameterType,
+      parameterOptions: parameterOptions,
+    })
   }
 
   var selected = []
