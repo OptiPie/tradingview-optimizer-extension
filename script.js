@@ -243,8 +243,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }
 
     var reportData = newReportData()
-    var isReportChartUpdated = false;
-
+    
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
     
     await sleep(150)
@@ -264,27 +263,15 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
             mutations.every(function (mutation) {
-                if (mutation.type === 'characterData') {
-                    if (mutation.oldValue != mutation.target.data) {
-                        var result = saveOptimizationReport(userInputs, reportData, mutation)
+                if (mutation.type === 'childList') {
+                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer")) {
+                        var result = saveOptimizationReport(userInputs, reportData, mutation.addedNodes[0])
                         resolve(result)
                         observer.disconnect()
                         return false
                     }
                 }
 
-                if (mutation.type === 'childList' && mutation.target?.className.includes("chartContainer")) {
-                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("lightweight")) {
-                        isReportChartUpdated = true;
-                    }
-                }
-                
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0){
-                    if (mutation.addedNodes[0].querySelector("div[class*=emptyStateIcon]") != null){
-                        isReportChartUpdated = false;
-                        reject(new Error("No report data, check your parameters carefully"))    
-                    }
-                }
                 return true
             });
         });
@@ -313,15 +300,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         .then()
         .catch((error) => {
             console.log(`Rejected: ${error}`)
-            if (isReportChartUpdated) {
-                // try to save previous report if next iteration has same data
-                saveOptimizationReport(userInputs, newReportData(), null)
-            }
         });
     
     await sleep(100)
     // Re-open strategy settings window
-    document.querySelector(".fixedContent-zf0MHBzY").querySelector("button").click()    
+    document.querySelector("div[class*='fixedContent'] button").click()
 
     await sleep(100)
     tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
@@ -437,10 +420,7 @@ function ReportBuilder(reportData, mutation) {
     var reportDataSelector;
     // if mutation is nil, save the same report as there is no report data update
     if (mutation != null) {
-        reportDataSelector = mutation.target.ownerDocument.querySelectorAll("[class^='secondRow']")
-    } else {
-        reportDataSelector = document.querySelector("div[class*=backtesting][class*=deep-history]").
-            ownerDocument.querySelectorAll("[class^='secondRow']")
+        reportDataSelector = mutation.querySelectorAll("[class^='secondRow']")
     }
 
     if (reportDataSelector == null || reportDataSelector.length <= 0) {
@@ -448,22 +428,22 @@ function ReportBuilder(reportData, mutation) {
     }
 
     //1. Column
-    reportData.netProfit.amount = reportDataSelector[0].querySelectorAll("div")[0].innerText
-    reportData.netProfit.percent = reportDataSelector[0].querySelectorAll("div")[1].innerText
+    reportData.netProfit.amount = reportDataSelector[0].querySelector("[class^='value']").innerText + ' ' + reportDataSelector[0].querySelector("[class*='currency' i]").innerText
+    reportData.netProfit.percent = reportDataSelector[0].querySelector("[class*='percent' i]").innerText
     //2. 
-    reportData.closedTrades = reportDataSelector[1].querySelector("div").innerText
+    reportData.maxDrawdown.amount = reportDataSelector[1].querySelector("[class^='value']").innerText + ' ' + reportDataSelector[1].querySelector("[class*='currency' i]").innerText
+    reportData.maxDrawdown.percent = reportDataSelector[1].querySelector("[class*='percent' i]").innerText
     //3.
-    reportData.percentProfitable = reportDataSelector[2].querySelector("div").innerText
+    reportData.closedTrades = reportDataSelector[2].querySelector("[class^='value']").innerText
     //4.
-    reportData.profitFactor = reportDataSelector[3].querySelector("div").innerText
+    reportData.percentProfitable = reportDataSelector[3].querySelector("[class^='value']").innerText
+    //4.
+    reportData.profitFactor = reportDataSelector[4].querySelector("[class^='value']").innerText
     //5.
-    reportData.maxDrawdown.amount = reportDataSelector[4].querySelectorAll("div")[0].innerText
-    reportData.maxDrawdown.percent = reportDataSelector[4].querySelectorAll("div")[1].innerText
+    reportData.averageTrade.amount = reportDataSelector[5].querySelector("[class^='value']").innerText + ' ' + reportDataSelector[5].querySelector("[class*='currency' i]").innerText
+    reportData.averageTrade.percent = reportDataSelector[5].querySelector("[class*='percent' i]").innerText
     //6.
-    reportData.averageTrade.amount = reportDataSelector[5].querySelectorAll("div")[0].innerText
-    reportData.averageTrade.percent = reportDataSelector[5].querySelectorAll("div")[1].innerText
-
-    reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector("div").innerText
+    reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector("[class^='value']").innerText
 }
 
 
