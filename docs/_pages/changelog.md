@@ -4,6 +4,21 @@ title: "News"
 ---
 
 ## What's New!
+### **Incident 🚨**
+
+Due to recent TradingView updates, OptiPie was failing to run an optimization.
+
+Problem is now resolved as Chrome approved the release.
+
+**Please make sure OptiPie version is updated to v1.2.2, if not please follow the link below**
+
+[Guide - How to update Chrome Extension Manually](https://help.qlik.com/talend/en-US/api-tester-user-guide/Cloud/updating-chrome-extension)
+
+
+### Version: v1.2.2
+
+## Previous Updates
+
 - Parameter Limits are increased! 🔓 
     - OptiPie - increased from 4 to **5** Parameters
     - OptiPie Plus - increased from 8 to **20** Parameters
@@ -11,8 +26,6 @@ title: "News"
 - Execution speed for the optimization process has been further improved, along with the mitigation of edge-case issues.
 
 ### Version: v1.2.1
-
-## Previous Updates
 
 - Enter any **'Step size'** now! 
 
