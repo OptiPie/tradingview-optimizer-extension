@@ -304,7 +304,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     
     await sleep(100)
     // Re-open strategy settings window
-    document.querySelector("div[class*='fixedContent'] button").click()
+    document.querySelector("button[data-strategy-title*='report']").click()
+    await sleep(50)
+    document.querySelector("div[aria-label*='settings' i]").click()
 
     await sleep(100)
     tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
@@ -420,30 +422,35 @@ function ReportBuilder(reportData, mutation) {
     var reportDataSelector;
     // if mutation is nil, save the same report as there is no report data update
     if (mutation != null) {
-        reportDataSelector = mutation.querySelectorAll("[class^='secondRow']")
+        reportDataSelector = mutation.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
     }
 
     if (reportDataSelector == null || reportDataSelector.length <= 0) {
         return new Error("report data is not available")
     }
+    
+    var valueSelector = "[class*='value' i]"
+    var currencySelector = "[class*='currency' i]"
+    var changeSelector = "[class*='change' i]"
 
     //1. Column
-    reportData.netProfit.amount = reportDataSelector[0].querySelector("[class^='value']").innerText + ' ' + reportDataSelector[0].querySelector("[class*='currency' i]").innerText
-    reportData.netProfit.percent = reportDataSelector[0].querySelector("[class*='percent' i]").innerText
+    reportData.netProfit.amount = reportDataSelector[0].querySelector(valueSelector).innerText + ' ' + reportDataSelector[0].querySelector(currencySelector).innerText
+    reportData.netProfit.percent = reportDataSelector[0].querySelector(changeSelector).innerText
     //2. 
-    reportData.maxDrawdown.amount = reportDataSelector[1].querySelector("[class^='value']").innerText + ' ' + reportDataSelector[1].querySelector("[class*='currency' i]").innerText
-    reportData.maxDrawdown.percent = reportDataSelector[1].querySelector("[class*='percent' i]").innerText
+    reportData.maxDrawdown.amount = reportDataSelector[1].querySelector(valueSelector).innerText + ' ' + reportDataSelector[1].querySelector(currencySelector).innerText
+    reportData.maxDrawdown.percent = reportDataSelector[1].querySelector(changeSelector).innerText
     //3.
-    reportData.closedTrades = reportDataSelector[2].querySelector("[class^='value']").innerText
+    reportData.closedTrades = reportDataSelector[2].querySelector(valueSelector).innerText
     //4.
-    reportData.percentProfitable = reportDataSelector[3].querySelector("[class^='value']").innerText
+    reportData.percentProfitable = reportDataSelector[3].querySelector(valueSelector).innerText
     //4.
-    reportData.profitFactor = reportDataSelector[4].querySelector("[class^='value']").innerText
-    //5.
-    reportData.averageTrade.amount = reportDataSelector[5].querySelector("[class^='value']").innerText + ' ' + reportDataSelector[5].querySelector("[class*='currency' i]").innerText
-    reportData.averageTrade.percent = reportDataSelector[5].querySelector("[class*='percent' i]").innerText
-    //6.
-    reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector("[class^='value']").innerText
+    reportData.profitFactor = reportDataSelector[4].querySelector(valueSelector).innerText
+    
+    //5. Deprecated
+    //reportData.averageTrade.amount = reportDataSelector[5].querySelector(valueSelector).innerText + ' ' + reportDataSelector[5].querySelector(currencySelector).innerText
+    //reportData.averageTrade.percent = reportDataSelector[5].querySelector(changeSelector).innerText
+    //6. Deprecated
+    //reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector(valueSelector).innerText
 }
 
 
