@@ -10,12 +10,12 @@ Due to recent TradingView updates, OptiPie was failing to run an optimization.
 
 Problem is now resolved as Chrome approved the release.
 
-**Please make sure OptiPie version is updated to v1.2.2, if not please follow the link below**
+**Please make sure OptiPie version is updated to v1.2.3, if not please follow the link below**
 
 [Guide - How to update Chrome Extension Manually](https://help.qlik.com/talend/en-US/api-tester-user-guide/Cloud/updating-chrome-extension)
 
 
-### Version: v1.2.2
+### Version: v1.2.2, v1.2.3
 
 ## Previous Updates
 
