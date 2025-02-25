@@ -293,7 +293,7 @@ async function injectPlusFeatures(userEmail) {
       },
       buttonWidth: '85.75px',
       nonSelectedText: 'Time',
-      maxHeight: "270",
+      maxHeight: "200",
       buttonText: function (options, select) {
         if (options.length === 0) {
           return 'Time';
