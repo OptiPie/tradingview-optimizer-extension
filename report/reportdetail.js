@@ -16,6 +16,11 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   timePeriod.textContent = timePeriodValue
   
   for (const [key, value] of Object.entries(values)) {
+    var isDeprecatedReportData = false;
+    if (value.averageTrade != null && value.averageTrade.amount != 0){
+      isDeprecatedReportData = true; // meaning it's old report data structure
+    }
+    
     var reportDetail = {
       "parameters": key,
       "netProfitAmount": value.netProfit.amount,
@@ -25,9 +30,9 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
       "closedTrades": value.closedTrades,
       "percentProfitable": value.percentProfitable,
       "profitFactor": value.profitFactor,
-      "averageTradeAmount": value.averageTrade.amount,
-      "averageTradePercent": value.averageTrade.percent,
-      "avgerageBarsInTrades": value.avgerageBarsInTrades,
+      "averageTradeAmount": value?.averageTrade.amount,
+      "averageTradePercent": value?.averageTrade.percent,
+      "avgerageBarsInTrades": value?.avgerageBarsInTrades,
     }
     value.detailedParameters.forEach((element, index) => {
       index += 1
@@ -37,6 +42,13 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   }
   var $table = $('#table')
   $table.bootstrapTable('showLoading')
+  
+  if (!isDeprecatedReportData){
+    // new report data doesn't have those values
+    $table.bootstrapTable('hideColumn', 'averageTradeAmount');
+    $table.bootstrapTable('hideColumn', 'averageTradePercent');
+    $table.bootstrapTable('hideColumn', 'avgerageBarsInTrades');
+  }
 
   setTimeout(() => {
     $table.bootstrapTable('load', reportDetailData)
