@@ -82,10 +82,10 @@ async function Process() {
             // open time intervals dropdown and change it
             await sleep(500)
 
-            var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent']")
+            var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
             // check if user has favorite time frames selected
             if (timeIntervalDropdown == null) {
-                timeIntervalDropdown = document.querySelector("#header-toolbar-intervals button[data-tooltip*='Time']")
+                timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
             }
             timeIntervalDropdown.click()
 
@@ -306,7 +306,13 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     // Re-open strategy settings window
     document.querySelector("button[data-strategy-title*='report']").click()
     await sleep(50)
-    document.querySelector("div[aria-label*='settings' i]").click()
+    var settingsButton = document.querySelector("div[aria-label*='settings' i]")
+    // if different language is set, select second popup menu item
+    if (settingsButton == null){
+        settingsButton = document.querySelector("div[class*='eventWrapper' i] > div:nth-child(2) div")
+    }
+    
+    settingsButton.click()
 
     await sleep(100)
     tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
