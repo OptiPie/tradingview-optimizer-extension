@@ -3,6 +3,10 @@ body {
     transition: all .2s ease-in-out;
 }
 
+#myTab {
+    z-index: 1;
+}
+
 #addParameter i {
     margin-right: 0.2rem;
 }
