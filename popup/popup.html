@@ -48,33 +48,43 @@
             <span class="placeholder col-1"></span>
           </p>
         </div>
-        <div class="container" id="timeFrame">
-          <select multiple="multiple" class="sm" id="selectTimeFrame">
-            <option disabled>Time</option>
-            <option value="1S">1 second</option>
-            <option value="5S">5 seconds</option>
-            <option value="10S">10 seconds</option>
-            <option value="15S">15 seconds</option>
-            <option value="30S">30 seconds</option>
-            <option value="1">1 minute</option>
-            <option value="2">2 minutes</option>
-            <option value="3">3 minutes</option>
-            <option value="5">5 minutes</option>
-            <option value="10">10 minutes</option>
-            <option value="15">15 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45">45 minutes</option>
-            <option value="60">1 hour</option>
-            <option value="120">2 hours</option>
-            <option value="180">3 hours</option>
-            <option value="240">4 hours</option>
-            <option value="1D">1 day</option>
-            <option value="1W">1 week</option>
-            <option value="1M">1 month</option>
-            <option value="3M">3 months</option>
-            <option value="6M">6 months</option>
-            <option value="12M">12 months</option>
-          </select>
+        <div id="topControls">
+          <div class="container" id="timeFrame">
+            <select multiple="multiple" class="sm" id="selectTimeFrame">
+              <option disabled>Time</option>
+              <option value="1S">1 second</option>
+              <option value="5S">5 seconds</option>
+              <option value="10S">10 seconds</option>
+              <option value="15S">15 seconds</option>
+              <option value="30S">30 seconds</option>
+              <option value="1">1 minute</option>
+              <option value="2">2 minutes</option>
+              <option value="3">3 minutes</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+              <option value="240">4 hours</option>
+              <option value="1D">1 day</option>
+              <option value="1W">1 week</option>
+              <option value="1M">1 month</option>
+              <option value="3M">3 months</option>
+              <option value="6M">6 months</option>
+              <option value="12M">12 months</option>
+            </select>
+          </div>
+          <div class="container" id="iteration">
+            <span class="badge bg-white text-dark fs-6 fw-normal border border-start-0 border-bottom-0 px-1">
+              Iterations 
+              <span class="d-block mt-1 text-center mb-0" id="value">
+                  150
+              </span>
+          </span>
+          </div>  
         </div>
         <div class="container" id="parameters">
           <div class="row g-2 pb-2">
