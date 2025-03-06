@@ -841,7 +841,7 @@ function isDivisible(a, b) {
   return a % b === 0;
 }
 
-// customCeil to mitigate js floating artihmetic problem
+// customCeil to mitigate js floating arithmetic problem
 function customCeil(value, precision = 5) {
   const rounded = Math.round(value * precision) / precision;
   return Number.isInteger(rounded) ? rounded : Math.ceil(rounded);
