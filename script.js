@@ -309,7 +309,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     var settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
     if (settingsButton == null){
-        settingsButton = document.querySelector("div[class*='eventWrapper' i] > div:nth-child(2) div")
+        settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
     }
     
     settingsButton.click()
