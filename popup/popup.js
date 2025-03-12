@@ -14,6 +14,10 @@ chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
     addParameterBlock(plusParameterLimit)
   }
   setLastUserParameters(userParameterCount)
+  setTimeout(() => {
+    // update iteration based on last user parameters
+    calculateIterations()
+  }, 150);
 });
 // Tab event listeners to change body width 
 addTabEventListeners()
@@ -24,9 +28,9 @@ addSaveAutoFillSelectionListener(0)
 updateUserUI()
 
 // non-functional UI changes made with storage
-function updateUserUI(){
+function updateUserUI() {
   chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
-    if(isPlusUser){
+    if (isPlusUser) {
       // show plus logo
       var logo = document.getElementById("normalLogo")
       logo.style.cssText = 'display:none !important';
@@ -35,7 +39,7 @@ function updateUserUI(){
       // remove plus upgrade button 
       var plusUpgrade = document.getElementById("plusUpgrade")
       plusUpgrade.style.display = 'none'
-    }else{
+    } else {
       // hide plus logo
       var plusLogo = document.getElementById("plusLogo")
       plusLogo.style.cssText = 'display:none !important'
@@ -60,28 +64,31 @@ optimize.addEventListener("click", async () => {
   // err is handled as value
   var err = await CreateUserInputsMessage(userInputs)
 
-  if (err.message == '') {
-    chrome.storage.local.set({ "userInputs": userInputs });
-
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['injector.js']
-    });
-  } else if (err.message === 'missing-parameters') {
-    chrome.runtime.sendMessage({
-      notify: {
-        type: "warning",
-        content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
-      }
-    });
-  } else if (err.message === 'wrong-parameter-values') {
-    chrome.runtime.sendMessage({
-      notify: {
-        type: "warning",
-        content: "'Start' value must be less than 'End' value"
-      }
-    });
+  if (err != null) {
+    if (err.message === 'missing-parameters') {
+      chrome.runtime.sendMessage({
+        notify: {
+          type: "warning",
+          content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
+        }
+      });
+    } else if (err.message === 'wrong-parameter-values') {
+      chrome.runtime.sendMessage({
+        notify: {
+          type: "warning",
+          content: "'Start' value must be less than 'End' value"
+        }
+      });
+    }
+    return
   }
+
+  chrome.storage.local.set({ "userInputs": userInputs });
+
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['injector.js']
+  });
 });
 
 // Message handling
@@ -341,7 +348,7 @@ async function injectPlusFeatures(userEmail) {
       hideSkeleton("timeFrame", "time-frame")
       document.getElementById("timeFrame").style.display = 'block'
     }, 200);
-  }else{
+  } else {
     chrome.storage.local.set({ "isPlusUser": false });
   }
   // Add Parameter Button Event Listener, with 'parameterLimit'
@@ -352,7 +359,7 @@ async function injectPlusFeatures(userEmail) {
   // dispatch stop optimization event for plus users by clicking stop button
   function stopOptimizationEvent(clickEvent) {
     var event = JSON.parse(clickEvent)
-    window.postMessage({ type: "StopOptimizationEvent", detail: { event : event} }, "*");
+    window.postMessage({ type: "StopOptimizationEvent", detail: { event: event } }, "*");
   }
 }
 
@@ -426,7 +433,7 @@ async function createProfileTab() {
     document.getElementById("paidUser").style.display = 'flex'
     document.querySelector("#paidUser #userEmail").innerText = userInfo.email
     var membershipPeriodEndDate = new Date(user.current_membership_period_end * 1000)
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     var year = membershipPeriodEndDate.getFullYear();
     var month = months[membershipPeriodEndDate.getMonth()];
     var date = membershipPeriodEndDate.getDate();
@@ -461,7 +468,7 @@ logoutButtons.forEach(logoutButton => {
       var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + response.token;
       window.fetch(url);
     })
-  
+
     chrome.runtime.sendMessage({ type: "clearAllCachedAuthTokens" })
     setTimeout(() => {
       hideSkeleton("login", "profile")
@@ -509,6 +516,7 @@ function addParameterBlock(parameterLimit) {
     // Save Inputs EventListener for rest of the parameters
     addSaveInputEventListener(parameterCount)
     addSaveAutoFillSelectionListener(parameterCount)
+    calculateIterations()
   }
 }
 
@@ -565,11 +573,12 @@ function addRemoveParameterBlockEventListener(parameterCount) {
       var removeDiv = "#remove" + parameterCount + ""
       parameters.lastElementChild.querySelector(removeDiv).style = 'display:block;'
     }
+    calculateIterations()
   });
 }
 
 // Retrieve and set user parameters from last saved state
-async function setLastUserParameters(parameterCount) {
+function setLastUserParameters(parameterCount) {
   for (let i = 0; i < parameterCount; i++) {
     chrome.storage.local.get(["inputStart" + i], function (result) {
       var userValue = null
@@ -602,16 +611,19 @@ function addSaveInputEventListener(parameterCount) {
     var start = "inputStart" + parameterCount
     var value = document.querySelectorAll("#inputStart")[parameterCount].value
     chrome.storage.local.set({ [start]: value });
+    calculateIterations()
   });
   document.querySelectorAll("#inputEnd")[parameterCount].addEventListener("blur", function (e) {
     var end = "inputEnd" + parameterCount
     var value = document.querySelectorAll("#inputEnd")[parameterCount].value
     chrome.storage.local.set({ [end]: value });
+    calculateIterations()
   });
   document.querySelectorAll("#inputStep")[parameterCount].addEventListener("blur", function (e) {
     var step = "inputStep" + parameterCount
     var value = document.querySelectorAll("#inputStep")[parameterCount].value
     chrome.storage.local.set({ [step]: value });
+    calculateIterations()
   });
 }
 // Save last user selected time frame(s) as state
@@ -642,9 +654,45 @@ function addRefreshDataEventListener() {
     createReportTable()
   })
 }
+
+function calculateIterations() {
+  var totalIterations = 1
+  var isIterationValid = false
+  var parameters = document.getElementById("parameters")
+  var parameterCount = parameters.children.length
+
+  var iterationValue = document.querySelector("#iteration #value")
+
+  for (let i = 0; i < parameterCount; i++) {
+    var inputStart = parameters.children[i].querySelector("#inputStart").value.trim()
+    var inputEnd = parameters.children[i].querySelector("#inputEnd").value.trim()
+    var inputStep = parameters.children[i].querySelector("#inputStep").value.trim()
+
+    var err = validateParameterValues(inputStart, inputEnd, inputStep)
+    if (err != null) {
+      isIterationValid = false
+      break
+    }
+
+    let difference = inputEnd - inputStart
+    if (isDivisible(difference, inputStep)) {
+      totalIterations *= (inputEnd - inputStart) / inputStep + 1
+    } else {
+      totalIterations *= customCeil((inputEnd - inputStart) / inputStep) + 1
+    }
+
+    isIterationValid = true
+  };
+
+  if (isIterationValid) {
+    iterationValue.innerText = totalIterations
+  } else {
+    iterationValue.innerText = "-"
+  }
+}
+
 // Create user inputs message, return err.message if validation fails 
 async function CreateUserInputsMessage(userInputs) {
-  var err = new Error("")
   var parameters = document.getElementById("parameters")
 
   var parameterCount = parameters.children.length
@@ -659,17 +707,9 @@ async function CreateUserInputsMessage(userInputs) {
     var index = parameters.children[i].querySelector("#selectAutoFill").selectedIndex - 1
     var parameterName = parameters.children[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
 
-    if (!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)) {
-      err.message = "missing-parameters"
-      return err
-    }
 
-    var start = parseFloat(inputStart)
-    var end = parseFloat(inputEnd)
-    var step = parseFloat(inputStep)
-
-    if (start >= end || step <= 0) {
-      err.message = "wrong-parameter-values"
+    var err = validateParameterValues(inputStart, inputEnd, inputStep)
+    if (err != null) {
       return err
     }
 
@@ -694,7 +734,7 @@ async function CreateUserInputsMessage(userInputs) {
   if (selected.length > 0) {
     userInputs.timeFrames = selected
   }
-  return err
+  return null
 }
 
 // plus membership
@@ -775,6 +815,36 @@ function isNumeric(str) {
   }
   return !isNaN(str) &&
     !isNaN(parseFloat(str))
+}
+
+// validateParameterValues returns specific error if validation fails 
+function validateParameterValues(inputStart, inputEnd, inputStep) {
+  if (!isNumeric(inputStart) || !isNumeric(inputEnd) || !isNumeric(inputStep)) {
+    return new Error("missing-parameters")
+  }
+
+  var start = parseFloat(inputStart)
+  var end = parseFloat(inputEnd)
+  var step = parseFloat(inputStep)
+
+  if (start >= end || step <= 0) {
+    return new Error("wrong-parameter-values")
+  }
+
+  return null
+}
+
+function isDivisible(a, b) {
+  if (b === 0) {
+    return false;
+  }
+  return a % b === 0;
+}
+
+// customCeil to mitigate js floating arithmetic problem
+function customCeil(value, precision = 5) {
+  const rounded = Math.round(value * precision) / precision;
+  return Number.isInteger(rounded) ? rounded : Math.ceil(rounded);
 }
 
 function sleep(ms) {

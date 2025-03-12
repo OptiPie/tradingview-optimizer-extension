@@ -53,7 +53,7 @@ async function Process() {
     userInputs.sort(function (a, b) {
         return a.parameterIndex - b.parameterIndex;
     });
-    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth) Up to 4 Parameters max, will be up to 8 for plus users.
+    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
     var ranges = [];
 
     // Create user input ranges with given step size for each parameter
@@ -309,7 +309,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     var settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
     if (settingsButton == null){
-        settingsButton = document.querySelector("div[class*='eventWrapper' i] > div:nth-child(2) div")
+        settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
     }
     
     settingsButton.click()
@@ -440,17 +440,17 @@ function ReportBuilder(reportData, mutation) {
     var changeSelector = "[class*='change' i]"
 
     //1. Column
-    reportData.netProfit.amount = reportDataSelector[0].querySelector(valueSelector).innerText + ' ' + reportDataSelector[0].querySelector(currencySelector).innerText
-    reportData.netProfit.percent = reportDataSelector[0].querySelector(changeSelector).innerText
+    reportData.netProfit.amount = reportDataSelector[0].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[0].querySelector(currencySelector)?.innerText
+    reportData.netProfit.percent = reportDataSelector[0].querySelector(changeSelector)?.innerText
     //2. 
-    reportData.maxDrawdown.amount = reportDataSelector[1].querySelector(valueSelector).innerText + ' ' + reportDataSelector[1].querySelector(currencySelector).innerText
-    reportData.maxDrawdown.percent = reportDataSelector[1].querySelector(changeSelector).innerText
+    reportData.maxDrawdown.amount = reportDataSelector[1].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[1].querySelector(currencySelector)?.innerText
+    reportData.maxDrawdown.percent = reportDataSelector[1].querySelector(changeSelector)?.innerText
     //3.
-    reportData.closedTrades = reportDataSelector[2].querySelector(valueSelector).innerText
+    reportData.closedTrades = reportDataSelector[2].querySelector(valueSelector)?.innerText
     //4.
-    reportData.percentProfitable = reportDataSelector[3].querySelector(valueSelector).innerText
+    reportData.percentProfitable = reportDataSelector[3].querySelector(valueSelector)?.innerText
     //4.
-    reportData.profitFactor = reportDataSelector[4].querySelector(valueSelector).innerText
+    reportData.profitFactor = reportDataSelector[4].querySelector(valueSelector)?.innerText
     
     //5. Deprecated
     //reportData.averageTrade.amount = reportDataSelector[5].querySelector(valueSelector).innerText + ' ' + reportDataSelector[5].querySelector(currencySelector).innerText

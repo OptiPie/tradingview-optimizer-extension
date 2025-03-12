@@ -36,10 +36,24 @@ body {
     color: white;
 }
 
-#timeFrame {
-    display: none;
+#topControls{
+    display: flex;
     position: absolute;
     top: 9.3rem;
+    width: 100%;
+}
+
+#timeFrame {
+    display: none;   
+}
+
+#iteration {
+    margin-right: 1.5rem;
+    text-align: end;
+}
+
+#iteration #value{
+    font-weight: 700;
 }
 
 #timeFrame .btn-group {
@@ -60,6 +74,11 @@ body {
     display: none;
     position: absolute;
     padding-top: 0.25rem;
+}
+
+#skeleton-iteration .skeleton-horizontal {
+    width: 40%; 
+    display: inline-block; 
 }
 
 #stop {
