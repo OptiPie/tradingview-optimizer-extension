@@ -23,7 +23,7 @@ var sleep = (ms) => new Promise((resolve) => {
 // Run Optimization Process 
 Process()
 
-async function Process() {    
+async function Process() {
     var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = (event) => {
@@ -198,21 +198,21 @@ async function SetUserIntervals() {
     for (let i = 0; i < userInputs.length; i++) {
         var userInput = userInputs[i]
         var startValue = userInput.start - userInput.stepSize
-        
+
         if (isFloat(startValue)) {
             var precision = getFloatPrecision(userInput.stepSize)
             startValue = fixPrecision(startValue, precision)
         }
-        
+
         // reset by step size in case of a user input is as same as current tv input value 
-        if(userInput.start == tvInputs[userInput.parameterIndex].value){
+        if (userInput.start == tvInputs[userInput.parameterIndex].value) {
             await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
-        }else{
-            ChangeTvInput(tvInputs[userInput.parameterIndex], startValue)    
+        } else {
+            ChangeTvInput(tvInputs[userInput.parameterIndex], startValue)
         }
-        
+
         await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
-    
+
         await sleep(250);
     }
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
@@ -243,9 +243,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }
 
     var reportData = newReportData()
-    
+
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
-    
+
     await sleep(150)
     // Calculate new step value
     var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
@@ -256,9 +256,14 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
 
     await sleep(200)
+
     // Click on "Ok" button
-    document.querySelector("button[data-name='submit-button']").click() 
-    
+    var okButton = document.querySelector("button[data-name='submit-button']")
+    if (okButton == null) {
+        okButton = document.querySelector("span[class*='submit' i] button")
+    }
+    okButton.click()
+
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         var observer = new MutationObserver(function (mutations) {
@@ -301,17 +306,21 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         .catch((error) => {
             console.log(`Rejected: ${error}`)
         });
-    
+
     await sleep(100)
     // Re-open strategy settings window
-    document.querySelector("button[data-strategy-title*='report']").click()
+    var reportTitleButton = document.querySelector("button[data-strategy-title*='report']")
+    if (reportTitleButton == null) {
+        reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
+    }
+    reportTitleButton.click()
     await sleep(50)
     var settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
-    if (settingsButton == null){
+    if (settingsButton == null) {
         settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
     }
-    
+
     settingsButton.click()
 
     await sleep(100)
@@ -355,9 +364,9 @@ async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize)
 async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
     var previousTvParameterIndex = userInputs[index - 1].parameterIndex
     var currentTvParameterIndex = userInputs[index].parameterIndex
-    
+
     var resetValue = userInputs[index - 1].start - userInputs[index - 1].stepSize
-    
+
     var previousStepSize = userInputs[index - 1].stepSize
     var currentStepSize = userInputs[index].stepSize
     //Reset and optimze inner
@@ -434,7 +443,7 @@ function ReportBuilder(reportData, mutation) {
     if (reportDataSelector == null || reportDataSelector.length <= 0) {
         return new Error("report data is not available")
     }
-    
+
     var valueSelector = "[class*='value' i]"
     var currencySelector = "[class*='currency' i]"
     var changeSelector = "[class*='change' i]"
@@ -451,7 +460,7 @@ function ReportBuilder(reportData, mutation) {
     reportData.percentProfitable = reportDataSelector[3].querySelector(valueSelector)?.innerText
     //4.
     reportData.profitFactor = reportDataSelector[4].querySelector(valueSelector)?.innerText
-    
+
     //5. Deprecated
     //reportData.averageTrade.amount = reportDataSelector[5].querySelector(valueSelector).innerText + ' ' + reportDataSelector[5].querySelector(currencySelector).innerText
     //reportData.averageTrade.percent = reportDataSelector[5].querySelector(changeSelector).innerText
@@ -461,7 +470,7 @@ function ReportBuilder(reportData, mutation) {
 
 
 // isFloat to check whether given number is float or not
-function isFloat(number){
+function isFloat(number) {
     if (String(number).includes(".")) {
         return true
     }
@@ -469,20 +478,20 @@ function isFloat(number){
 }
 
 // getFloatPrecision to get precision of given float number
-function getFloatPrecision(number){
+function getFloatPrecision(number) {
     if (isFloat(number)) {
-        return String(number).split(".")[1].length    
-    }else {
+        return String(number).split(".")[1].length
+    } else {
         // default precision value
         return 2
     }
-    
+
 }
 
 // fixPrecision handles js floating arithmetic precision problem
-function fixPrecision(value, precision){
+function fixPrecision(value, precision) {
     var multiplier = Math.pow(10, precision)
-    return Math.round(value * multiplier) / multiplier    
+    return Math.round(value * multiplier) / multiplier
 }
 //Mutation Observer Code for console debugging purposes
 /*
