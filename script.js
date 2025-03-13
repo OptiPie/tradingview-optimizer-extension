@@ -258,7 +258,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     await sleep(200)
 
     // Click on "Ok" button
-    var okButton = document.querySelector("button[data-name='submit-button']")
+    var okButton = document.querySelector("button[data-name='submit-button' i]")
     if (okButton == null) {
         okButton = document.querySelector("span[class*='submit' i] button")
     }
@@ -281,7 +281,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        var element = document.querySelector("div[class*=backtesting][class*=deep-history]")
+        var element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
         let options = {
             childList: true,
             subtree: true,
@@ -309,7 +309,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     await sleep(100)
     // Re-open strategy settings window
-    var reportTitleButton = document.querySelector("button[data-strategy-title*='report']")
+    var reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
     if (reportTitleButton == null) {
         reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
     }
