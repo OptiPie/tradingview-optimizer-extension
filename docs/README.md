@@ -26,9 +26,9 @@ Easily optimize strategies, store optimization reports and make analysis via sim
 
 ## Features
 
-### Optimize Strategies Up to 4 Parameters :arrow_forward:
+### Optimize Strategies Up to 5 Parameters :arrow_forward:
 
-Optimize any TradingView Strategy you want up to 4 Parameters.
+Optimize any TradingView Strategy you want up to 5 Parameters.
 
 ### Limitless Parameter Input Range :unlock:
 
