@@ -26,9 +26,9 @@ Easily optimize strategies, store optimization reports and make analysis via sim
 
 ## Features
 
-### Optimize Strategies Up to 4 Parameters :arrow_forward:
+### Optimize Strategies Up to 5 Parameters :arrow_forward:
 
-Optimize any TradingView Strategy you want up to 4 Parameters.
+Optimize any TradingView Strategy you want up to 5 Parameters.
 
 ### Limitless Parameter Input Range :unlock:
 
@@ -52,7 +52,7 @@ Join the OptiPie Plus Membership, discover amazing features, go beyond the limit
 - ###  ✅ Selectable Parameters
 - ###  🛑 Stoppable Optimization with Partial Report
 - ###  📊 Extended Report Data
-- ###  🔓 Optimize Strategies Up to 8 Parameters
+- ###  🔓 Optimize Strategies Up to 20 Parameters
 
 ### Features in Action
 
