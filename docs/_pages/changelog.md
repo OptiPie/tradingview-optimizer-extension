@@ -9,8 +9,9 @@ title: "News"
 
 - **Know how big your optimization will be**, number of iterations for given parameters are dynamically shown at the top-right corner.
 - Fixed an issue if optimization report has a missing field, do not fail to capture rest of the data for that step.
+- Fixed an issue where some of non English languages were not working properly with OptiPie.
 
-### Latest Version: v1.2.5
+### Latest Version: v1.2.5, v1.2.6
 
 ## Previous Updates
 
