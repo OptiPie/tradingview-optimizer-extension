@@ -36,7 +36,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "script.js"
+        "script.js",
+        "plus/get-selectable-parameter-options.js"
       ],
       "matches": [
         "https://*.tradingview.com/*"

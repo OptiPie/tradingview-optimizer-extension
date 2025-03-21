@@ -152,6 +152,7 @@ body {
     display: none;
     margin-bottom: 0.25rem;
     padding-left: 0.25rem;
+    max-width: 50%;
 }
 
 .toolbar {
