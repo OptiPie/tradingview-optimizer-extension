@@ -2,13 +2,12 @@
 var tvInputsContainer = "div[data-name='indicator-properties-dialog'] div[class*='content' i]"
 var tvInputsQuery = `${tvInputsContainer} input, ${tvInputsContainer} span[role*='button' i]`
 var tvInputs = document.querySelectorAll(tvInputsQuery)
-console.log(tvInputs)
-var maxProfit = -99999
 // user parameters and time frames
 var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
-var userTimeFrames = []
+var userTimeFrames = [] // time frames chosen by the user
 var optimizationResults = new Map();
+var maxProfit = -99999
 
 //parameter types
 var parameterType = {
@@ -42,7 +41,7 @@ async function Process() {
             window.removeEventListener("message", userInputsEventCallback);
 
             for (let i = 0; i < message.detail.parameters.length; i++) {
-                const parameter = message.detail.parameters[i];
+                let parameter = message.detail.parameters[i];
                 switch (parameter.type) {
                     case parameterType.Numeric:
                         userNumericInputs.push(parameter)
@@ -101,9 +100,7 @@ async function Process() {
 
     if (userTimeFrames == null || userTimeFrames.length <= 0) {
         // no time frame selection or free user flow
-
         await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-        //await OptimizeCheckboxes(() => OptimizeNumerics())
         await SendReport()
     } else {
         for (let i = 0; i < userTimeFrames.length; i++) {
@@ -118,11 +115,11 @@ async function Process() {
             timeIntervalDropdown.click()
 
             var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(1000)
+            await sleep(500)
             document.querySelector(timeIntervalQuery).click()
-            await sleep(1000)
+            await sleep(500)
 
-            await OptimizeNumerics()
+            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
             await SendReport()
             // reset global variables for new strategy optimization and for new timeframe
             optimizationResults = new Map();
@@ -177,6 +174,12 @@ async function Process() {
 
     // Optimize checkbox inputs in the strategey for the currently chosen timeframe 
     async function OptimizeCheckboxes(nextFunction) {
+        if (!isOptimizationCalled(userCheckboxInputs)){
+            if (nextFunction) {
+                await nextFunction();
+            }
+            return
+        }
         var checkBoxesLength = userCheckboxInputs.length
 
         for (let i = 0; i < 2 ** checkBoxesLength; i++) {
@@ -201,12 +204,22 @@ async function Process() {
             if (nextFunction) {
                 await nextFunction();
             }
+            if (shouldStop){
+                return
+            }
         }
     }
 
     // Optimize selectable inputs in the strategey for the currently chosen timeframe 
     async function OptimizeSelectables(nextFunction) {
+        if (!isOptimizationCalled(userSelectableInputs)){
+            if (nextFunction) {
+                await nextFunction();
+            }
+            return
+        }
         var selectablesLength = userSelectableInputs.length
+        
         for (let i = 0; i < selectablesLength; i++) {
             var selectableInput = userSelectableInputs[i]
 
@@ -225,13 +238,23 @@ async function Process() {
                 if (nextFunction) {
                     await nextFunction();
                 }
+                if (shouldStop){
+                    return
+                }
             }
         }
+    }
+    
+    function isOptimizationCalled(inputs){
+        if (inputs == null || inputs.length == 0){
+            return false;
+        }
+        return true;
     }
 
 }
 
-// SendReport sends the report after optimization
+// SendReport sends the report after optimization is complete
 async function SendReport() {
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
     var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText

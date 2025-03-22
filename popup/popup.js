@@ -58,9 +58,8 @@ optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   var userInputs = new Object({
-    parameters: [], // numeric parameters
-    timeFrames: [],
-    additionalParameters: [], // selectable and checkbox parameters
+    parameters: [], 
+    timeFrames: []
   })
   // err is handled as value
   var err = await CreateUserInputsMessage(userInputs)
@@ -91,11 +90,6 @@ optimize.addEventListener("click", async () => {
     parameterIndex: 5,
     parameterName: "IFT Combo Length",
     type: "Numeric"
-  },
-  {
-    parameterIndex: 11,
-    parameterName: "Change Volume data",
-    type: "Checkbox"
   },
   {
     parameterIndex: 9,
