@@ -46,13 +46,16 @@ All optimization reports are saved to your machine, view or delete any time with
 
 During your Chrome Session, last entered parameter inputs are stored in a state to make updates easier. 
 
-## 🌟 OptiPie Plus Membership
+## OptiPie Plus Membership 🌟
 Join the OptiPie Plus Membership, discover amazing features, go beyond the limits! 
-- ###  ⏰ Multi-Timeframe Optimization
-- ###  ✅ Selectable Parameters
-- ###  🛑 Stoppable Optimization with Partial Report
-- ###  📊 Extended Report Data
-- ###  🔓 Optimize Strategies Up to 20 Parameters
+
+<ul>
+  <h3> ⏰ Multi-Timeframe Optimization </h3>
+  <h3> ✅ Selectable Parameters </h3>
+  <h3> 🛑 Stoppable Optimization with Partial Report </h3>
+  <h3> 📊 Extended Report Data </h3>
+  <h3> 🔓 Optimize Strategies Up to 20 Parameters </h3>
+</ul> 
 
 ### Features in Action
 
