@@ -16,18 +16,23 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   timePeriod.textContent = timePeriodValue
   
   for (const [key, value] of Object.entries(values)) {
+    var isDeprecatedReportData = false;
+    if (value.averageTrade != null && value.averageTrade.amount != 0){
+      isDeprecatedReportData = true; // meaning it's old report data structure
+    }
+    
     var reportDetail = {
       "parameters": key,
       "netProfitAmount": value.netProfit.amount,
       "netProfitPercent": value.netProfit.percent,
+      "maxDrawdownAmount": value.maxDrawdown.amount,
+      "maxDrawdownPercent": value.maxDrawdown.percent,
       "closedTrades": value.closedTrades,
       "percentProfitable": value.percentProfitable,
       "profitFactor": value.profitFactor,
-      "maxDrawdownAmount": value.maxDrawdown.amount,
-      "maxDrawdownPercent": value.maxDrawdown.percent,
-      "averageTradeAmount": value.averageTrade.amount,
-      "averageTradePercent": value.averageTrade.percent,
-      "avgerageBarsInTrades": value.avgerageBarsInTrades,
+      "averageTradeAmount": value?.averageTrade.amount,
+      "averageTradePercent": value?.averageTrade.percent,
+      "avgerageBarsInTrades": value?.avgerageBarsInTrades,
     }
     value.detailedParameters.forEach((element, index) => {
       index += 1
@@ -37,6 +42,13 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   }
   var $table = $('#table')
   $table.bootstrapTable('showLoading')
+  
+  if (!isDeprecatedReportData){
+    // new report data doesn't have those values
+    $table.bootstrapTable('hideColumn', 'averageTradeAmount');
+    $table.bootstrapTable('hideColumn', 'averageTradePercent');
+    $table.bootstrapTable('hideColumn', 'avgerageBarsInTrades');
+  }
 
   setTimeout(() => {
     $table.bootstrapTable('load', reportDetailData)
@@ -142,14 +154,14 @@ function customSort(sortName, sortOrder, data) {
     var aa = ""
     var bb = ""
     // Check if number is negative with regex, rebuild and remove non-numeric chars
-    if (a[sortName].charAt(0).match(/\D/) != null) {
+    if (a[sortName].charAt(0).match(/\D/) != null && a[sortName].charAt(0) != '+') {
       aa = '-' + a[sortName].substring(1, a[sortName].length)
       aa = +((aa + '').replace(/[^0-9.-]+/g, ""))
     } else {
       aa = +((a[sortName] + '').replace(/[^0-9.-]+/g, ""))
     }
 
-    if (b[sortName].charAt(0).match(/\D/) != null) {
+    if (b[sortName].charAt(0).match(/\D/) != null && b[sortName].charAt(0) != '+') {
       bb = '-' + b[sortName].substring(1, b[sortName].length)
       bb = +((bb + '').replace(/[^0-9.-]+/g, ""))
     } else {

@@ -48,33 +48,47 @@
             <span class="placeholder col-1"></span>
           </p>
         </div>
-        <div class="container" id="timeFrame">
-          <select multiple="multiple" class="sm" id="selectTimeFrame">
-            <option disabled>Time</option>
-            <option value="1S">1 second</option>
-            <option value="5S">5 seconds</option>
-            <option value="10S">10 seconds</option>
-            <option value="15S">15 seconds</option>
-            <option value="30S">30 seconds</option>
-            <option value="1">1 minute</option>
-            <option value="2">2 minutes</option>
-            <option value="3">3 minutes</option>
-            <option value="5">5 minutes</option>
-            <option value="10">10 minutes</option>
-            <option value="15">15 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45">45 minutes</option>
-            <option value="60">1 hour</option>
-            <option value="120">2 hours</option>
-            <option value="180">3 hours</option>
-            <option value="240">4 hours</option>
-            <option value="1D">1 day</option>
-            <option value="1W">1 week</option>
-            <option value="1M">1 month</option>
-            <option value="3M">3 months</option>
-            <option value="6M">6 months</option>
-            <option value="12M">12 months</option>
-          </select>
+        <div id="topControls">
+          <div class="container" id="timeFrame">
+            <select multiple="multiple" class="sm" id="selectTimeFrame">
+              <option disabled>Time</option>
+              <option value="1S">1 second</option>
+              <option value="5S">5 seconds</option>
+              <option value="10S">10 seconds</option>
+              <option value="15S">15 seconds</option>
+              <option value="30S">30 seconds</option>
+              <option value="1">1 minute</option>
+              <option value="2">2 minutes</option>
+              <option value="3">3 minutes</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+              <option value="240">4 hours</option>
+              <option value="1D">1 day</option>
+              <option value="1W">1 week</option>
+              <option value="1M">1 month</option>
+              <option value="3M">3 months</option>
+              <option value="6M">6 months</option>
+              <option value="12M">12 months</option>
+            </select>
+          </div>
+          <div class="container" id="iteration">
+            <span class="badge bg-white text-dark fs-6 fw-normal border border-start-0 border-bottom-0 px-1">
+              Iterations 
+              <span class="d-block mt-1 text-center mb-0" id="value">
+                <div class="container" id="skeleton-iteration">
+                  <div class="placeholder-glow">
+                    <span class="placeholder col-2 skeleton-horizontal"></span>
+                  </div>
+                </div>
+              </span>
+          </span>
+          </div>  
         </div>
         <div class="container" id="parameters">
           <div class="row g-2 pb-2">
@@ -197,7 +211,7 @@
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
                         </li>
                         <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 4 Parameters</h6>
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters</h6>
                         </li>
                       </ul>
                     </div>
@@ -250,12 +264,12 @@
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
                         </li>
                         <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 8 Parameters</h6>
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters</h6>
                         </li>
                       </ul>
                     </div>
                   </div>
-                  <span class="card-text">Go beyond the limits, Try Now!</span>
+                  <span class="card-text">Go beyond the limits, Try Now!</span><br />
                   <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" class="btn btn-primary"
                     id="upgradeButton">Upgrade to Plus<i class="bi bi-bag-heart-fill"></i></a>
                   <p class="card-text"><small class="text-muted">Monthly from 5$</small></p>
@@ -299,7 +313,7 @@
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
                         </li>
                         <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 8 Parameters</h6>
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters</h6>
                         </li>
                       </ul>
                     </div>
@@ -343,7 +357,7 @@
       <div class="col-md-4 d-flex align-items-center">
         <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
         </a>
-        <span class=" mb-md-0 text-muted">&copy; 2024 OptiPie</span>
+        <span class=" mb-md-0 text-muted">&copy; 2025 OptiPie</span>
       </div>
       <div class="col-md-4 d-flex">
         <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
