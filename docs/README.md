@@ -36,11 +36,11 @@ Unless your Internet or TradingView is broken, you can optimize with any input r
 
 ### Find, Sort, View & Analyze Reports :dart:
 
-Easily find your report in Reports tab with table search and sorts. Open report detail view to make a deep analysis.
+Easily find your report in Reports tab with table search and sorts. Open Report Detail view to make a deep analysis.
 
 ### Reports Stored ⚙️
 
-All optimization reports are saved locally using `chrome.storage` API thus can be reached or deleted any time within Reports tab.
+All optimization reports are saved to your machine, view or delete any time within Reports tab.
 
 ### Last Entered Parameter Inputs Stored In State :arrows_counterclockwise:
 
