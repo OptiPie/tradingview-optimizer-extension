@@ -8,6 +8,12 @@ let addParameter = document.getElementById("addParameter");
 let freeParameterLimit = 5
 let plusParameterLimit = 20
 
+var parameterType = {
+  Selectable: "Selectable",
+  Numeric: "Numeric",
+  Checkbox: "Checkbox"
+}
+
 // Initialize popup html according to last user parameter count state
 chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
   for (let i = 1; i < userParameterCount; i++) {
@@ -124,7 +130,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       case getTvParameters:
         console.log(popupAction.message.tvParameters)
         autoFillParameters(popupAction.message.tvParameters);
-
+        
         chrome.storage.local.set({ "tvParameters": popupAction.message.tvParameters });
         break;
     }
@@ -288,12 +294,12 @@ async function injectPlusFeatures(userEmail) {
     showSkeleton("stop", "stop")
     // change parameter limit up for plus users
     parameterLimit = plusParameterLimit
-    await getCurrentTab().then(function (tab) {
+    await getCurrentTab().then(async (tab) => {
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['plus/get-tv-parameters.js']
       });
-    })
+    });
 
     let stopOptimization = document.getElementById("stop")
     stopOptimization.addEventListener("click", async (clickEvent) => {
@@ -310,7 +316,6 @@ async function injectPlusFeatures(userEmail) {
       hideSkeleton("stop", "stop")
       stopOptimization.style.display = 'block'
     }, 300);
-
 
     $('#selectTimeFrame').multiselect({
       buttonClass: 'form-select',
@@ -382,13 +387,8 @@ async function injectPlusFeatures(userEmail) {
   }
 }
 
-async function getCurrentTab() {
-  let queryOptions = { active: true, lastFocusedWindow: true };
-  let [tab] = await chrome.tabs.query(queryOptions);
-  return tab;
-}
 //
-function autoFillParameters(tvParameters) {
+async function autoFillParameters(tvParameters) {
   if (tvParameters.length < 1) {
     chrome.storage.local.set({ "parameterNames": null });
     return
@@ -398,7 +398,7 @@ function autoFillParameters(tvParameters) {
   labels.forEach(label => {
     label.style.display = 'none'
   });
-
+  
   var autoFillSelects = document.querySelectorAll("#selectAutoFill")
   for (let i = 0; i < autoFillSelects.length; i++) {
     const autoFillSelect = autoFillSelects[i];
@@ -413,14 +413,50 @@ function autoFillParameters(tvParameters) {
       let option = new Option(parameterName, parameterNameIndex);
       autoFillSelect.add(option);
     }
-
+    
+    var userSelectedIndex = i
     chrome.storage.local.get(["selectAutoFill" + i], function (result) {
-      var userValue = i
       if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
-        userValue = result["selectAutoFill" + i]
+        userSelectedIndex = result["selectAutoFill" + i]
       }
-      autoFillSelect.value = userValue
+      autoFillSelect.value = userSelectedIndex
+      
+      if (tvParameters[userSelectedIndex].type == parameterType.Checkbox) {
+        let parameter = tvParameters[userSelectedIndex]
+        let index = i + 1
+        var nonNumericInput = {
+          type: parameter.type,
+          parameterIndex: index,
+          parameterName: parameter.name,
+        }
+        transformInput(nonNumericInput)
+      }
     });
+    
+    console.log(tvParameters[userSelectedIndex])
+
+      
+  }
+}
+
+function transformInput(nonNumericInput) {
+  // hide labels, show selectors
+  switch (nonNumericInput.type) {
+    case parameterType.Checkbox:
+      console.log(nonNumericInput.parameterIndex)
+      var inputRow = document.querySelector(`#parameters > div:nth-child(${nonNumericInput.parameterIndex})`)
+      // hide numeric input
+      inputRow.querySelector("#inputStart").parentElement.style.display = "none"
+      inputRow.querySelector("#inputStep").parentElement.style.display = "none"
+      
+      // show checkbox input
+      inputRow.querySelector("#divCheckbox label").textContent = nonNumericInput.parameterName
+      inputRow.querySelector("#divCheckbox").style.display= "block"
+      
+      break;
+  
+    default:
+      break;
   }
 }
 
@@ -822,6 +858,12 @@ var TimeFrameMap = new Map([
 ]);
 
 //#region Helpers 
+
+async function getCurrentTab() {
+  let queryOptions = { active: true, lastFocusedWindow: true };
+  let [tab] = await chrome.tabs.query(queryOptions);
+  return tab;
+}
 
 function hideSkeleton(elementToShow, skeletonId) {
   document.getElementById("skeleton-" + skeletonId).style.display = 'none'

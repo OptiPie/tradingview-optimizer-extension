@@ -64,6 +64,21 @@ body {
     font-size: .850rem;
 }
 
+#parameters .col-8{
+    flex: 1;
+}
+
+#divCheckbox {
+    display: none;
+}
+
+#divCheckbox label{
+    user-select: none; 
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE/Edge */
+}
+
 #skeleton-time-frame{
     display: none;
     position: absolute;
