@@ -64,7 +64,7 @@ optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   var userInputs = new Object({
-    parameters: [], 
+    parameters: [],
     timeFrames: []
   })
   // err is handled as value
@@ -130,7 +130,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       case getTvParameters:
         console.log(popupAction.message.tvParameters)
         autoFillParameters(popupAction.message.tvParameters);
-        
+
         chrome.storage.local.set({ "tvParameters": popupAction.message.tvParameters });
         break;
     }
@@ -398,7 +398,7 @@ async function autoFillParameters(tvParameters) {
   labels.forEach(label => {
     label.style.display = 'none'
   });
-  
+
   var autoFillSelects = document.querySelectorAll("#selectAutoFill")
   for (let i = 0; i < autoFillSelects.length; i++) {
     const autoFillSelect = autoFillSelects[i];
@@ -413,14 +413,14 @@ async function autoFillParameters(tvParameters) {
       let option = new Option(parameterName, parameterNameIndex);
       autoFillSelect.add(option);
     }
-    
+
     var userSelectedIndex = i
     chrome.storage.local.get(["selectAutoFill" + i], function (result) {
       if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
         userSelectedIndex = result["selectAutoFill" + i]
       }
       autoFillSelect.value = userSelectedIndex
-      
+
       if (tvParameters[userSelectedIndex].type == parameterType.Checkbox) {
         let parameter = tvParameters[userSelectedIndex]
         let index = i + 1
@@ -432,10 +432,10 @@ async function autoFillParameters(tvParameters) {
         transformInput(nonNumericInput)
       }
     });
-    
+
     console.log(tvParameters[userSelectedIndex])
 
-      
+
   }
 }
 
@@ -443,18 +443,18 @@ function transformInput(nonNumericInput) {
   // hide labels, show selectors
   switch (nonNumericInput.type) {
     case parameterType.Checkbox:
-      console.log(nonNumericInput.parameterIndex)
       var inputRow = document.querySelector(`#parameters > div:nth-child(${nonNumericInput.parameterIndex})`)
       // hide numeric input
       inputRow.querySelector("#inputStart").parentElement.style.display = "none"
-      inputRow.querySelector("#inputStep").parentElement.style.display = "none"
-      
+      inputRow.querySelector("#inputStep").style.display = "none"
+      inputRow.querySelector("#inputStep").parentElement.className = "col-2"
+      console.log(inputRow)
       // show checkbox input
       inputRow.querySelector("#divCheckbox label").textContent = nonNumericInput.parameterName
-      inputRow.querySelector("#divCheckbox").style.display= "block"
-      
+      inputRow.querySelector("#divCheckbox").style.display = "block"
+
       break;
-  
+
     default:
       break;
   }
@@ -582,6 +582,12 @@ function addParameterBlockHtml(orderOfParameter) {
       <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">\
       <option selected disabled>Select Parameter</option>\
     </select>\
+    <div class="form-check" id="divCheckbox">\
+      <input class="form-check-input" type="checkbox" id="inputCheckbox" value="">\
+      <label class="form-check-label" for="inputCheckbox">\
+        Default checkbox\
+      </label>\
+    </div>\
       <div class="input-group input-group">\
         <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">\
         <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">\
