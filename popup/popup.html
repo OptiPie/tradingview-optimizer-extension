@@ -79,7 +79,7 @@
           </div>
           <div class="container" id="iteration">
             <span class="badge bg-white text-dark fs-6 fw-normal border border-start-0 border-bottom-0 px-1">
-              Iterations 
+              Iterations
               <span class="d-block mt-1 text-center mb-0" id="value">
                 <div class="container" id="skeleton-iteration">
                   <div class="placeholder-glow">
@@ -87,16 +87,24 @@
                   </div>
                 </div>
               </span>
-          </span>
-          </div>  
+            </span>
+          </div>
         </div>
         <div class="container" id="parameters">
-          <div class="row g-2 pb-2">
+          <div id="wrapper">
+          <div class="row g-2" id="header">
             <div class="col-8">
               <label for="inputStart" class="form-label">1. Parameter Inputs</label>
               <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
                 <option selected disabled>Select Parameter</option>
               </select>
+            </div>
+            <div class="col-4">
+              <label for="inputStep" class="form-label">Step Size</label>
+            </div>
+          </div>
+          <div class="row g-2 pb-2" id="content">
+            <div class="col-8">
               <div class="form-check" id="divCheckbox">
                 <input class="form-check-input" type="checkbox" id="inputCheckbox" value="">
                 <label class="form-check-label" for="inputCheckbox">
@@ -109,9 +117,9 @@
               </div>
             </div>
             <div class="col-4">
-              <label for="inputStep" class="form-label">Step Size</label>
               <input type="text" aria-label="Step" placeholder="Step" class="form-control" id="inputStep">
             </div>
+          </div>
           </div>
         </div>
 
@@ -196,7 +204,7 @@
             <div class="col-10">
               <div class="card text-center">
                 <div class="container" id="plusLogoInline">
-                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">  
+                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">
                 </div>
                 <div class="card-body">
                   <h5 class="card-title">Discover OptiPie Plus Benefits</h5>
@@ -217,7 +225,8 @@
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
                         </li>
                         <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters</h6>
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters
+                          </h6>
                         </li>
                       </ul>
                     </div>
@@ -250,7 +259,7 @@
                   Welcome, <p id="userEmail" style="display: inline;"></p>
                 </h6>
                 <div class="container" id="plusLogoInline">
-                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">  
+                  <img src="/images/optipie_plus_app_logo_inline.png" class="card-img-top" alt="OptiPie Plus Logo">
                 </div>
                 <div class="card-body">
                   <div class="card-body">
@@ -270,7 +279,8 @@
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
                         </li>
                         <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters</h6>
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters
+                          </h6>
                         </li>
                       </ul>
                     </div>
@@ -319,7 +329,8 @@
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
                         </li>
                         <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters</h6>
+                          <h6 class="card-text"><i class="bi bi-unlock"></i> Optimize Strategies Up to 20 Parameters
+                          </h6>
                         </li>
                       </ul>
                     </div>
@@ -330,7 +341,9 @@
                         <span class="badge text-dark">Membership Renewal<h6 class="text-start">05.15.2024</h6></span>
                       </div>
                       <div class="col-6">
-                        <a type="button" class="btn btn-primary btn-sm" href="https://studio.buymeacoffee.com/my-account/payments/memberships" target="_blank"><i class="bi bi-person"></i>Manage
+                        <a type="button" class="btn btn-primary btn-sm"
+                          href="https://studio.buymeacoffee.com/my-account/payments/memberships" target="_blank"><i
+                            class="bi bi-person"></i>Manage
                           Account</a>
                       </div>
                     </div>
@@ -366,7 +379,8 @@
         <span class=" mb-md-0 text-muted">&copy; 2025 OptiPie</span>
       </div>
       <div class="col-md-4 d-flex">
-        <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
+        <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer"
+          class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
       </div>
       <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
         <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>

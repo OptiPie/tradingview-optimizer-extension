@@ -39,7 +39,7 @@ body {
 #topControls{
     display: flex;
     position: absolute;
-    top: 9.3rem;
+    top: 9rem;
     width: 100%;
 }
 
