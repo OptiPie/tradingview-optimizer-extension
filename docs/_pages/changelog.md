@@ -9,7 +9,7 @@ title: "News"
 
 Stay tuned for **Upcoming release**!
 
-**Selectable** and **Checkbox** inputs will be available for optimization, exlusive to **Plus members**
+**Selectable** and **Checkbox** inputs will be available for optimization, exclusive to **Plus members**
 
 ### Latest Version: v1.2.7
 
