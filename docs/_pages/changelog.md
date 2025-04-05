@@ -4,16 +4,22 @@ title: "News"
 ---
 
 ## What's New!
-### **Number of Iterations are Now Available 📈**
+### Deep Backtesting is now supported! 📢
+> Optimize with Deep Backtesting mode, available for both Plus and Free users.
 
+Stay tuned for **Upcoming release**!
+
+**Selectable** and **Checkbox** inputs will be available for optimization, exclusive to **Plus members**
+
+### Latest Version: v1.2.7
+
+## Previous Updates
+
+### Version: v1.2.5, v1.2.6
 
 - **Know how big your optimization will be**, number of iterations for given parameters are dynamically shown at the top-right corner.
 - Fixed an issue if optimization report has a missing field, do not fail to capture rest of the data for that step.
 - Fixed an issue where some of non English languages were not working properly with OptiPie.
-
-### Latest Version: v1.2.5, v1.2.6
-
-## Previous Updates
 
 ### Version: v1.2.2, v1.2.3, v1.2.4
 
