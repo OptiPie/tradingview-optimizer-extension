@@ -415,13 +415,13 @@ async function autoFillParameters(tvParameters) {
     }
 
     let userSelectedIndex = i
-    
+
     chrome.storage.local.get(["selectAutoFill" + i], function (result) {
       if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
         userSelectedIndex = result["selectAutoFill" + i]
       }
       autoFillSelect.value = userSelectedIndex
-      
+
       if (tvParameters[userSelectedIndex].type == parameterType.Checkbox) {
         let parameter = tvParameters[userSelectedIndex]
         let checkboxInput = {
@@ -443,32 +443,35 @@ async function getParameterType(parameterIndex) {
 
 function transformInput(input) {
   var inputRow = document.querySelectorAll("#parameters #wrapper")[input.parameterIndex]
+  
+  let inputStart = inputRow.querySelector("#inputStart").parentElement
+  let inputStep = inputRow.querySelector("#inputStep").parentElement
+  let checkbox = inputRow.querySelector("#divCheckbox")
+  let stepLabel = inputRow.querySelector("#header label[for*='step' i]");
   switch (input.type) {
     case parameterType.Checkbox:
       // hide step size label if it's first input
       if (input.parameterIndex == 0) {
-        inputRow.querySelector("#header label[for*='step' i]").style.display = 'none'
+        hideElement(stepLabel)
       }
       // hide numeric input
-      inputRow.querySelector("#inputStart").parentElement.style.display = "none"
-      inputRow.querySelector("#inputStep").parentElement.style.display = "none"
+      hideElement(inputStart)
+      hideElement(inputStep)
       // show checkbox input
-      inputRow.querySelector("#divCheckbox label").textContent = input.parameterName
-      inputRow.querySelector("#divCheckbox").style.display = "block"
-      
-      
+      checkbox.querySelector("label").textContent = input.parameterName
+      showWithTransition(checkbox, "block");
 
       break;
     case parameterType.Numeric:
       if (input.parameterIndex == 0) {
-        inputRow.querySelector("#header label[for*='step' i]").style.display = 'block'
+        showWithTransition(stepLabel, "block");
       }
-      // hide numeric input
-      inputRow.querySelector("#inputStart").parentElement.style.display = "flex"
-      inputRow.querySelector("#inputStep").parentElement.style.display = "flex"
-      // show checkbox input
-      inputRow.querySelector("#divCheckbox label").textContent = "default"
-      inputRow.querySelector("#divCheckbox").style.display = "none"
+      // show numeric input
+      showWithTransition(inputStart, "flex");
+      showWithTransition(inputStep, "flex");
+      // hide checkbox input
+      checkbox.querySelector("label").textContent = "default"
+      hideElement(checkbox)
 
     default:
       break;
@@ -913,6 +916,23 @@ function showSkeleton(elementToHide, skeletonId) {
   document.getElementById("skeleton-" + skeletonId).style.display = 'block'
   document.getElementById(elementToHide).style.display = 'none'
 }
+
+function showWithTransition(el, displayType = "block") {
+  el.style.display = displayType;
+  el.classList.add("with-transition");
+
+  // Force reflow to kick off transition
+  void el.offsetWidth;
+
+  el.classList.add("show");
+}
+
+// hideElement along with transition class
+function hideElement(el) {
+  el.classList.remove("show", "with-transition");
+  el.style.display = "none";
+}
+
 
 function isNumeric(str) {
   if (typeof str != "string") {

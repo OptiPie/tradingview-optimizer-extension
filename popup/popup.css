@@ -36,7 +36,7 @@ body {
     color: white;
 }
 
-#topControls{
+#topControls {
     display: flex;
     position: absolute;
     top: 9rem;
@@ -44,7 +44,7 @@ body {
 }
 
 #timeFrame {
-    display: none;   
+    display: none;
 }
 
 #iteration {
@@ -52,7 +52,7 @@ body {
     text-align: end;
 }
 
-#iteration #value{
+#iteration #value {
     font-weight: 700;
 }
 
@@ -64,7 +64,7 @@ body {
     font-size: .850rem;
 }
 
-#parameters .col-8{
+#parameters .col-8 {
     flex: 1;
 }
 
@@ -72,28 +72,42 @@ body {
     display: none;
 }
 
-#divCheckbox label{
-    user-select: none; 
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE/Edge */
+#divCheckbox label {
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari */
+    -moz-user-select: none;
+    /* Firefox */
+    -ms-user-select: none;
+    /* IE/Edge */
 }
 
-#skeleton-time-frame{
+.with-transition {
+    opacity: 0;
+    transform: translateY(2px); 
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.with-transition.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#skeleton-time-frame {
     display: none;
     position: absolute;
     top: 8.5rem;
 }
 
-#skeleton-stop{
+#skeleton-stop {
     display: none;
     position: absolute;
     padding-top: 0.25rem;
 }
 
 #skeleton-iteration .skeleton-horizontal {
-    width: 40%; 
-    display: inline-block; 
+    width: 40%;
+    display: inline-block;
 }
 
 #stop {
@@ -143,27 +157,27 @@ body {
     box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
-#benefits li{ 
-    background-color: #f9f6ec; 
+#benefits li {
+    background-color: #f9f6ec;
 }
 
-#benefits li i{
+#benefits li i {
     margin-right: 0.3rem;
 }
 
-#membershipRenewal span h6{
+#membershipRenewal span h6 {
     margin-top: 0.3rem;
 }
 
-#membershipRenewal button{
+#membershipRenewal button {
     margin-top: 0.3rem;
 }
 
-#membershipRenewal button i{
+#membershipRenewal button i {
     margin-right: 0.3rem;
 }
 
-#selectAutoFill{
+#selectAutoFill {
     display: none;
     margin-bottom: 0.25rem;
     padding-left: 0.25rem;
