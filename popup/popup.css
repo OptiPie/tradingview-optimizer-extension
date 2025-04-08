@@ -70,6 +70,7 @@ body {
 
 #divCheckbox {
     display: none;
+    pointer-events: none;
 }
 
 #divCheckbox label {

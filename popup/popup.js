@@ -612,7 +612,7 @@ function addParameterBlockHtml(orderOfParameter) {
   <div class="row g-2 pb-2" id="content">\
     <div class="col-8">\
     <div class="form-check" id="divCheckbox">\
-      <input class="form-check-input" type="checkbox" id="inputCheckbox" value="">\
+      <input class="form-check-input" type="checkbox" id="inputCheckbox" value="" checked>\
       <label class="form-check-label" for="inputCheckbox">\
         Default checkbox\
       </label>\
