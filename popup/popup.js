@@ -417,8 +417,14 @@ async function autoFillParameters(tvParameters) {
     let userSelectedIndex = i
 
     chrome.storage.local.get(["selectAutoFill" + i], function (result) {
+      // check if index is set by the user
       if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
         userSelectedIndex = result["selectAutoFill" + i]
+      }
+      // check if previous parameter has been set, autofill next one if applicable 
+      if (i > 0) {
+        var prevAutoFillSelect = autoFillSelects[i - 1]
+        userSelectedIndex = parseInt(prevAutoFillSelect.value) + 1
       }
       autoFillSelect.value = userSelectedIndex
 
@@ -443,7 +449,7 @@ async function getParameterType(parameterIndex) {
 
 function transformInput(input) {
   var inputRow = document.querySelectorAll("#parameters #wrapper")[input.parameterIndex]
-  
+
   let inputStart = inputRow.querySelector("#inputStart").parentElement
   let inputStep = inputRow.querySelector("#inputStep").parentElement
   let checkbox = inputRow.querySelector("#divCheckbox")
