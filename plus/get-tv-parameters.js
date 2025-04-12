@@ -1,4 +1,4 @@
-var parameterType = {
+var ParameterType = {
     Selectable: "Selectable",
     Numeric: "Numeric",
     Checkbox: "Checkbox"
@@ -26,20 +26,21 @@ async function getTvParameters() {
             if (selectableParameter != null) {
                 var options = await injectAndRetrieveOptions(i);
                 tvParameters.push({
-                    type: parameterType.Selectable,
+                    type: ParameterType.Selectable,
                     name: parameterName,
                     options: options
                 });
             } else {
                 tvParameters.push({
-                    type: parameterType.Numeric,
+                    type: ParameterType.Numeric,
                     name: parameterName
                 });
             }
         } // handle checkboxes
-        else if (className.includes("cell") && className.includes("fill")) {
+        else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
+            console.log(parameterNameElements[i])
             tvParameters.push({
-                type: parameterType.Checkbox,
+                type: ParameterType.Checkbox,
                 name: parameterName
             });
         }

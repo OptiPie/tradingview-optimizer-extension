@@ -10,7 +10,7 @@ var optimizationResults = new Map();
 var maxProfit = -99999
 
 //parameter types
-var parameterType = {
+var ParameterType = {
     Selectable: "Selectable",
     Numeric: "Numeric",
     Checkbox: "Checkbox"
@@ -43,13 +43,13 @@ async function Process() {
             for (let i = 0; i < message.detail.parameters.length; i++) {
                 let parameter = message.detail.parameters[i];
                 switch (parameter.type) {
-                    case parameterType.Numeric:
+                    case ParameterType.Numeric:
                         userNumericInputs.push(parameter)
                         break;
-                    case parameterType.Checkbox:
+                    case ParameterType.Checkbox:
                         userCheckboxInputs.push(parameter)
                         break;
-                    case parameterType.Selectable:
+                    case ParameterType.Selectable:
                         userSelectableInputs.push(parameter)
                         break;
                 }
@@ -505,23 +505,28 @@ function GetParametersFromWindow() {
         var userInput = userInputs[i]
         var parameterValue;
         switch (userInput.type) {
-            case parameterType.Numeric:
+            case ParameterType.Numeric:
                 if (userInput.start > parseFloat(tvInputs[userInput.parameterIndex].value) || parseFloat(tvInputs[userInput.parameterIndex].value) > userInput.end) {
                     parameters = "ParameterOutOfRange"
                     break
                 }
                 parameterValue = tvInputs[userInput.parameterIndex].value
                 break;
-            case parameterType.Checkbox:
+            case ParameterType.Checkbox:
                 if (tvInputs[userInput.parameterIndex].checked) {
                     parameterValue = "On"
                 } else {
                     parameterValue = "Off"
                 }
                 break;
-            case parameterType.Selectable:
+            case ParameterType.Selectable:
                 parameterValue = tvInputs[userInput.parameterIndex].innerText
                 break;
+        }
+        
+        if (parameters == "ParameterOutOfRange"){
+            // return this as an expected error, parameters are omitted for occurence 
+            break;
         }
 
         if (i == userInputs.length - 1) {

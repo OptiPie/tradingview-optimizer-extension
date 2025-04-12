@@ -8,7 +8,7 @@ let addParameter = document.getElementById("addParameter");
 let freeParameterLimit = 5
 let plusParameterLimit = 20
 
-var parameterType = {
+const ParameterType = {
   Selectable: "Selectable",
   Numeric: "Numeric",
   Checkbox: "Checkbox"
@@ -421,14 +421,9 @@ async function autoFillParameters(tvParameters) {
       if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
         userSelectedIndex = result["selectAutoFill" + i]
       }
-      // check if previous parameter has been set, autofill next one if applicable 
-      if (i > 0) {
-        var prevAutoFillSelect = autoFillSelects[i - 1]
-        userSelectedIndex = parseInt(prevAutoFillSelect.value) + 1
-      }
       autoFillSelect.value = userSelectedIndex
 
-      if (tvParameters[userSelectedIndex].type == parameterType.Checkbox) {
+      if (tvParameters[userSelectedIndex].type == ParameterType.Checkbox) {
         let parameter = tvParameters[userSelectedIndex]
         let checkboxInput = {
           type: parameter.type,
@@ -455,7 +450,7 @@ function transformInput(input) {
   let checkbox = inputRow.querySelector("#divCheckbox")
   let stepLabel = inputRow.querySelector("#header label[for*='step' i]");
   switch (input.type) {
-    case parameterType.Checkbox:
+    case ParameterType.Checkbox:
       // hide step size label if it's first input
       if (input.parameterIndex == 0) {
         hideElement(stepLabel)
@@ -468,7 +463,7 @@ function transformInput(input) {
       showWithTransition(checkbox, "block");
 
       break;
-    case parameterType.Numeric:
+    case ParameterType.Numeric:
       if (input.parameterIndex == 0) {
         showWithTransition(stepLabel, "block");
       }
@@ -723,10 +718,10 @@ function addSaveInputEventListener(parameterCount) {
 // Save last user selected time frame(s) as state
 function addSaveAutoFillSelectionListener(parameterCount) {
   document.querySelectorAll("#selectAutoFill")[parameterCount].addEventListener("change", async (event) => {
-    var key = "selectAutoFill" + parameterCount
-    var value = event.target.value
-    var selectedText = event.target.options[event.target.selectedIndex].text;
-    var parameterType = await getParameterType(value)
+    let key = "selectAutoFill" + parameterCount
+    let value = event.target.value
+    let selectedText = event.target.options[event.target.selectedIndex].text;
+    let parameterType = await getParameterType(value)
     transformInput({
       type: parameterType,
       parameterIndex: parameterCount,
@@ -794,43 +789,69 @@ function calculateIterations() {
 
 // Create user inputs message, return err.message if validation fails 
 async function CreateUserInputsMessage(userInputs) {
-  var parameters = document.querySelectorAll("#parameters #wrapper")
+  let parameters = document.querySelectorAll("#parameters #wrapper")
 
-  var parameterCount = parameters.length
-  var firstAutoFillOptions = parameters[0].querySelector("#selectAutoFill").options.length
+  let isPlusUser = await storageIsPlusUser()
 
-  var tvParametersObj = await chrome.storage.local.get("tvParameters")
+  let parameterCount = parameters.length
+  let firstAutoFillOptions = parameters[0].querySelector("#selectAutoFill").options.length
+
+  let tvParameters = await storageGetTvParameters()
+  let numericTvParameters;
+
+  // retrieve numericParameters for free users
+  if (!isPlusUser && firstAutoFillOptions <= 1) {
+    numericTvParameters = await executeGetNumericTvParameters()
+  }
 
   for (let i = 0; i < parameterCount; i++) {
-    var inputStart = parameters[i].querySelector("#inputStart").value
-    var inputEnd = parameters[i].querySelector("#inputEnd").value
-    var inputStep = parameters[i].querySelector("#inputStep").value
-    var index = parameters[i].querySelector("#selectAutoFill").selectedIndex - 1
-    var parameterName = parameters[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
+    let parameterIndex = parameters[i].querySelector("#selectAutoFill").selectedIndex - 1
+    let parameterName = parameters[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
+    let parameterType = ParameterType.Numeric
 
-    var err = validateParameterValues(inputStart, inputEnd, inputStep)
-    if (err != null) {
-      return err
+    // plus user check & apply respective configuration 
+    if (isPlusUser && firstAutoFillOptions > 1) {
+      parameterType = tvParameters[parameterIndex].type
     }
 
     // no selection for parameter name, autofill parameter name in order for plus users 
-    if (index == -1 && firstAutoFillOptions > 1) {
-      parameterName = tvParametersObj?.parameterNames[i]
+    if (parameterIndex == -1 && firstAutoFillOptions > 1) {
+      parameterName = tvParameters[i].name
     }
-
-    // autoFill feature is not active
-    if (firstAutoFillOptions <= 1) {
+    // free user & autoFill feature is not active
+    if (!isPlusUser && firstAutoFillOptions <= 1) {
       parameterName = null
+      parameterIndex = numericTvParameters[i].parameterIndex
     }
 
-    userInputs.parameters.push({
-      start: inputStart,
-      end: inputEnd,
-      stepSize: inputStep,
-      parameterIndex: index,
-      parameterName: parameterName
-    })
-    console.log(userInputs)
+    switch (parameterType) {
+      case ParameterType.Numeric:
+        let inputStart = parameters[i].querySelector("#inputStart").value
+        let inputEnd = parameters[i].querySelector("#inputEnd").value
+        let inputStep = parameters[i].querySelector("#inputStep").value
+
+        var err = validateParameterValues(inputStart, inputEnd, inputStep)
+        if (err != null) {
+          return err
+        }
+
+        userInputs.parameters.push({
+          start: inputStart,
+          end: inputEnd,
+          stepSize: inputStep,
+          parameterIndex: parameterIndex,
+          parameterName: parameterName,
+          type: parameterType
+        })
+        break;
+      case ParameterType.Checkbox:
+        userInputs.parameters.push({
+          parameterIndex: parameterIndex,
+          parameterName: parameterName,
+          type: parameterType
+        })
+        break;
+    }
   }
 
   var selected = []
@@ -843,6 +864,65 @@ async function CreateUserInputsMessage(userInputs) {
   }
 
   return null
+}
+
+async function storageIsPlusUser() {
+  let isPlusUserObj = await chrome.storage.local.get("isPlusUser")
+  return isPlusUserObj?.isPlusUser
+}
+
+async function storageGetTvParameters() {
+  let tvParametersObj = await chrome.storage.local.get("tvParameters")
+  return tvParametersObj?.tvParameters
+}
+
+async function executeGetNumericTvParameters() {
+  let result;
+  await getCurrentTab().then(async (tab) => {
+    await chrome.scripting
+      .executeScript({
+        target: { tabId: tab.id },
+        func: getNumericTvParameters,
+      })
+      .then(injectionResults => {
+        if (injectionResults.length > 0) {
+          result = injectionResults[0]?.result
+        }
+      });
+  });
+  return result
+}
+
+// getNumericTvInputs prepares only numeric inputs for free user flow
+function getNumericTvParameters() {
+  var numericTvParameters = []
+  
+  var parameterNameElements = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div");
+  var parameterIndex = 0
+  for (let i = 0; i < parameterNameElements.length; i++) {
+    var className = parameterNameElements[i].className;
+    var parameterName = parameterNameElements[i].innerText;
+
+    // handle numeric & selectable parameters, only prepare numeric inputs
+    if (className.includes("cell") && className.includes("first")) {
+      var numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode='numeric']");
+      if (numericParameter != null) {
+        numericTvParameters.push({
+          type: "Numeric",
+          name: parameterName,
+          parameterIndex: parameterIndex
+        });
+        parameterIndex++
+      } else {
+        parameterIndex++
+      }
+    } // handle checkboxes
+    else if (className.includes("cell") && className.includes("fill")) {
+      parameterIndex++
+    }
+  }
+
+  return numericTvParameters
 }
 
 // plus membership
