@@ -38,7 +38,6 @@ async function getTvParameters() {
             }
         } // handle checkboxes
         else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
-            console.log(parameterNameElements[i])
             tvParameters.push({
                 type: ParameterType.Checkbox,
                 name: parameterName

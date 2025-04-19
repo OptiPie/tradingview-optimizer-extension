@@ -423,14 +423,23 @@ async function autoFillParameters(tvParameters) {
       }
       autoFillSelect.value = userSelectedIndex
 
+      let parameter = tvParameters[userSelectedIndex]
+      // Numeric is always set to default, transform to others for Plus
       if (tvParameters[userSelectedIndex].type == ParameterType.Checkbox) {
-        let parameter = tvParameters[userSelectedIndex]
         let checkboxInput = {
           type: parameter.type,
           parameterIndex: i,
           parameterName: parameter.name,
         }
         transformInput(checkboxInput)
+      } else if (tvParameters[userSelectedIndex].type == ParameterType.Selectable) {
+        let selectableInput = {
+          type: parameter.type,
+          parameterIndex: i,
+          parameterName: parameter.name,
+          parameterOptions: parameter.options
+        }
+        transformInput(selectableInput)
       }
     });
   }
@@ -443,13 +452,98 @@ async function getParameterType(parameterIndex) {
 }
 
 function transformInput(input) {
-  var inputRow = document.querySelectorAll("#parameters #wrapper")[input.parameterIndex]
+  let inputRow = document.querySelectorAll("#parameters #wrapper")[input.parameterIndex]
+  let $inputRow = $("#parameters #wrapper").eq(input.parameterIndex);
 
   let inputStart = inputRow.querySelector("#inputStart").parentElement
   let inputStep = inputRow.querySelector("#inputStep").parentElement
   let checkbox = inputRow.querySelector("#divCheckbox")
+  let selectable = inputRow.querySelector("#divSelectParameter")
   let stepLabel = inputRow.querySelector("#header label[for*='step' i]");
   switch (input.type) {
+    case ParameterType.Selectable:
+      // hide step size label if it's first input
+      if (input.parameterIndex == 0) {
+        hideElement(stepLabel)
+      }
+      // hide numeric input
+      hideElement(inputStart)
+      hideElement(inputStep)
+      // hide checkbox input
+      checkbox.querySelector("label").textContent = "default"
+      hideElement(checkbox)
+      // show selectable input
+      showWithTransition(selectable, "block");
+
+      let $select = $inputRow.find('#selectParameter');
+
+      // remove all existing options
+      $select.find('option').remove();
+      input.parameterOptions?.forEach(function (option) {
+        $select.append(`<option value="${option.value}">${option.content}</option>`);
+      });
+
+      // rebuild the multiselect plugin unless it's empty or not initialized
+      if ($select.data('multiselect')) {
+        $select.multiselect('rebuild');
+      }
+
+      let storageKey = 'selectParameter' + input.parameterIndex
+
+      $select.multiselect({
+        buttonClass: 'form-select',
+        buttonWidth: '25%',
+        nonSelectedText: 'Select',
+        templates: {
+          button: `
+          <button type="button" class="multiselect dropdown-toggle" data-bs-toggle="dropdown"><span class="multiselect-selected-text"></span></button>`,
+        },
+        maxHeight: 175,
+        dropUp: true,
+        buttonText: function (options, select) {
+          if (options.length === 0) {
+            return "Select " + input.parameterName;
+          }
+          else if (options.length > 3) {
+            return '...';
+          }
+          else {
+            var labels = [];
+            options.each(function () {
+              labels.push($(this).html());
+            });
+            return labels.join(', ') + '';
+          }
+        },
+        onChange: async function (option, checked) {
+          let selectedParameter = option[0].value
+
+          chrome.storage.local.get([storageKey], function (result) {
+            let selectedParameters = result[storageKey] || []; // fallback to empty if nothing there
+
+            if (checked) {
+              if (!selectedParameters.includes(selectedParameter)) {
+                selectedParameters.push(selectedParameter);
+              }
+            } else {
+              selectedParameters = selectedParameters.filter(item => item !== selectedParameter);
+            }
+
+            chrome.storage.local.set({ [storageKey]: selectedParameters });
+          });
+        }
+      });
+
+      chrome.storage.local.get([storageKey], function (result) {
+        let selectedParameters = result[storageKey] || []
+        $select
+          .val(selectedParameters)
+          .trigger('change');
+
+        $select.multiselect('refresh');
+      });
+
+      break;
     case ParameterType.Checkbox:
       // hide step size label if it's first input
       if (input.parameterIndex == 0) {
@@ -458,6 +552,9 @@ function transformInput(input) {
       // hide numeric input
       hideElement(inputStart)
       hideElement(inputStep)
+      // hide selectable input
+      hideElement(selectable)
+
       // show checkbox input
       checkbox.querySelector("label").textContent = input.parameterName
       showWithTransition(checkbox, "block");
@@ -467,12 +564,15 @@ function transformInput(input) {
       if (input.parameterIndex == 0) {
         showWithTransition(stepLabel, "block");
       }
-      // show numeric input
-      showWithTransition(inputStart, "flex");
-      showWithTransition(inputStep, "flex");
       // hide checkbox input
       checkbox.querySelector("label").textContent = "default"
       hideElement(checkbox)
+      // hide selectable input
+      hideElement(selectable)
+      // show numeric input
+      showWithTransition(inputStart, "flex");
+      showWithTransition(inputStep, "flex");
+
 
     default:
       break;
@@ -618,10 +718,15 @@ function addParameterBlockHtml(orderOfParameter) {
         Default checkbox\
       </label>\
     </div>\
-      <div class="input-group input-group">\
-        <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">\
-        <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">\
-      </div>\
+    <div class="btn-group select-parameter" id="divSelectParameter">\
+    <select multiple="multiple" class="sm" id="selectParameter">\
+      <option disabled>Select</option>\
+    </select>\
+    </div>\
+    <div class="input-group input-group">\
+      <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">\
+      <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">\
+    </div>\
     </div>\
     <div class="col-4 mt-auto">\
       <input type="text" aria-label="Step" placeholder="Step" class="form-control"\
@@ -721,12 +826,33 @@ function addSaveAutoFillSelectionListener(parameterCount) {
     let key = "selectAutoFill" + parameterCount
     let value = event.target.value
     let selectedText = event.target.options[event.target.selectedIndex].text;
-    let parameterType = await getParameterType(value)
-    transformInput({
-      type: parameterType,
-      parameterIndex: parameterCount,
-      parameterName: selectedText,
-    })
+    let tvParameter = await storageGetTvParameter(value)
+
+    switch (tvParameter.type) {
+      case ParameterType.Checkbox:
+        transformInput({
+          type: ParameterType.Checkbox,
+          parameterIndex: parameterCount,
+          parameterName: selectedText,
+        });
+        break;
+      case ParameterType.Selectable:
+        transformInput({
+          type: ParameterType.Selectable,
+          parameterIndex: parameterCount,
+          parameterName: selectedText,
+          parameterOptions: tvParameter.options,
+        });
+        break;
+      case ParameterType.Numeric:
+        transformInput({
+          type: ParameterType.Numeric,
+          parameterIndex: parameterCount,
+          parameterName: selectedText,
+        });
+        break;
+    }
+
     chrome.storage.local.set({ [key]: value });
   });
 }
@@ -876,6 +1002,11 @@ async function storageGetTvParameters() {
   return tvParametersObj?.tvParameters
 }
 
+async function storageGetTvParameter(index) {
+  let tvParametersObj = await chrome.storage.local.get("tvParameters")
+  return tvParametersObj?.tvParameters[index]
+}
+
 async function executeGetNumericTvParameters() {
   let result;
   await getCurrentTab().then(async (tab) => {
@@ -896,7 +1027,7 @@ async function executeGetNumericTvParameters() {
 // getNumericTvInputs prepares only numeric inputs for free user flow
 function getNumericTvParameters() {
   var numericTvParameters = []
-  
+
   var parameterNameElements = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div");
   var parameterIndex = 0
   for (let i = 0; i < parameterNameElements.length; i++) {
