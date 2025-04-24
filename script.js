@@ -36,7 +36,7 @@ async function Process() {
     var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = (event) => {
-        var message = event.data
+        let message = event.data
         if (message.type === "UserInputsEvent") {
             window.removeEventListener("message", userInputsEventCallback);
 
@@ -180,14 +180,14 @@ async function Process() {
             }
             return
         }
-        var checkBoxesLength = userCheckboxInputs.length
+        let checkBoxesLength = userCheckboxInputs.length
 
         for (let i = 0; i < 2 ** checkBoxesLength; i++) {
             let binaryString = i.toString(2).padStart(checkBoxesLength, '0')
             let binaryArray = binaryString.split('').map(Number)
 
             for (let j = 0; j < binaryArray.length; j++) {
-                var value = binaryArray[j];
+                let value = binaryArray[j];
                 // renew tv inputs
                 tvInputs = document.querySelectorAll(tvInputsQuery)
 

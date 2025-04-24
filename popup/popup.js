@@ -23,7 +23,7 @@ chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
   setTimeout(() => {
     // update iteration based on last user parameters
     calculateIterations()
-  }, 150);
+  }, 500);
 });
 // Tab event listeners to change body width 
 addTabEventListeners()
@@ -130,7 +130,6 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         break;
       case getTvParameters:
         autoFillParameters(popupAction.message.tvParameters);
-
         chrome.storage.local.set({ "tvParameters": popupAction.message.tvParameters });
         break;
     }
@@ -460,6 +459,7 @@ function transformInput(input) {
   let checkbox = inputRow.querySelector("#divCheckbox")
   let selectable = inputRow.querySelector("#divSelectParameter")
   let stepLabel = inputRow.querySelector("#header label[for*='step' i]");
+  
   switch (input.type) {
     case ParameterType.Selectable:
       // hide step size label if it's first input
@@ -531,6 +531,7 @@ function transformInput(input) {
 
             chrome.storage.local.set({ [storageKey]: selectedParameters });
           });
+          calculateIterations()
         }
       });
 
@@ -572,8 +573,6 @@ function transformInput(input) {
       // show numeric input
       showWithTransition(inputStart, "flex");
       showWithTransition(inputStep, "flex");
-
-
     default:
       break;
   }
@@ -657,19 +656,19 @@ logoutButtons.forEach(logoutButton => {
 //#endregion
 
 function addParameterBlock(parameterLimit) {
-  var parameters = document.getElementById("parameters")
-  var parameterCount = parameters.children.length
+  let parameters = document.getElementById("parameters")
+  let parameterCount = parameters.children.length
 
   if (parameterCount < parameterLimit) {
     // Hide Last Remove Div for added parameters
     if (parameterCount > 1) {
-      var removeDiv = "#remove" + parameterCount + ""
+      let removeDiv = "#remove" + parameterCount + ""
       parameters.lastElementChild.querySelector(removeDiv).style = 'display:none;'
     }
 
     // Add Parameter Block
-    var orderOfParameter = parameterCount + 1
-    var divToAppend = addParameterBlockHtml(orderOfParameter)
+    let orderOfParameter = parameterCount + 1
+    let divToAppend = addParameterBlockHtml(orderOfParameter)
     parameters.insertAdjacentHTML('beforeend', divToAppend)
 
     // Enable auto fill plus feature if eligible  
@@ -690,7 +689,9 @@ function addParameterBlock(parameterLimit) {
     // Save Inputs EventListener for rest of the parameters
     addSaveInputEventListener(parameterCount)
     addSaveAutoFillSelectionListener(parameterCount)
-    calculateIterations()
+    setTimeout(() => {
+      calculateIterations()
+    }, 300);
   }
 }
 
@@ -739,7 +740,7 @@ function addParameterBlockHtml(orderOfParameter) {
 function addRemoveParameterBlockEventListener(parameterCount) {
   document.querySelectorAll(".btn-close.remove-parameters")[parameterCount - 1].addEventListener("click", async (evt) => {
     // Remove the selected row from incoming event 
-    var evtPath = eventPath(evt)
+    let evtPath = eventPath(evt)
     for (let i = 0; i < evtPath.length; i++) {
       const element = evtPath[i];
       // wrapper id corresponds to respective row to be deleted by the remove click 
@@ -749,22 +750,22 @@ function addRemoveParameterBlockEventListener(parameterCount) {
       }
     }
 
-    var parameters = document.getElementById("parameters")
-    var parameterCount = parameters.children.length
+    let parameters = document.getElementById("parameters")
+    let parameterCount = parameters.children.length
 
     // Decrement User's Last Parameter Count State    
     chrome.storage.local.set({ "userParameterCount": parameterCount });
     //Clear user parameter values from storage
-    var start = "inputStart" + parameterCount
-    var end = "inputEnd" + parameterCount
-    var step = "inputStep" + parameterCount
-    var autoFill = "selectAutoFill" + parameterCount
+    let start = "inputStart" + parameterCount
+    let end = "inputEnd" + parameterCount
+    let step = "inputStep" + parameterCount
+    let autoFill = "selectAutoFill" + parameterCount
     chrome.storage.local.set({ [start]: null, [end]: null, [step]: null, [autoFill]: null });
 
 
     //Show previously added hidden remove button
     if (parameterCount > 1) {
-      var removeDiv = "#remove" + parameterCount + ""
+      let removeDiv = "#remove" + parameterCount + ""
       parameters.lastElementChild.querySelector(removeDiv).style = 'display:block;'
     }
     calculateIterations()
@@ -854,6 +855,12 @@ function addSaveAutoFillSelectionListener(parameterCount) {
     }
 
     chrome.storage.local.set({ [key]: value });
+    // timeout > 0.2s after input transformation is essential due to transition effect
+    setTimeout(() => {
+      calculateIterations()
+    }, 250);
+
+
   });
 }
 // Dynamically change html body size 
@@ -878,14 +885,36 @@ function addRefreshDataEventListener() {
 }
 
 function calculateIterations() {
-  var totalIterations = 1
-  var isIterationValid = false
-  var parameters = document.querySelectorAll("#parameters #content")
-  var parameterCount = parameters.length
+  let totalIterations = 1
+  let isIterationValid = false
+  let parameters = document.querySelectorAll("#parameters #content")
+  let parameterCount = parameters.length
 
-  var iterationValue = document.querySelector("#iteration #value")
+  let iterationValue = document.querySelector("#iteration #value")
 
   for (let i = 0; i < parameterCount; i++) {
+    // check if parameter is numeric or others
+    let checkbox = parameters[i].querySelector("#divCheckbox")
+    let isCheckbox = window.getComputedStyle(checkbox).display != 'none'
+
+    let selectParameter = parameters[i].querySelector("#divSelectParameter")
+    let isSelectParameter = window.getComputedStyle(selectParameter).display != 'none'
+
+    if (isCheckbox) {
+      totalIterations *= 2
+      isIterationValid = true
+      continue
+    } else if (isSelectParameter) {
+      let selectedOptions = selectParameter.querySelector("#selectParameter")
+      let selectedCount = [...selectedOptions.options].filter(opt => opt.selected).length;
+
+      if (selectedCount != 0) {
+        totalIterations *= selectedCount
+        isIterationValid = true
+      }
+      continue
+    }
+
     var inputStart = parameters[i].querySelector("#inputStart").value.trim()
     var inputEnd = parameters[i].querySelector("#inputEnd").value.trim()
     var inputStep = parameters[i].querySelector("#inputStep").value.trim()
@@ -960,7 +989,6 @@ async function CreateUserInputsMessage(userInputs) {
         if (err != null) {
           return err
         }
-
         userInputs.parameters.push({
           start: inputStart,
           end: inputEnd,
@@ -975,6 +1003,16 @@ async function CreateUserInputsMessage(userInputs) {
           parameterIndex: parameterIndex,
           parameterName: parameterName,
           type: parameterType
+        })
+        break;
+      case ParameterType.Selectable:
+        let selectParameter = parameters[i].querySelector("#selectParameter")
+        let selectedValues = Array.from(selectParameter.selectedOptions).map(option => option.value);
+        userInputs.parameters.push({
+          parameterIndex: parameterIndex,
+          parameterName: parameterName,
+          type: parameterType,
+          options: selectedValues
         })
         break;
     }
