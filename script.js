@@ -174,7 +174,7 @@ async function Process() {
 
     // Optimize checkbox inputs in the strategey for the currently chosen timeframe 
     async function OptimizeCheckboxes(nextFunction) {
-        if (!isOptimizationCalled(userCheckboxInputs)){
+        if (!isOptimizationCalled(userCheckboxInputs)) {
             if (nextFunction) {
                 await nextFunction();
             }
@@ -204,7 +204,7 @@ async function Process() {
             if (nextFunction) {
                 await nextFunction();
             }
-            if (shouldStop){
+            if (shouldStop) {
                 return
             }
         }
@@ -212,16 +212,16 @@ async function Process() {
 
     // Optimize selectable inputs in the strategey for the currently chosen timeframe 
     async function OptimizeSelectables(nextFunction) {
-        if (!isOptimizationCalled(userSelectableInputs)){
+        if (!isOptimizationCalled(userSelectableInputs)) {
             if (nextFunction) {
                 await nextFunction();
             }
             return
         }
-        var selectablesLength = userSelectableInputs.length
-        
+        let selectablesLength = userSelectableInputs.length
+
         for (let i = 0; i < selectablesLength; i++) {
-            var selectableInput = userSelectableInputs[i]
+            let selectableInput = userSelectableInputs[i]
 
             for (let j = 0; j < selectableInput.options.length; j++) {
                 let option = selectableInput.options[j]
@@ -234,19 +234,19 @@ async function Process() {
                 document.querySelector(`div[class*=menuBox i] div[id*='${option}' i]`).click()
 
                 await sleep(500)
-                
+
                 if (nextFunction) {
                     await nextFunction();
                 }
-                if (shouldStop){
+                if (shouldStop) {
                     return
                 }
             }
         }
     }
-    
-    function isOptimizationCalled(inputs){
-        if (inputs == null || inputs.length == 0){
+
+    function isOptimizationCalled(inputs) {
+        if (inputs == null || inputs.length == 0) {
             return false;
         }
         return true;
@@ -272,20 +272,55 @@ async function SendReport() {
         }
     }
 
-    var title = document.querySelector("title")?.innerText
-    var strategySymbol = title.split(' ')[0]
-    var optimizationResultsObject = Object.fromEntries(optimizationResults);
-    var userInputsToString = ""
+    let title = document.querySelector("title")?.innerText
+    let strategySymbol = title.split(' ')[0]
+    let optimizationResultsObject = Object.fromEntries(optimizationResults);
+    let userInputsToString = ""
 
-    userNumericInputs.forEach((element, index) => {
+    userInputs.forEach((element, index) => {
         if (element.parameterName != null) {
-            userInputsToString += element.parameterName + ": "
+            let fullName = element.parameterName;
+            let displayName = fullName
+            let needsTooltip = false;
+
+            if (fullName.length > 22) {
+                displayName = displayName.substring(0, 22) + '...';
+                needsTooltip = true
+            }
+
+            if (needsTooltip) {
+                userInputsToString += `<strong 
+                    data-bs-toggle="tooltip" 
+                    title="${fullName}"
+                    >${displayName}</strong>: `;
+            } else {
+                userInputsToString += `<strong>${displayName}</strong>: `;
+            }
         }
-        if (index == userNumericInputs.length - 1) {
-            userInputsToString += element.start + "→" + element.end
-        } else {
-            userInputsToString += element.start + "→" + element.end + "<br>"
+        switch (element.type) {
+            case ParameterType.Numeric:
+                if (index == userInputs.length - 1) {
+                    userInputsToString += element.start + "→" + element.end
+                } else {
+                    userInputsToString += element.start + "→" + element.end + "<br>"
+                }
+                break;
+            case ParameterType.Checkbox:
+                if (index == userInputs.length - 1) {
+                    userInputsToString += "on/off"
+                } else {
+                    userInputsToString += "on/off" + "<br>"
+                }
+                break;
+            case ParameterType.Selectable:
+                if (index == userInputs.length - 1) {
+                    userInputsToString += element.options
+                } else {
+                    userInputsToString += element.options + "<br>"
+                }
+                break;
         }
+
     })
 
     var reportDataMessage = {
@@ -305,11 +340,11 @@ async function SendReport() {
 // Set User Given Intervals Before Optimization Starts
 async function SetUserIntervals() {
     for (let i = 0; i < userNumericInputs.length; i++) {
-        var userInput = userNumericInputs[i]
-        var startValue = userInput.start - userInput.stepSize
+        let userInput = userNumericInputs[i]
+        let startValue = userInput.start - userInput.stepSize
 
         if (isFloat(startValue)) {
-            var precision = getFloatPrecision(userInput.stepSize)
+            let precision = getFloatPrecision(userInput.stepSize)
             startValue = fixPrecision(startValue, precision)
         }
 
@@ -351,15 +386,15 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         });
     }
 
-    var reportData = newReportData()
+    let reportData = newReportData()
 
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
 
     await sleep(150)
     // Calculate new step value
-    var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
+    let newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
     if (isFloat(newStepValue)) {
-        var precision = getFloatPrecision(stepSize)
+        let precision = getFloatPrecision(stepSize)
         newStepValue = fixPrecision(newStepValue, precision)
     }
     ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
@@ -367,7 +402,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     await sleep(200)
 
     // Click on "Ok" button
-    var okButton = document.querySelector("button[data-name='submit-button' i]")
+    let okButton = document.querySelector("button[data-name='submit-button' i]")
     if (okButton == null) {
         okButton = document.querySelector("span[class*='submit' i] button")
     }
@@ -375,7 +410,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
-        var observer = new MutationObserver(function (mutations) {
+        let observer = new MutationObserver(function (mutations) {
             mutations.every(function (mutation) {
                 if (mutation.type === 'childList') {
                     if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer")) {
@@ -390,7 +425,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        var element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
+        let element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
         let options = {
             childList: true,
             subtree: true,
@@ -418,13 +453,13 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     await sleep(100)
     // Re-open strategy settings window
-    var reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
+    let reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
     if (reportTitleButton == null) {
         reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
     }
     reportTitleButton.click()
     await sleep(50)
-    var settingsButton = document.querySelector("div[aria-label*='settings' i]")
+    let settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
     if (settingsButton == null) {
         settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
@@ -437,10 +472,10 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 }
 
 function saveOptimizationReport(reportData, mutation) {
-    var result = GetParametersFromWindow()
-    var parameters = result.parameters
+    let result = GetParametersFromWindow()
+    let parameters = result.parameters
     if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-        var error = ReportBuilder(reportData, mutation)
+        let error = ReportBuilder(reportData, mutation)
         if (error != null) {
             return error.message
         }
@@ -469,13 +504,13 @@ async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize)
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
 async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
-    var previousTvParameterIndex = userNumericInputs[index - 1].parameterIndex
-    var currentTvParameterIndex = userNumericInputs[index].parameterIndex
+    let previousTvParameterIndex = userNumericInputs[index - 1].parameterIndex
+    let currentTvParameterIndex = userNumericInputs[index].parameterIndex
 
-    var resetValue = userNumericInputs[index - 1].start - userNumericInputs[index - 1].stepSize
+    let resetValue = userNumericInputs[index - 1].start - userNumericInputs[index - 1].stepSize
 
-    var previousStepSize = userNumericInputs[index - 1].stepSize
-    var currentStepSize = userNumericInputs[index].stepSize
+    let previousStepSize = userNumericInputs[index - 1].stepSize
+    let currentStepSize = userNumericInputs[index].stepSize
     //Reset and optimze inner
     await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration
@@ -496,14 +531,14 @@ function ChangeTvInput(input, value) {
 
 // Get Currently active parameters from Tv Strategy Options Window and format them
 function GetParametersFromWindow() {
-    var parameters = "";
-    var result = new Object({
+    let parameters = "";
+    let result = new Object({
         parameters: "",
         detailedParameters: []
     });
     for (let i = 0; i < userInputs.length; i++) {
-        var userInput = userInputs[i]
-        var parameterValue;
+        let userInput = userInputs[i]
+        let parameterValue;
         switch (userInput.type) {
             case ParameterType.Numeric:
                 if (userInput.start > parseFloat(tvInputs[userInput.parameterIndex].value) || parseFloat(tvInputs[userInput.parameterIndex].value) > userInput.end) {
@@ -523,8 +558,8 @@ function GetParametersFromWindow() {
                 parameterValue = tvInputs[userInput.parameterIndex].innerText
                 break;
         }
-        
-        if (parameters == "ParameterOutOfRange"){
+
+        if (parameters == "ParameterOutOfRange") {
             // return this as an expected error, parameters are omitted for occurence 
             break;
         }
@@ -548,7 +583,7 @@ function GetParametersFromWindow() {
 
 // Build Report data from performance overview
 function ReportBuilder(reportData, mutation) {
-    var reportDataSelector;
+    let reportDataSelector;
     // if mutation is nil, save the same report as there is no report data update
     if (mutation != null) {
         reportDataSelector = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
@@ -558,9 +593,9 @@ function ReportBuilder(reportData, mutation) {
         return new Error("report data is not available")
     }
 
-    var valueSelector = "[class*='value' i]"
-    var currencySelector = "[class*='currency' i]"
-    var changeSelector = "[class*='change' i]"
+    let valueSelector = "[class*='value' i]"
+    let currencySelector = "[class*='currency' i]"
+    let changeSelector = "[class*='change' i]"
     //1. Column
     reportData.netProfit.amount = reportDataSelector[0].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[0].querySelector(currencySelector)?.innerText
     reportData.netProfit.percent = reportDataSelector[0].querySelector(changeSelector)?.innerText
@@ -603,7 +638,7 @@ function getFloatPrecision(number) {
 
 // fixPrecision handles js floating arithmetic precision problem
 function fixPrecision(value, precision) {
-    var multiplier = Math.pow(10, precision)
+    let multiplier = Math.pow(10, precision)
     return Math.round(value * multiplier) / multiplier
 }
 //Mutation Observer Code for console debugging purposes

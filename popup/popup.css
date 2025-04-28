@@ -199,6 +199,18 @@ body {
     margin-right: 1rem;
 }
 
+th[data-field="parameters"], td[data-field="parameters"] {
+    width: 100%;
+}
+
+th[data-field="maxprofit"] .th-inner {
+    padding-left: 0.3rem !important;
+  }
+  
+  td[data-field="maxprofit"] {
+    padding-left: 0.3rem !important;
+  }
+
 table#table thead {
     font-size: 13px;
 }
@@ -206,6 +218,7 @@ table#table thead {
 table#table tbody {
     font-size: 12px;
 }
+
 
 .container-fluid.footer {
     font-size: 14px;

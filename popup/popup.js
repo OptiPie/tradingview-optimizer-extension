@@ -71,21 +71,33 @@ optimize.addEventListener("click", async () => {
   var err = await CreateUserInputsMessage(userInputs)
 
   if (err != null) {
-    if (err.message === 'missing-parameters') {
-      chrome.runtime.sendMessage({
-        notify: {
-          type: "warning",
-          content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
-        }
-      });
-    } else if (err.message === 'wrong-parameter-values') {
-      chrome.runtime.sendMessage({
-        notify: {
-          type: "warning",
-          content: "'Start' value must be less than 'End' value"
-        }
-      });
+    switch (err.message) {
+      case 'missing-parameters':
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "warning",
+            content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
+          }
+        });
+        break;
+      case 'wrong-parameter-values':
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "warning",
+            content: "'Start' value must be less than 'End' value"
+          }
+        });
+        break;
+      case 'numeric-parameter-required':
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "warning",
+            content: "At least 1 Numeric Input is required"
+          }
+        });
+        break;
     }
+    
     return
   }
   /*
@@ -174,8 +186,14 @@ async function createReportTable() {
     var $table = $('#table')
     $table.bootstrapTable({ data: reportData })
     $table.bootstrapTable('load', reportData)
-  });
 
+    
+    // init tool tip 
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+      new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+  });
 }
 
 function reportDetailHtml(strategyID) {
@@ -459,7 +477,7 @@ function transformInput(input) {
   let checkbox = inputRow.querySelector("#divCheckbox")
   let selectable = inputRow.querySelector("#divSelectParameter")
   let stepLabel = inputRow.querySelector("#header label[for*='step' i]");
-  
+
   switch (input.type) {
     case ParameterType.Selectable:
       // hide step size label if it's first input
@@ -953,7 +971,10 @@ async function CreateUserInputsMessage(userInputs) {
 
   let tvParameters = await storageGetTvParameters()
   let numericTvParameters;
-
+  
+  // at least 1 numeric input is required 
+  let containsNumericInput = false
+  
   // retrieve numericParameters for free users
   if (!isPlusUser && firstAutoFillOptions <= 1) {
     numericTvParameters = await executeGetNumericTvParameters()
@@ -997,6 +1018,7 @@ async function CreateUserInputsMessage(userInputs) {
           parameterName: parameterName,
           type: parameterType
         })
+        containsNumericInput = true
         break;
       case ParameterType.Checkbox:
         userInputs.parameters.push({
@@ -1016,6 +1038,10 @@ async function CreateUserInputsMessage(userInputs) {
         })
         break;
     }
+  }
+  
+  if (!containsNumericInput){
+    return new Error("numeric-parameter-required")
   }
 
   var selected = []
