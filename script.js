@@ -218,32 +218,47 @@ async function Process() {
             }
             return
         }
-        let selectablesLength = userSelectableInputs.length
-
-        for (let i = 0; i < selectablesLength; i++) {
-            let selectableInput = userSelectableInputs[i]
-
-            for (let j = 0; j < selectableInput.options.length; j++) {
-                let option = selectableInput.options[j]
+        
+        // cartesian product to build up all selectable combinations
+        let selectableInputCombinations = generateCombinationsFromInputs(userSelectableInputs)
+        
+        for (let i = 0; i < selectableInputCombinations.length; i++) {
+            let selectableInputCombination = selectableInputCombinations[i]
+            for (let j = 0; j < selectableInputCombination.length; j++) {
+                let option = selectableInputCombination[j].option
+                let parameterIndex = selectableInputCombination[j].parameterIndex
                 // renew tv inputs
                 tvInputs = document.querySelectorAll(tvInputsQuery)
                 // open up dropdown
-                tvInputs[selectableInput.parameterIndex].querySelector("span").click()
+                tvInputs[parameterIndex].querySelector("span").click()
                 await sleep(500)
                 // click on dropdown option
                 document.querySelector(`div[class*=menuBox i] div[id*='${option}' i]`).click()
 
                 await sleep(500)
-
-                if (nextFunction) {
-                    await nextFunction();
-                }
-                if (shouldStop) {
-                    return
-                }
+            }
+            if (nextFunction) {
+                await nextFunction();
+            }
+            if (shouldStop) {
+                return
             }
         }
     }
+    
+    function generateCombinationsFromInputs(inputs) {
+        const allOptions = inputs.map(input =>
+          input.options.map(option => ({
+            option,
+            parameterIndex: input.parameterIndex
+          }))
+        );
+      
+        return allOptions.reduce((acc, current) => {
+          return acc.flatMap(existing => current.map(opt => [...existing, opt]));
+        }, [[]]);
+      }
+      
 
     function isOptimizationCalled(inputs) {
         if (inputs == null || inputs.length == 0) {
@@ -458,7 +473,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
     }
     reportTitleButton.click()
-    await sleep(50)
+    await sleep(100)
     let settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
     if (settingsButton == null) {
