@@ -8,7 +8,7 @@ let strategyID = params.strategyID;
 updateUserUI();
 
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
-  var reportDetailData = []
+  var reportDetailData = [], reportDetailDataCSV = []
   var timePeriodValue = Object.values(item)[0].timePeriod
   var values = Object.values(item)[0].reportData
   var detailedParameters = Object.values(values)[0].detailedParameters
@@ -34,11 +34,14 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
       "averageTradePercent": value?.averageTrade.percent,
       "avgerageBarsInTrades": value?.avgerageBarsInTrades,
     }
+    var reportDetailCSV = { ...reportDetail }
     value.detailedParameters.forEach((element, index) => {
       index += 1
       reportDetail['parameter' + index] = element.value
+      reportDetailCSV[element.name] = element.value
     });
     reportDetailData.push(reportDetail)
+    reportDetailDataCSV.push(reportDetailCSV)
   }
   var $table = $('#table')
   $table.bootstrapTable('showLoading')
@@ -69,7 +72,7 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   const $downloadReportButton = $('#download-report')
 
   $downloadReportButton.click(function () {
-    downloadCSVReport(reportDetailData)
+    downloadCSVReport(reportDetailDataCSV)
   })
 });
 

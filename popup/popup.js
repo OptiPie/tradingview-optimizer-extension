@@ -100,24 +100,6 @@ optimize.addEventListener("click", async () => {
     
     return
   }
-  /*
-    userInputs.parameters = [{
-      start: 10,
-      end: 12,
-      stepSize: 1,
-      parameterIndex: 5,
-      parameterName: "IFT Combo Length",
-      type: "Numeric"
-    },
-    {
-      parameterIndex: 9,
-      parameterName: "Src",
-      type: "Selectable",
-      options: ["open", "high"]
-    }
-    ]
-    */
-  console.log(userInputs)
   chrome.storage.local.set({ "userInputs": userInputs });
 
   chrome.scripting.executeScript({
