@@ -1012,6 +1012,9 @@ async function CreateUserInputsMessage(userInputs) {
       case ParameterType.Selectable:
         let selectParameter = parameters[i].querySelector("#selectParameter")
         let selectedValues = Array.from(selectParameter.selectedOptions).map(option => option.value);
+        if (selectedValues.length == 0)  {
+          return new Error("missing-parameters")
+        }
         userInputs.parameters.push({
           parameterIndex: parameterIndex,
           parameterName: parameterName,

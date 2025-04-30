@@ -199,7 +199,7 @@ async function Process() {
                 }
             }
 
-            await sleep(500)
+            await sleep(250)
 
             if (nextFunction) {
                 await nextFunction();
@@ -235,7 +235,7 @@ async function Process() {
                 // click on dropdown option
                 document.querySelector(`div[class*=menuBox i] div[id*='${option}' i]`).click()
 
-                await sleep(500)
+                await sleep(250)
             }
             if (nextFunction) {
                 await nextFunction();
@@ -473,7 +473,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
     }
     reportTitleButton.click()
-    await sleep(100)
+    await sleep(50)
     let settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
     if (settingsButton == null) {
@@ -482,7 +482,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     settingsButton.click()
 
-    await sleep(100)
+    await sleep(150)
     tvInputs = document.querySelectorAll(tvInputsQuery)
 }
 
