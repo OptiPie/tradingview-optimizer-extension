@@ -26,9 +26,9 @@ Easily optimize strategies, store optimization reports and make analysis via sim
 
 ## Features
 
-### Optimize Strategies Up to 4 Parameters :arrow_forward:
+### Optimize Strategies Up to 5 Parameters :arrow_forward:
 
-Optimize any TradingView Strategy you want up to 4 Parameters.
+Optimize any TradingView Strategy you want up to 5 Parameters.
 
 ### Limitless Parameter Input Range :unlock:
 
@@ -36,23 +36,26 @@ Unless your Internet or TradingView is broken, you can optimize with any input r
 
 ### Find, Sort, View & Analyze Reports :dart:
 
-Easily find your report in Reports tab with table search and sorts. Open report detail view to make a deep analysis.
+Easily find your report in Reports tab with table search and sorts. Open Report Detail view to make a deep analysis.
 
 ### Reports Stored ⚙️
 
-All optimization reports are saved locally using `chrome.storage` API thus can be reached or deleted any time within Reports tab.
+All optimization reports are saved to your machine, view or delete any time within Reports tab.
 
 ### Last Entered Parameter Inputs Stored In State :arrows_counterclockwise:
 
 During your Chrome Session, last entered parameter inputs are stored in a state to make updates easier. 
 
-## 🌟 OptiPie Plus Membership
+## OptiPie Plus Membership 🌟
 Join the OptiPie Plus Membership, discover amazing features, go beyond the limits! 
-- ###  ⏰ Multi-Timeframe Optimization
-- ###  ✅ Selectable Parameters
-- ###  🛑 Stoppable Optimization with Partial Report
-- ###  📊 Extended Report Data
-- ###  🔓 Optimize Strategies Up to 8 Parameters
+
+<ul>
+  <h3> ⏰ Multi-Timeframe Optimization </h3>
+  <h3> ✅ Selectable Parameters </h3>
+  <h3> 🛑 Stoppable Optimization with Partial Report </h3>
+  <h3> 📊 Extended Report Data </h3>
+  <h3> 🔓 Optimize Strategies Up to 20 Parameters </h3>
+</ul> 
 
 ### Features in Action
 

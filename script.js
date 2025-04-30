@@ -423,13 +423,21 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }
     okButton.click()
 
+    // check if deep backtesting is enabled
+    let isDeepTestingOn = document.querySelector("div[class*='deepHistory' i] span[class*='switch' i] input").ariaChecked
+    if (isDeepTestingOn === "true") {
+        await sleep(200)
+        document.querySelector("div[class*='historyParams' i] button[class*='generateReport' i]").click()
+    }
+
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
         let observer = new MutationObserver(function (mutations) {
             mutations.every(function (mutation) {
                 if (mutation.type === 'childList') {
-                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer")) {
-                        var result = saveOptimizationReport(reportData, mutation.addedNodes[0])
+                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer") &&
+                    mutation.addedNodes[0].isConnected) {
+                        var result = saveOptimizationReport(userInputs, reportData, mutation.addedNodes[0])
                         resolve(result)
                         observer.disconnect()
                         return false
