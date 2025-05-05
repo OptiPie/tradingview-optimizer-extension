@@ -1,12 +1,18 @@
 // Popup action event types
 const lockOptimizeButton = 'lockOptimizeButton'
 const unlockOptimizeButton = 'unlockOptimizeButton'
-const getParameterNames = 'getParameterNames'
+const getTvParameters = 'getTvParameters'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
 let freeParameterLimit = 5
 let plusParameterLimit = 20
+
+const ParameterType = {
+  Selectable: "Selectable",
+  Numeric: "Numeric",
+  Checkbox: "Checkbox"
+}
 
 // Initialize popup html according to last user parameter count state
 chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
@@ -17,7 +23,7 @@ chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
   setTimeout(() => {
     // update iteration based on last user parameters
     calculateIterations()
-  }, 150);
+  }, 500);
 });
 // Tab event listeners to change body width 
 addTabEventListeners()
@@ -59,30 +65,41 @@ optimize.addEventListener("click", async () => {
 
   var userInputs = new Object({
     parameters: [],
-    timeFrames: [],
+    timeFrames: []
   })
   // err is handled as value
   var err = await CreateUserInputsMessage(userInputs)
 
   if (err != null) {
-    if (err.message === 'missing-parameters') {
-      chrome.runtime.sendMessage({
-        notify: {
-          type: "warning",
-          content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
-        }
-      });
-    } else if (err.message === 'wrong-parameter-values') {
-      chrome.runtime.sendMessage({
-        notify: {
-          type: "warning",
-          content: "'Start' value must be less than 'End' value"
-        }
-      });
+    switch (err.message) {
+      case 'missing-parameters':
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "warning",
+            content: "Fill all parameter inputs accordingly & Use dot '.' decimal separator"
+          }
+        });
+        break;
+      case 'wrong-parameter-values':
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "warning",
+            content: "'Start' value must be less than 'End' value"
+          }
+        });
+        break;
+      case 'numeric-parameter-required':
+        chrome.runtime.sendMessage({
+          notify: {
+            type: "warning",
+            content: "At least 1 Numeric Input is required"
+          }
+        });
+        break;
     }
+    
     return
   }
-
   chrome.storage.local.set({ "userInputs": userInputs });
 
   chrome.scripting.executeScript({
@@ -105,8 +122,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       case unlockOptimizeButton:
         document.querySelector("#optimize").removeAttribute("disabled", "")
         break;
-      case getParameterNames:
-        autoFillParameters(popupAction.message.parameterNames);
+      case getTvParameters:
+        autoFillParameters(popupAction.message.tvParameters);
+        chrome.storage.local.set({ "tvParameters": popupAction.message.tvParameters });
         break;
     }
   }
@@ -150,8 +168,14 @@ async function createReportTable() {
     var $table = $('#table')
     $table.bootstrapTable({ data: reportData })
     $table.bootstrapTable('load', reportData)
-  });
 
+    
+    // init tool tip 
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+      new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+  });
 }
 
 function reportDetailHtml(strategyID) {
@@ -243,7 +267,7 @@ async function ProcessPlusFeatures() {
   })
   if (token === "") {
     // clean parameter names
-    chrome.storage.local.set({ "parameterNames": null });
+    chrome.storage.local.set({ "tvParameters": null });
     // Add Parameter Button Event Listener, with 'parameterLimit'
     addParameter.addEventListener("click", async () => {
       addParameterBlock(freeParameterLimit)
@@ -269,12 +293,12 @@ async function injectPlusFeatures(userEmail) {
     showSkeleton("stop", "stop")
     // change parameter limit up for plus users
     parameterLimit = plusParameterLimit
-    await getCurrentTab().then(function (tab) {
+    await getCurrentTab().then(async (tab) => {
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['plus-injector.js']
+        files: ['plus/get-tv-parameters.js']
       });
-    })
+    });
 
     let stopOptimization = document.getElementById("stop")
     stopOptimization.addEventListener("click", async (clickEvent) => {
@@ -291,7 +315,6 @@ async function injectPlusFeatures(userEmail) {
       hideSkeleton("stop", "stop")
       stopOptimization.style.display = 'block'
     }, 300);
-
 
     $('#selectTimeFrame').multiselect({
       buttonClass: 'form-select',
@@ -363,15 +386,10 @@ async function injectPlusFeatures(userEmail) {
   }
 }
 
-async function getCurrentTab() {
-  let queryOptions = { active: true, lastFocusedWindow: true };
-  let [tab] = await chrome.tabs.query(queryOptions);
-  return tab;
-}
 //
-function autoFillParameters(parameterNames) {
-  if (parameterNames.length < 1) {
-    chrome.storage.local.set({ "parameterNames": null });
+async function autoFillParameters(tvParameters) {
+  if (tvParameters.length < 1) {
+    chrome.storage.local.set({ "tvParameters": null });
     return
   }
   // hide labels, show selectors
@@ -387,22 +405,177 @@ function autoFillParameters(parameterNames) {
       continue;
     }
     autoFillSelect.style.display = 'inline-block'
-    for (var j = 0; j < parameterNames.length; j++) {
-      var parameterName = parameterNames[j];
-      var parameterNameIndex = j;
+    for (var j = 0; j < tvParameters.length; j++) {
+      let parameter = tvParameters[j];
+      let parameterName = parameter.name
+      let parameterNameIndex = j;
       let option = new Option(parameterName, parameterNameIndex);
       autoFillSelect.add(option);
     }
 
+    let userSelectedIndex = i
+
     chrome.storage.local.get(["selectAutoFill" + i], function (result) {
-      var userValue = i
-      if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= parameterNames.length - 1) {
-        userValue = result["selectAutoFill" + i]
+      // check if index is set by the user
+      if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
+        userSelectedIndex = result["selectAutoFill" + i]
       }
-      autoFillSelect.value = userValue
+      autoFillSelect.value = userSelectedIndex
+
+      let parameter = tvParameters[userSelectedIndex]
+      // Numeric is always set to default, transform to others for Plus
+      if (tvParameters[userSelectedIndex].type == ParameterType.Checkbox) {
+        let checkboxInput = {
+          type: parameter.type,
+          parameterIndex: i,
+          parameterName: parameter.name,
+        }
+        transformInput(checkboxInput)
+      } else if (tvParameters[userSelectedIndex].type == ParameterType.Selectable) {
+        let selectableInput = {
+          type: parameter.type,
+          parameterIndex: i,
+          parameterName: parameter.name,
+          parameterOptions: parameter.options
+        }
+        transformInput(selectableInput)
+      }
     });
   }
-  chrome.storage.local.set({ "parameterNames": parameterNames });
+}
+
+async function getParameterType(parameterIndex) {
+  var tvParametersObj = await chrome.storage.local.get("tvParameters")
+  var tvParameters = tvParametersObj.tvParameters
+  return tvParameters[parameterIndex].type
+}
+
+function transformInput(input) {
+  let inputRow = document.querySelectorAll("#parameters #wrapper")[input.parameterIndex]
+  let $inputRow = $("#parameters #wrapper").eq(input.parameterIndex);
+
+  let inputStart = inputRow.querySelector("#inputStart").parentElement
+  let inputStep = inputRow.querySelector("#inputStep").parentElement
+  let checkbox = inputRow.querySelector("#divCheckbox")
+  let selectable = inputRow.querySelector("#divSelectParameter")
+  let stepLabel = inputRow.querySelector("#header label[for*='step' i]");
+
+  switch (input.type) {
+    case ParameterType.Selectable:
+      // hide step size label if it's first input
+      if (input.parameterIndex == 0) {
+        hideElement(stepLabel)
+      }
+      // hide numeric input
+      hideElement(inputStart)
+      hideElement(inputStep)
+      // hide checkbox input
+      checkbox.querySelector("label").textContent = "default"
+      hideElement(checkbox)
+      // show selectable input
+      showWithTransition(selectable, "block");
+
+      let $select = $inputRow.find('#selectParameter');
+
+      // remove all existing options
+      $select.find('option').remove();
+      input.parameterOptions?.forEach(function (option) {
+        $select.append(`<option value="${option.value}">${option.content}</option>`);
+      });
+
+      // rebuild the multiselect plugin unless it's empty or not initialized
+      if ($select.data('multiselect')) {
+        $select.multiselect('rebuild');
+      }
+
+      let storageKey = 'selectParameter' + input.parameterIndex
+
+      $select.multiselect({
+        buttonClass: 'form-select',
+        buttonWidth: '25%',
+        nonSelectedText: 'Select',
+        templates: {
+          button: `
+          <button type="button" class="multiselect dropdown-toggle" data-bs-toggle="dropdown"><span class="multiselect-selected-text"></span></button>`,
+        },
+        maxHeight: 175,
+        dropUp: true,
+        buttonText: function (options, select) {
+          if (options.length === 0) {
+            return "Select " + input.parameterName;
+          }
+          else if (options.length > 3) {
+            return '...';
+          }
+          else {
+            var labels = [];
+            options.each(function () {
+              labels.push($(this).html());
+            });
+            return labels.join(', ') + '';
+          }
+        },
+        onChange: async function (option, checked) {
+          let selectedParameter = option[0].value
+
+          chrome.storage.local.get([storageKey], function (result) {
+            let selectedParameters = result[storageKey] || []; // fallback to empty if nothing there
+
+            if (checked) {
+              if (!selectedParameters.includes(selectedParameter)) {
+                selectedParameters.push(selectedParameter);
+              }
+            } else {
+              selectedParameters = selectedParameters.filter(item => item !== selectedParameter);
+            }
+
+            chrome.storage.local.set({ [storageKey]: selectedParameters });
+          });
+          calculateIterations()
+        }
+      });
+
+      chrome.storage.local.get([storageKey], function (result) {
+        let selectedParameters = result[storageKey] || []
+        $select
+          .val(selectedParameters)
+          .trigger('change');
+
+        $select.multiselect('refresh');
+      });
+
+      break;
+    case ParameterType.Checkbox:
+      // hide step size label if it's first input
+      if (input.parameterIndex == 0) {
+        hideElement(stepLabel)
+      }
+      // hide numeric input
+      hideElement(inputStart)
+      hideElement(inputStep)
+      // hide selectable input
+      hideElement(selectable)
+
+      // show checkbox input
+      checkbox.querySelector("label").textContent = input.parameterName
+      showWithTransition(checkbox, "block");
+
+      break;
+    case ParameterType.Numeric:
+      if (input.parameterIndex == 0) {
+        showWithTransition(stepLabel, "block");
+      }
+      // hide checkbox input
+      checkbox.querySelector("label").textContent = "default"
+      hideElement(checkbox)
+      // hide selectable input
+      hideElement(selectable)
+      // show numeric input
+      showWithTransition(inputStart, "flex");
+      showWithTransition(inputStep, "flex");
+    default:
+      break;
+  }
 }
 
 async function createProfileTab() {
@@ -483,26 +656,26 @@ logoutButtons.forEach(logoutButton => {
 //#endregion
 
 function addParameterBlock(parameterLimit) {
-  var parameters = document.getElementById("parameters")
-  var parameterCount = parameters.children.length
+  let parameters = document.getElementById("parameters")
+  let parameterCount = parameters.children.length
 
   if (parameterCount < parameterLimit) {
     // Hide Last Remove Div for added parameters
     if (parameterCount > 1) {
-      var removeDiv = "#remove" + parameterCount + ""
+      let removeDiv = "#remove" + parameterCount + ""
       parameters.lastElementChild.querySelector(removeDiv).style = 'display:none;'
     }
 
     // Add Parameter Block
-    var orderOfParameter = parameterCount + 1
-    var divToAppend = addParameterBlockHtml(orderOfParameter)
+    let orderOfParameter = parameterCount + 1
+    let divToAppend = addParameterBlockHtml(orderOfParameter)
     parameters.insertAdjacentHTML('beforeend', divToAppend)
 
     // Enable auto fill plus feature if eligible  
     setTimeout(() => {
-      chrome.storage.local.get("parameterNames", ({ parameterNames }) => {
-        if (parameterNames != null && parameterNames.length > 0) {
-          autoFillParameters(parameterNames)
+      chrome.storage.local.get("tvParameters", ({ tvParameters }) => {
+        if (tvParameters != null && tvParameters.length > 0) {
+          autoFillParameters(tvParameters)
         }
       });
     }, 250);
@@ -516,61 +689,83 @@ function addParameterBlock(parameterLimit) {
     // Save Inputs EventListener for rest of the parameters
     addSaveInputEventListener(parameterCount)
     addSaveAutoFillSelectionListener(parameterCount)
-    calculateIterations()
+    setTimeout(() => {
+      calculateIterations()
+    }, 300);
   }
 }
 
 function addParameterBlockHtml(orderOfParameter) {
-  return '<div class="row g-2 pb-2">\
+  return '<div id="wrapper">\
+  <div class="row g-2" id="header">\
     <div class="col-8">\
       <label for="inputStart" class="form-label">' + orderOfParameter + '. Parameter</label>\
       <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">\
       <option selected disabled>Select Parameter</option>\
     </select>\
-      <div class="input-group input-group">\
-        <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">\
-        <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">\
-      </div>\
     </div>\
-    <div class="col-4 mt-auto">\
+    <div class="col-4">\
       <div class="text-end" id="remove' + orderOfParameter + '">\
         <label for="close" class="form-label text-muted">Remove</label>\
         <button type="button" class="btn-close align-text-top remove-parameters" aria-label="Close"></button>\
       </div>\
+    </div>\
+  </div>\
+  <div class="row g-2 pb-2" id="content">\
+    <div class="col-8">\
+    <div class="form-check" id="divCheckbox">\
+      <input class="form-check-input" type="checkbox" id="inputCheckbox" value="" checked>\
+      <label class="form-check-label" for="inputCheckbox">\
+        Default checkbox\
+      </label>\
+    </div>\
+    <div class="btn-group select-parameter" id="divSelectParameter">\
+    <select multiple="multiple" class="sm" id="selectParameter">\
+      <option disabled>Select</option>\
+    </select>\
+    </div>\
+    <div class="input-group input-group">\
+      <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">\
+      <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">\
+    </div>\
+    </div>\
+    <div class="col-4 mt-auto">\
       <input type="text" aria-label="Step" placeholder="Step" class="form-control"\
         id="inputStep">\
     </div>\
+  </div>\
   </div>'
 }
 
 function addRemoveParameterBlockEventListener(parameterCount) {
   document.querySelectorAll(".btn-close.remove-parameters")[parameterCount - 1].addEventListener("click", async (evt) => {
     // Remove the selected row from incoming event 
-    var evtPath = eventPath(evt)
+    let evtPath = eventPath(evt)
     for (let i = 0; i < evtPath.length; i++) {
       const element = evtPath[i];
-      if (element.className == "row g-2 pb-2") {
+      // wrapper id corresponds to respective row to be deleted by the remove click 
+      if (element.id == "wrapper") {
         element.remove()
         break;
       }
     }
 
-    var parameters = document.getElementById("parameters")
-    var parameterCount = parameters.children.length
+    let parameters = document.getElementById("parameters")
+    let parameterCount = parameters.children.length
 
     // Decrement User's Last Parameter Count State    
     chrome.storage.local.set({ "userParameterCount": parameterCount });
     //Clear user parameter values from storage
-    var start = "inputStart" + parameterCount
-    var end = "inputEnd" + parameterCount
-    var step = "inputStep" + parameterCount
-    var autoFill = "selectAutoFill" + parameterCount
+    let start = "inputStart" + parameterCount
+    let end = "inputEnd" + parameterCount
+    let step = "inputStep" + parameterCount
+    let autoFill = "selectAutoFill" + parameterCount
     chrome.storage.local.set({ [start]: null, [end]: null, [step]: null, [autoFill]: null });
 
 
     //Show previously added hidden remove button
     if (parameterCount > 1) {
-      var removeDiv = "#remove" + parameterCount + ""
+      let removeDiv = "#remove" + parameterCount + ""
       parameters.lastElementChild.querySelector(removeDiv).style = 'display:block;'
     }
     calculateIterations()
@@ -628,10 +823,44 @@ function addSaveInputEventListener(parameterCount) {
 }
 // Save last user selected time frame(s) as state
 function addSaveAutoFillSelectionListener(parameterCount) {
-  document.querySelectorAll("#selectAutoFill")[parameterCount].addEventListener("change", (event) => {
-    var key = "selectAutoFill" + parameterCount
-    var value = event.target.value
+  document.querySelectorAll("#selectAutoFill")[parameterCount].addEventListener("change", async (event) => {
+    let key = "selectAutoFill" + parameterCount
+    let value = event.target.value
+    let selectedText = event.target.options[event.target.selectedIndex].text;
+    let tvParameter = await storageGetTvParameter(value)
+
+    switch (tvParameter.type) {
+      case ParameterType.Checkbox:
+        transformInput({
+          type: ParameterType.Checkbox,
+          parameterIndex: parameterCount,
+          parameterName: selectedText,
+        });
+        break;
+      case ParameterType.Selectable:
+        transformInput({
+          type: ParameterType.Selectable,
+          parameterIndex: parameterCount,
+          parameterName: selectedText,
+          parameterOptions: tvParameter.options,
+        });
+        break;
+      case ParameterType.Numeric:
+        transformInput({
+          type: ParameterType.Numeric,
+          parameterIndex: parameterCount,
+          parameterName: selectedText,
+        });
+        break;
+    }
+
     chrome.storage.local.set({ [key]: value });
+    // timeout > 0.2s after input transformation is essential due to transition effect
+    setTimeout(() => {
+      calculateIterations()
+    }, 250);
+
+
   });
 }
 // Dynamically change html body size 
@@ -656,17 +885,39 @@ function addRefreshDataEventListener() {
 }
 
 function calculateIterations() {
-  var totalIterations = 1
-  var isIterationValid = false
-  var parameters = document.getElementById("parameters")
-  var parameterCount = parameters.children.length
+  let totalIterations = 1
+  let isIterationValid = false
+  let parameters = document.querySelectorAll("#parameters #content")
+  let parameterCount = parameters.length
 
-  var iterationValue = document.querySelector("#iteration #value")
+  let iterationValue = document.querySelector("#iteration #value")
 
   for (let i = 0; i < parameterCount; i++) {
-    var inputStart = parameters.children[i].querySelector("#inputStart").value.trim()
-    var inputEnd = parameters.children[i].querySelector("#inputEnd").value.trim()
-    var inputStep = parameters.children[i].querySelector("#inputStep").value.trim()
+    // check if parameter is numeric or others
+    let checkbox = parameters[i].querySelector("#divCheckbox")
+    let isCheckbox = window.getComputedStyle(checkbox).display != 'none'
+
+    let selectParameter = parameters[i].querySelector("#divSelectParameter")
+    let isSelectParameter = window.getComputedStyle(selectParameter).display != 'none'
+
+    if (isCheckbox) {
+      totalIterations *= 2
+      isIterationValid = true
+      continue
+    } else if (isSelectParameter) {
+      let selectedOptions = selectParameter.querySelector("#selectParameter")
+      let selectedCount = [...selectedOptions.options].filter(opt => opt.selected).length;
+
+      if (selectedCount != 0) {
+        totalIterations *= selectedCount
+        isIterationValid = true
+      }
+      continue
+    }
+
+    var inputStart = parameters[i].querySelector("#inputStart").value.trim()
+    var inputEnd = parameters[i].querySelector("#inputEnd").value.trim()
+    var inputStep = parameters[i].querySelector("#inputStep").value.trim()
 
     var err = validateParameterValues(inputStart, inputEnd, inputStep)
     if (err != null) {
@@ -693,37 +944,89 @@ function calculateIterations() {
 
 // Create user inputs message, return err.message if validation fails 
 async function CreateUserInputsMessage(userInputs) {
-  var parameters = document.getElementById("parameters")
+  let parameters = document.querySelectorAll("#parameters #wrapper")
 
-  var parameterCount = parameters.children.length
-  var firstAutoFillOptions = parameters.children[0].querySelector("#selectAutoFill").options.length
+  let isPlusUser = await storageIsPlusUser()
 
-  var parameterNamesObj = await chrome.storage.local.get("parameterNames")
+  let parameterCount = parameters.length
+  let firstAutoFillOptions = parameters[0].querySelector("#selectAutoFill").options.length
+
+  let tvParameters = await storageGetTvParameters()
+  let numericTvParameters;
+  
+  // at least 1 numeric input is required 
+  let containsNumericInput = false
+  
+  // retrieve numericParameters for free users
+  if (!isPlusUser && firstAutoFillOptions <= 1) {
+    numericTvParameters = await executeGetNumericTvParameters()
+  }
 
   for (let i = 0; i < parameterCount; i++) {
-    var inputStart = parameters.children[i].querySelector("#inputStart").value
-    var inputEnd = parameters.children[i].querySelector("#inputEnd").value
-    var inputStep = parameters.children[i].querySelector("#inputStep").value
-    var index = parameters.children[i].querySelector("#selectAutoFill").selectedIndex - 1
-    var parameterName = parameters.children[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
+    let parameterIndex = parameters[i].querySelector("#selectAutoFill").selectedIndex - 1
+    let parameterName = parameters[i].querySelector("#selectAutoFill").selectedOptions[0].innerText
+    let parameterType = ParameterType.Numeric
 
-
-    var err = validateParameterValues(inputStart, inputEnd, inputStep)
-    if (err != null) {
-      return err
+    // plus user check & apply respective configuration 
+    if (isPlusUser && firstAutoFillOptions > 1) {
+      parameterType = tvParameters[parameterIndex].type
     }
 
     // no selection for parameter name, autofill parameter name in order for plus users 
-    if (index == -1 && firstAutoFillOptions > 1) {
-      parameterName = parameterNamesObj?.parameterNames[i]
+    if (parameterIndex == -1 && firstAutoFillOptions > 1) {
+      parameterName = tvParameters[i].name
     }
-
-    // autoFill feature is not active
-    if (firstAutoFillOptions <= 1) {
+    // free user & autoFill feature is not active
+    if (!isPlusUser && firstAutoFillOptions <= 1) {
       parameterName = null
+      parameterIndex = numericTvParameters[i].parameterIndex
     }
 
-    userInputs.parameters.push({ start: inputStart, end: inputEnd, stepSize: inputStep, parameterIndex: index, parameterName: parameterName })
+    switch (parameterType) {
+      case ParameterType.Numeric:
+        let inputStart = parameters[i].querySelector("#inputStart").value
+        let inputEnd = parameters[i].querySelector("#inputEnd").value
+        let inputStep = parameters[i].querySelector("#inputStep").value
+
+        var err = validateParameterValues(inputStart, inputEnd, inputStep)
+        if (err != null) {
+          return err
+        }
+        userInputs.parameters.push({
+          start: inputStart,
+          end: inputEnd,
+          stepSize: inputStep,
+          parameterIndex: parameterIndex,
+          parameterName: parameterName,
+          type: parameterType
+        })
+        containsNumericInput = true
+        break;
+      case ParameterType.Checkbox:
+        userInputs.parameters.push({
+          parameterIndex: parameterIndex,
+          parameterName: parameterName,
+          type: parameterType
+        })
+        break;
+      case ParameterType.Selectable:
+        let selectParameter = parameters[i].querySelector("#selectParameter")
+        let selectedValues = Array.from(selectParameter.selectedOptions).map(option => option.value);
+        if (selectedValues.length == 0)  {
+          return new Error("missing-parameters")
+        }
+        userInputs.parameters.push({
+          parameterIndex: parameterIndex,
+          parameterName: parameterName,
+          type: parameterType,
+          options: selectedValues
+        })
+        break;
+    }
+  }
+  
+  if (!containsNumericInput){
+    return new Error("numeric-parameter-required")
   }
 
   var selected = []
@@ -734,7 +1037,72 @@ async function CreateUserInputsMessage(userInputs) {
   if (selected.length > 0) {
     userInputs.timeFrames = selected
   }
+
   return null
+}
+
+async function storageIsPlusUser() {
+  let isPlusUserObj = await chrome.storage.local.get("isPlusUser")
+  return isPlusUserObj?.isPlusUser
+}
+
+async function storageGetTvParameters() {
+  let tvParametersObj = await chrome.storage.local.get("tvParameters")
+  return tvParametersObj?.tvParameters
+}
+
+async function storageGetTvParameter(index) {
+  let tvParametersObj = await chrome.storage.local.get("tvParameters")
+  return tvParametersObj?.tvParameters[index]
+}
+
+async function executeGetNumericTvParameters() {
+  let result;
+  await getCurrentTab().then(async (tab) => {
+    await chrome.scripting
+      .executeScript({
+        target: { tabId: tab.id },
+        func: getNumericTvParameters,
+      })
+      .then(injectionResults => {
+        if (injectionResults.length > 0) {
+          result = injectionResults[0]?.result
+        }
+      });
+  });
+  return result
+}
+
+// getNumericTvInputs prepares only numeric inputs for free user flow
+function getNumericTvParameters() {
+  var numericTvParameters = []
+
+  var parameterNameElements = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div");
+  var parameterIndex = 0
+  for (let i = 0; i < parameterNameElements.length; i++) {
+    var className = parameterNameElements[i].className;
+    var parameterName = parameterNameElements[i].innerText;
+
+    // handle numeric & selectable parameters, only prepare numeric inputs
+    if (className.includes("cell") && className.includes("first")) {
+      var numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode='numeric']");
+      if (numericParameter != null) {
+        numericTvParameters.push({
+          type: "Numeric",
+          name: parameterName,
+          parameterIndex: parameterIndex
+        });
+        parameterIndex++
+      } else {
+        parameterIndex++
+      }
+    } // handle checkboxes
+    else if (className.includes("cell") && className.includes("fill")) {
+      parameterIndex++
+    }
+  }
+
+  return numericTvParameters
 }
 
 // plus membership
@@ -799,6 +1167,12 @@ var TimeFrameMap = new Map([
 
 //#region Helpers 
 
+async function getCurrentTab() {
+  let queryOptions = { active: true, lastFocusedWindow: true };
+  let [tab] = await chrome.tabs.query(queryOptions);
+  return tab;
+}
+
 function hideSkeleton(elementToShow, skeletonId) {
   document.getElementById("skeleton-" + skeletonId).style.display = 'none'
   document.getElementById(elementToShow).style.display = 'block'
@@ -808,6 +1182,23 @@ function showSkeleton(elementToHide, skeletonId) {
   document.getElementById("skeleton-" + skeletonId).style.display = 'block'
   document.getElementById(elementToHide).style.display = 'none'
 }
+
+function showWithTransition(el, displayType = "block") {
+  el.style.display = displayType;
+  el.classList.add("with-transition");
+
+  // Force reflow to kick off transition
+  void el.offsetWidth;
+
+  el.classList.add("show");
+}
+
+// hideElement along with transition class
+function hideElement(el) {
+  el.classList.remove("show", "with-transition");
+  el.style.display = "none";
+}
+
 
 function isNumeric(str) {
   if (typeof str != "string") {

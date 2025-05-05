@@ -1,7 +1,7 @@
 {
   "name": "OptiPie TradingView Optimizer",
   "description": "TradingView Parameter Optimizer as an extension",
-  "version": "1.2.7",
+  "version": "1.3.0",
   "manifest_version": 3,
   "icons": {
     "16": "images/icons/optipie16.png",
@@ -36,7 +36,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "script.js"
+        "script.js",
+        "plus/get-selectable-parameter-options.js"
       ],
       "matches": [
         "https://*.tradingview.com/*"

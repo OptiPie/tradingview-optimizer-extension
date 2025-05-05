@@ -4,16 +4,26 @@ title: "News"
 ---
 
 ## What's New!
+### Start Optimizing Selectable and Checkbox Inputs 
+> Checkbox and Selectable inputs are now optimizable, exclusive to Plus users.
+
+![Advertisement v1.3.0](/images/gifs/advertisement-v1.3.0.gif)
+
+- **Convenient and Cleaner Report Summary** for Plus users.
+- Optimization speed has been updated and balanced.  
+
+### Latest Version: v1.3.0
+
+## Previous Updates
+
+### Version: v1.2.7
+
 ### Deep Backtesting is now supported! 📢
 > Optimize with Deep Backtesting mode, available for both Plus and Free users.
 
 Stay tuned for **Upcoming release**!
 
 **Selectable** and **Checkbox** inputs will be available for optimization, exclusive to **Plus members**
-
-### Latest Version: v1.2.7
-
-## Previous Updates
 
 ### Version: v1.2.5, v1.2.6
 
