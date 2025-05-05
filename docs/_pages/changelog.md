@@ -7,7 +7,7 @@ title: "News"
 ### Start Optimizing Selectable and Checkbox Inputs 
 > Checkbox and Selectable inputs are now optimizable, exclusive to Plus users.
 
-![Advertisement v1.3.0](/images/gifs/advertisement-v1.3.0.gif)
+![Advertisement v1.3.0](images/gifs/advertisement-v1.3.0.gif)
 
 - **Convenient and Cleaner Report Summary** for Plus users.
 - Optimization speed has been updated and balanced.  
