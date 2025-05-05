@@ -1,11 +1,20 @@
 // Select all input values
-var tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
-var tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
-var maxProfit = -99999
+var tvInputsContainer = "div[data-name='indicator-properties-dialog'] div[class*='content' i]"
+var tvInputsQuery = `${tvInputsContainer} input, ${tvInputsContainer} span[role*='button' i]`
+var tvInputs = document.querySelectorAll(tvInputsQuery)
 // user parameters and time frames
-var userInputs = []
-var userTimeFrames = []
+var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
+var userInputs = [] // combined user inputs of above
+var userTimeFrames = [] // time frames chosen by the user
 var optimizationResults = new Map();
+var maxProfit = -99999
+
+//parameter types
+var ParameterType = {
+    Selectable: "Selectable",
+    Numeric: "Numeric",
+    Checkbox: "Checkbox"
+}
 
 var sleep = (ms) => new Promise((resolve) => {
     const handler = (event) => {
@@ -27,10 +36,25 @@ async function Process() {
     var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = (event) => {
-        var message = event.data
+        let message = event.data
         if (message.type === "UserInputsEvent") {
             window.removeEventListener("message", userInputsEventCallback);
-            userInputs = message.detail.parameters
+
+            for (let i = 0; i < message.detail.parameters.length; i++) {
+                let parameter = message.detail.parameters[i];
+                switch (parameter.type) {
+                    case ParameterType.Numeric:
+                        userNumericInputs.push(parameter)
+                        break;
+                    case ParameterType.Checkbox:
+                        userCheckboxInputs.push(parameter)
+                        break;
+                    case ParameterType.Selectable:
+                        userSelectableInputs.push(parameter)
+                        break;
+                }
+                userInputs.push(parameter)
+            }
             userTimeFrames = message.detail.timeFrames
         }
     }
@@ -50,14 +74,14 @@ async function Process() {
     //Wait for UserInputsEvent Callback
     await sleep(750)
     // sort userInputs before starting optimization 
-    userInputs.sort(function (a, b) {
+    userNumericInputs.sort(function (a, b) {
         return a.parameterIndex - b.parameterIndex;
     });
     // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
     var ranges = [];
 
     // Create user input ranges with given step size for each parameter
-    userInputs.forEach((element, index) => {
+    userNumericInputs.forEach((element, index) => {
         var range = 0
         // fix index for free users
         if (element.parameterIndex == -1) {
@@ -76,7 +100,8 @@ async function Process() {
 
     if (userTimeFrames == null || userTimeFrames.length <= 0) {
         // no time frame selection or free user flow
-        await OptimizeStrategy()
+        await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+        await SendReport()
     } else {
         for (let i = 0; i < userTimeFrames.length; i++) {
             // open time intervals dropdown and change it
@@ -90,19 +115,20 @@ async function Process() {
             timeIntervalDropdown.click()
 
             var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(1000)
+            await sleep(500)
             document.querySelector(timeIntervalQuery).click()
-            await sleep(1000)
+            await sleep(500)
 
-            await OptimizeStrategy()
+            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            await SendReport()
             // reset global variables for new strategy optimization and for new timeframe
             optimizationResults = new Map();
             maxProfit = -99999
         }
     }
 
-    // Optimize strategey for the currently chosen timeframe
-    async function OptimizeStrategy() {
+    // Optimize numeric inputs in the strategey for the currently chosen timeframe
+    async function OptimizeNumerics() {
         shouldStop = false;
         await SetUserIntervals()
 
@@ -112,7 +138,7 @@ async function Process() {
                 if (shouldStop) {
                     break;
                 }
-                await OptimizeParams(userInputs[0].parameterIndex, userInputs[0].stepSize);
+                await OptimizeParams(userNumericInputs[0].parameterIndex, userNumericInputs[0].stepSize);
             }
         };
 
@@ -144,63 +170,196 @@ async function Process() {
 
         // Call the function to execute the nested loops
         await executeNestedLoops()
+    }
 
-        //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-        var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
-        var strategyTimePeriod = ""
+    // Optimize checkbox inputs in the strategey for the currently chosen timeframe 
+    async function OptimizeCheckboxes(nextFunction) {
+        if (!isOptimizationCalled(userCheckboxInputs)) {
+            if (nextFunction) {
+                await nextFunction();
+            }
+            return
+        }
+        let checkBoxesLength = userCheckboxInputs.length
 
-        var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
-        if (timePeriodGroup.length > 1) {
-            selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+        for (let i = 0; i < 2 ** checkBoxesLength; i++) {
+            let binaryString = i.toString(2).padStart(checkBoxesLength, '0')
+            let binaryArray = binaryString.split('').map(Number)
 
-            // Check if favorite time periods exist  
-            if (selectedPeriod != null) {
-                strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
-            } else {
-                strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+            for (let j = 0; j < binaryArray.length; j++) {
+                let value = binaryArray[j];
+                // renew tv inputs
+                tvInputs = document.querySelectorAll(tvInputsQuery)
+
+                if (tvInputs[userCheckboxInputs[j].parameterIndex].checked && value == 0) {
+                    tvInputs[userCheckboxInputs[j].parameterIndex].click()
+                }
+                if (!tvInputs[userCheckboxInputs[j].parameterIndex].checked && value == 1) {
+                    tvInputs[userCheckboxInputs[j].parameterIndex].click()
+                }
+            }
+
+            await sleep(250)
+
+            if (nextFunction) {
+                await nextFunction();
+            }
+            if (shouldStop) {
+                return
             }
         }
+    }
 
-        var title = document.querySelector("title")?.innerText
-        var strategySymbol = title.split(' ')[0]
-        var optimizationResultsObject = Object.fromEntries(optimizationResults);
-        var userInputsToString = ""
-
-        userInputs.forEach((element, index) => {
-            if (element.parameterName != null) {
-                userInputsToString += element.parameterName + ": "
+    // Optimize selectable inputs in the strategey for the currently chosen timeframe 
+    async function OptimizeSelectables(nextFunction) {
+        if (!isOptimizationCalled(userSelectableInputs)) {
+            if (nextFunction) {
+                await nextFunction();
             }
-            if (index == userInputs.length - 1) {
-                userInputsToString += element.start + "→" + element.end
-            } else {
-                userInputsToString += element.start + "→" + element.end + "<br>"
-            }
-        })
-
-        var reportDataMessage = {
-            "strategyID": Date.now(),
-            "created": Date.now(),
-            "strategyName": strategyName,
-            "symbol": strategySymbol,
-            "timePeriod": strategyTimePeriod,
-            "parameters": userInputsToString,
-            "maxProfit": maxProfit,
-            "reportData": optimizationResultsObject
+            return
         }
-        // Send Optimization Report to injector
-        window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
+        
+        // cartesian product to build up all selectable combinations
+        let selectableInputCombinations = generateCombinationsFromInputs(userSelectableInputs)
+        
+        for (let i = 0; i < selectableInputCombinations.length; i++) {
+            let selectableInputCombination = selectableInputCombinations[i]
+            for (let j = 0; j < selectableInputCombination.length; j++) {
+                let option = selectableInputCombination[j].option
+                let parameterIndex = selectableInputCombination[j].parameterIndex
+                // renew tv inputs
+                tvInputs = document.querySelectorAll(tvInputsQuery)
+                // open up dropdown
+                tvInputs[parameterIndex].querySelector("span").click()
+                await sleep(500)
+                // click on dropdown option
+                document.querySelector(`div[class*=menuBox i] div[id*='${option}' i]`).click()
+
+                await sleep(250)
+            }
+            if (nextFunction) {
+                await nextFunction();
+            }
+            if (shouldStop) {
+                return
+            }
+        }
+    }
+    
+    function generateCombinationsFromInputs(inputs) {
+        const allOptions = inputs.map(input =>
+          input.options.map(option => ({
+            option,
+            parameterIndex: input.parameterIndex
+          }))
+        );
+      
+        return allOptions.reduce((acc, current) => {
+          return acc.flatMap(existing => current.map(opt => [...existing, opt]));
+        }, [[]]);
+      }
+      
+
+    function isOptimizationCalled(inputs) {
+        if (inputs == null || inputs.length == 0) {
+            return false;
+        }
+        return true;
     }
 
 }
 
+// SendReport sends the report after optimization is complete
+async function SendReport() {
+    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+    var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+    var strategyTimePeriod = ""
+
+    var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 1) {
+        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+
+        // Check if favorite time periods exist  
+        if (selectedPeriod != null) {
+            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
+        } else {
+            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+        }
+    }
+
+    let title = document.querySelector("title")?.innerText
+    let strategySymbol = title.split(' ')[0]
+    let optimizationResultsObject = Object.fromEntries(optimizationResults);
+    let userInputsToString = ""
+
+    userInputs.forEach((element, index) => {
+        if (element.parameterName != null) {
+            let fullName = element.parameterName;
+            let displayName = fullName
+            let needsTooltip = false;
+
+            if (fullName.length > 22) {
+                displayName = displayName.substring(0, 22) + '...';
+                needsTooltip = true
+            }
+
+            if (needsTooltip) {
+                userInputsToString += `<strong 
+                    data-bs-toggle="tooltip" 
+                    title="${fullName}"
+                    >${displayName}</strong>: `;
+            } else {
+                userInputsToString += `<strong>${displayName}</strong>: `;
+            }
+        }
+        switch (element.type) {
+            case ParameterType.Numeric:
+                if (index == userInputs.length - 1) {
+                    userInputsToString += element.start + "→" + element.end
+                } else {
+                    userInputsToString += element.start + "→" + element.end + "<br>"
+                }
+                break;
+            case ParameterType.Checkbox:
+                if (index == userInputs.length - 1) {
+                    userInputsToString += "on/off"
+                } else {
+                    userInputsToString += "on/off" + "<br>"
+                }
+                break;
+            case ParameterType.Selectable:
+                if (index == userInputs.length - 1) {
+                    userInputsToString += element.options
+                } else {
+                    userInputsToString += element.options + "<br>"
+                }
+                break;
+        }
+
+    })
+
+    var reportDataMessage = {
+        "strategyID": Date.now(),
+        "created": Date.now(),
+        "strategyName": strategyName,
+        "symbol": strategySymbol,
+        "timePeriod": strategyTimePeriod,
+        "parameters": userInputsToString,
+        "maxProfit": maxProfit,
+        "reportData": optimizationResultsObject
+    }
+    // Send Optimization Report to injector
+    window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
+}
+
 // Set User Given Intervals Before Optimization Starts
 async function SetUserIntervals() {
-    for (let i = 0; i < userInputs.length; i++) {
-        var userInput = userInputs[i]
-        var startValue = userInput.start - userInput.stepSize
+    for (let i = 0; i < userNumericInputs.length; i++) {
+        let userInput = userNumericInputs[i]
+        let startValue = userInput.start - userInput.stepSize
 
         if (isFloat(startValue)) {
-            var precision = getFloatPrecision(userInput.stepSize)
+            let precision = getFloatPrecision(userInput.stepSize)
             startValue = fixPrecision(startValue, precision)
         }
 
@@ -242,15 +401,15 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         });
     }
 
-    var reportData = newReportData()
+    let reportData = newReportData()
 
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
 
     await sleep(150)
     // Calculate new step value
-    var newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
+    let newStepValue = parseFloat(tvInputs[tvParameterIndex].value) + parseFloat(stepSize)
     if (isFloat(newStepValue)) {
-        var precision = getFloatPrecision(stepSize)
+        let precision = getFloatPrecision(stepSize)
         newStepValue = fixPrecision(newStepValue, precision)
     }
     ChangeTvInput(tvInputs[tvParameterIndex], newStepValue)
@@ -258,19 +417,27 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     await sleep(200)
 
     // Click on "Ok" button
-    var okButton = document.querySelector("button[data-name='submit-button' i]")
+    let okButton = document.querySelector("button[data-name='submit-button' i]")
     if (okButton == null) {
         okButton = document.querySelector("span[class*='submit' i] button")
     }
     okButton.click()
 
+    // check if deep backtesting is enabled
+    let isDeepTestingOn = document.querySelector("div[class*='deepHistory' i] span[class*='switch' i] input")?.ariaChecked
+    if (isDeepTestingOn === "true") {
+        await sleep(200)
+        document.querySelector("div[class*='historyParams' i] button[class*='generateReport' i]").click()
+    }
+
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
-        var observer = new MutationObserver(function (mutations) {
+        let observer = new MutationObserver(function (mutations) {
             mutations.every(function (mutation) {
                 if (mutation.type === 'childList') {
-                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer")) {
-                        var result = saveOptimizationReport(userInputs, reportData, mutation.addedNodes[0])
+                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer") &&
+                    mutation.addedNodes[0].isConnected) {
+                        var result = saveOptimizationReport(reportData, mutation.addedNodes[0])
                         resolve(result)
                         observer.disconnect()
                         return false
@@ -281,7 +448,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        var element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
+        let element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
         let options = {
             childList: true,
             subtree: true,
@@ -309,13 +476,13 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     await sleep(100)
     // Re-open strategy settings window
-    var reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
+    let reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
     if (reportTitleButton == null) {
         reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
     }
     reportTitleButton.click()
     await sleep(50)
-    var settingsButton = document.querySelector("div[aria-label*='settings' i]")
+    let settingsButton = document.querySelector("div[aria-label*='settings' i]")
     // if different language is set, select second popup menu item
     if (settingsButton == null) {
         settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
@@ -323,17 +490,15 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     settingsButton.click()
 
-    await sleep(100)
-    tvInputs = document.querySelectorAll("div[data-name='indicator-properties-dialog'] input[inputmode='numeric']")
-    tvInputControls = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*=controlWrapper]")
+    await sleep(150)
+    tvInputs = document.querySelectorAll(tvInputsQuery)
 }
 
-
-function saveOptimizationReport(userInputs, reportData, mutation) {
-    var result = GetParametersFromWindow(userInputs)
-    var parameters = result.parameters
+function saveOptimizationReport(reportData, mutation) {
+    let result = GetParametersFromWindow()
+    let parameters = result.parameters
     if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-        var error = ReportBuilder(reportData, mutation)
+        let error = ReportBuilder(reportData, mutation)
         if (error != null) {
             return error.message
         }
@@ -362,13 +527,13 @@ async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize)
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
 async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
-    var previousTvParameterIndex = userInputs[index - 1].parameterIndex
-    var currentTvParameterIndex = userInputs[index].parameterIndex
+    let previousTvParameterIndex = userNumericInputs[index - 1].parameterIndex
+    let currentTvParameterIndex = userNumericInputs[index].parameterIndex
 
-    var resetValue = userInputs[index - 1].start - userInputs[index - 1].stepSize
+    let resetValue = userNumericInputs[index - 1].start - userNumericInputs[index - 1].stepSize
 
-    var previousStepSize = userInputs[index - 1].stepSize
-    var currentStepSize = userInputs[index].stepSize
+    let previousStepSize = userNumericInputs[index - 1].stepSize
+    let currentStepSize = userNumericInputs[index].stepSize
     //Reset and optimze inner
     await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration
@@ -387,44 +552,51 @@ function ChangeTvInput(input, value) {
     input.dispatchEvent(event)
 }
 
-// Increment Parameter without observing the mutation
-function IncrementParameter(tvParameterIndex) {
-    //Hover on Input Arrows  
-    tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
-
-    //Click on Upper Input Arrow
-    var promise = new Promise((resolve, reject) => {
-        setTimeout(() => {
-            tvInputControls[tvParameterIndex].querySelector("button[class*=controlIncrease]").click()
-            resolve("");
-        }, 500);
-    });
-    return promise;
-}
-
 // Get Currently active parameters from Tv Strategy Options Window and format them
 function GetParametersFromWindow() {
-    var parameters = "";
-    var result = new Object({
+    let parameters = "";
+    let result = new Object({
         parameters: "",
         detailedParameters: []
     });
-
     for (let i = 0; i < userInputs.length; i++) {
-        var userInput = userInputs[i]
-        if (userInput.start > parseFloat(tvInputs[userInput.parameterIndex].value) || parseFloat(tvInputs[userInput.parameterIndex].value) > userInput.end) {
-            parameters = "ParameterOutOfRange"
-            break
+        let userInput = userInputs[i]
+        let parameterValue;
+        switch (userInput.type) {
+            case ParameterType.Numeric:
+                if (userInput.start > parseFloat(tvInputs[userInput.parameterIndex].value) || parseFloat(tvInputs[userInput.parameterIndex].value) > userInput.end) {
+                    parameters = "ParameterOutOfRange"
+                    break
+                }
+                parameterValue = tvInputs[userInput.parameterIndex].value
+                break;
+            case ParameterType.Checkbox:
+                if (tvInputs[userInput.parameterIndex].checked) {
+                    parameterValue = "On"
+                } else {
+                    parameterValue = "Off"
+                }
+                break;
+            case ParameterType.Selectable:
+                parameterValue = tvInputs[userInput.parameterIndex].innerText
+                break;
         }
+
+        if (parameters == "ParameterOutOfRange") {
+            // return this as an expected error, parameters are omitted for occurence 
+            break;
+        }
+
         if (i == userInputs.length - 1) {
-            parameters += tvInputs[userInput.parameterIndex].value
+            parameters += parameterValue
         } else {
-            parameters += tvInputs[userInput.parameterIndex].value + ", "
+            parameters += parameterValue + ", "
         }
+
         if (userInput.parameterName != null) {
             result.detailedParameters.push({
                 name: userInput.parameterName,
-                value: tvInputs[userInput.parameterIndex].value,
+                value: parameterValue,
             })
         }
     }
@@ -434,20 +606,19 @@ function GetParametersFromWindow() {
 
 // Build Report data from performance overview
 function ReportBuilder(reportData, mutation) {
-    var reportDataSelector;
+    let reportDataSelector;
     // if mutation is nil, save the same report as there is no report data update
     if (mutation != null) {
-        reportDataSelector = mutation.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
+        reportDataSelector = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
     }
 
     if (reportDataSelector == null || reportDataSelector.length <= 0) {
         return new Error("report data is not available")
     }
 
-    var valueSelector = "[class*='value' i]"
-    var currencySelector = "[class*='currency' i]"
-    var changeSelector = "[class*='change' i]"
-
+    let valueSelector = "[class*='value' i]"
+    let currencySelector = "[class*='currency' i]"
+    let changeSelector = "[class*='change' i]"
     //1. Column
     reportData.netProfit.amount = reportDataSelector[0].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[0].querySelector(currencySelector)?.innerText
     reportData.netProfit.percent = reportDataSelector[0].querySelector(changeSelector)?.innerText
@@ -490,7 +661,7 @@ function getFloatPrecision(number) {
 
 // fixPrecision handles js floating arithmetic precision problem
 function fixPrecision(value, precision) {
-    var multiplier = Math.pow(10, precision)
+    let multiplier = Math.pow(10, precision)
     return Math.round(value * multiplier) / multiplier
 }
 //Mutation Observer Code for console debugging purposes
