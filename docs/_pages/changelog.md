@@ -8,6 +8,7 @@ title: "News"
 > Checkbox and Selectable inputs are now optimizable, exclusive to Plus users.
 
 ![Advertisement v1.3.0](images/gifs/advertisement-v1.3.0.gif)
+<img src="{{ site.baseurl }}/images/gifs/advertisement-v1.3.0.gif" alt="Advertisement v1.3.0">
 
 - **Convenient and Cleaner Report Summary** for Plus users.
 - Optimization speed has been updated and balanced.  
