@@ -9,10 +9,12 @@ title: "News"
 
 ![Advertisement v1.3.0](/images/gifs/advertisement-v1.3.0.gif)
 
+- DatePicker causing an issue with the optimization process has been fixed.
+- Improved user experience when navigating through different strategies
 - **Convenient and Cleaner Report Summary** for Plus users.
 - Optimization speed has been updated and balanced.  
 
-### Latest Version: v1.3.0
+### Latest Version: v1.3.0, v1.3.1
 
 ## Previous Updates
 
