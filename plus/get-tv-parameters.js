@@ -1,7 +1,8 @@
 var ParameterType = {
     Selectable: "Selectable",
     Numeric: "Numeric",
-    Checkbox: "Checkbox"
+    Checkbox: "Checkbox",
+    DatePicker: "DatePicker" // not supported atm
 }
 
 // await execution 
@@ -22,7 +23,11 @@ async function getTvParameters() {
 
         // handle selectable and numeric parameters
         if (className.includes("cell") && className.includes("first")) {
-            var selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
+            let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
+            let numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
+            let dateParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='datePicker' i]");
+            let colorParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='colorPicker' i]");
+            
             if (selectableParameter != null) {
                 var options = await injectAndRetrieveOptions(i);
                 tvParameters.push({
@@ -30,9 +35,20 @@ async function getTvParameters() {
                     name: parameterName,
                     options: options
                 });
-            } else {
+            } else if (numericParameter != null){
                 tvParameters.push({
                     type: ParameterType.Numeric,
+                    name: parameterName
+                });
+            } else if (dateParameter != null){
+                tvParameters.push({
+                    type: ParameterType.DatePicker,
+                    name: parameterName
+                });
+            } else if (colorParameter != null){
+                // treat color picker as dateParameter as both not supported atm
+                tvParameters.push({
+                    type: ParameterType.DatePicker,
                     name: parameterName
                 });
             }
