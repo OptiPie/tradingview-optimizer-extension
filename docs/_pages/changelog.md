@@ -7,7 +7,6 @@ title: "News"
 ### Start Optimizing Selectable and Checkbox Inputs 
 > Checkbox and Selectable inputs are now optimizable, exclusive to Plus users.
 
-![Advertisement v1.3.0](/images/gifs/advertisement-v1.3.0.gif)
 
 - DatePicker causing an issue with the optimization process has been fixed.
 - Improved user experience when navigating through different strategies
