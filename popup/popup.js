@@ -7,24 +7,40 @@ let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
 let freeParameterLimit = 5
 let plusParameterLimit = 20
+// global lock flag
+let _autoFillBusy = false;
+// retrieve parameters from Tv initially before anything
+let _resolveFirstFill;
+const firstFillDone = new Promise(resolve => {
+  _resolveFirstFill = resolve;
+});
 
 const ParameterType = {
   Selectable: "Selectable",
   Numeric: "Numeric",
-  Checkbox: "Checkbox"
+  Checkbox: "Checkbox",
+  DatePicker: "DatePicker" // not supported atm
 }
 
 // Initialize popup html according to last user parameter count state
-chrome.storage.local.get("userParameterCount", ({ userParameterCount }) => {
+async function initPopupParametersByState() {
+  const { userParameterCount } = await new Promise((resolve) => {
+    chrome.storage.local.get("userParameterCount", resolve);
+  });
+
   for (let i = 1; i < userParameterCount; i++) {
-    addParameterBlock(plusParameterLimit)
+    await addParameterBlock(plusParameterLimit);
   }
-  setLastUserParameters(userParameterCount)
+
+  setLastUserParameters(userParameterCount);
+
   setTimeout(() => {
-    // update iteration based on last user parameters
-    calculateIterations()
+    calculateIterations(); // update iteration based on last user parameters
   }, 500);
-});
+}
+
+initPopupParametersByState()
+
 // Tab event listeners to change body width 
 addTabEventListeners()
 
@@ -97,7 +113,7 @@ optimize.addEventListener("click", async () => {
         });
         break;
     }
-    
+
     return
   }
   chrome.storage.local.set({ "userInputs": userInputs });
@@ -110,25 +126,40 @@ optimize.addEventListener("click", async () => {
 
 // Message handling
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
-  var properties = Object.keys(message)
-  var values = Object.values(message)
-  // popupAction type defines popup html UI actions according to event type
-  if (properties[0] === 'popupAction') {
-    var popupAction = values[0]
-    switch (popupAction.event) {
-      case lockOptimizeButton:
-        document.querySelector("#optimize").setAttribute("disabled", "")
-        break;
-      case unlockOptimizeButton:
-        document.querySelector("#optimize").removeAttribute("disabled", "")
-        break;
-      case getTvParameters:
-        autoFillParameters(popupAction.message.tvParameters);
-        chrome.storage.local.set({ "tvParameters": popupAction.message.tvParameters });
-        break;
+  (async () => {
+    const properties = Object.keys(message);
+    const values = Object.values(message);
+
+    // popupAction type defines popup html UI actions according to event type
+    if (properties[0] === 'popupAction') {
+      const popupAction = values[0];
+
+      switch (popupAction.event) {
+        case lockOptimizeButton:
+          document.querySelector("#optimize").setAttribute("disabled", "");
+          break;
+
+        case unlockOptimizeButton:
+          document.querySelector("#optimize").removeAttribute("disabled", "");
+          break;
+
+        case getTvParameters:
+          let tvParameters = popupAction.message.tvParameters;
+          if (!tvParameters?.length) {
+            chrome.storage.local.set({ tvParameters: null });
+            return;
+          }
+          await autoFillParameters(tvParameters);
+          chrome.storage.local.set({ "tvParameters": tvParameters });
+          _resolveFirstFill();
+          break;
+      }
     }
-  }
+  })();
+
+  return false;
 });
+
 
 // Create Reports and Profile Tabs
 createReportTable()
@@ -169,7 +200,7 @@ async function createReportTable() {
     $table.bootstrapTable({ data: reportData })
     $table.bootstrapTable('load', reportData)
 
-    
+
     // init tool tip 
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     tooltipTriggerList.forEach(function (tooltipTriggerEl) {
@@ -270,7 +301,7 @@ async function ProcessPlusFeatures() {
     chrome.storage.local.set({ "tvParameters": null });
     // Add Parameter Button Event Listener, with 'parameterLimit'
     addParameter.addEventListener("click", async () => {
-      addParameterBlock(freeParameterLimit)
+      await addParameterBlock(freeParameterLimit)
     });
     chrome.storage.local.set({ "isPlusUser": false });
     updateUserUI()
@@ -299,7 +330,6 @@ async function injectPlusFeatures(userEmail) {
         files: ['plus/get-tv-parameters.js']
       });
     });
-
     let stopOptimization = document.getElementById("stop")
     stopOptimization.addEventListener("click", async (clickEvent) => {
       await getCurrentTab().then(function (tab) {
@@ -376,7 +406,7 @@ async function injectPlusFeatures(userEmail) {
   }
   // Add Parameter Button Event Listener, with 'parameterLimit'
   addParameter.addEventListener("click", async () => {
-    addParameterBlock(parameterLimit)
+    await addParameterBlock(parameterLimit)
   });
 
   // dispatch stop optimization event for plus users by clicking stop button
@@ -388,59 +418,73 @@ async function injectPlusFeatures(userEmail) {
 
 //
 async function autoFillParameters(tvParameters) {
-  if (tvParameters.length < 1) {
-    chrome.storage.local.set({ "tvParameters": null });
-    return
-  }
-  // hide labels, show selectors
-  var labels = document.querySelectorAll('label[for="inputStart"]')
-  labels.forEach(label => {
-    label.style.display = 'none'
-  });
+  if (_autoFillBusy) return;
+  _autoFillBusy = true;
 
-  var autoFillSelects = document.querySelectorAll("#selectAutoFill")
-  for (let i = 0; i < autoFillSelects.length; i++) {
-    const autoFillSelect = autoFillSelects[i];
-    if (autoFillSelect.options.length > 1) {
-      continue;
-    }
-    autoFillSelect.style.display = 'inline-block'
-    for (var j = 0; j < tvParameters.length; j++) {
-      let parameter = tvParameters[j];
-      let parameterName = parameter.name
-      let parameterNameIndex = j;
-      let option = new Option(parameterName, parameterNameIndex);
-      autoFillSelect.add(option);
-    }
+  try {
+    // hide all the "Start" labels
+    document
+      .querySelectorAll('label[for="inputStart"]')
+      .forEach(lbl => (lbl.style.display = 'none'));
 
-    let userSelectedIndex = i
+    const selects = document.querySelectorAll("#selectAutoFill");
 
-    chrome.storage.local.get(["selectAutoFill" + i], function (result) {
-      // check if index is set by the user
-      if (result["selectAutoFill" + i] && result["selectAutoFill" + i] <= tvParameters.length - 1) {
-        userSelectedIndex = result["selectAutoFill" + i]
+    // build an array of the tvParameter indices we actually want to fill
+    const autoFillIndices = tvParameters
+      .map((p, idx) => ({ p, idx }))
+      .filter(({ p }) => p.type !== ParameterType.DatePicker)
+      .map(({ idx }) => idx);
+
+    for (let i = 0; i < selects.length; i++) {
+      const sel = selects[i];
+
+      // only populate options once
+      if (sel.options.length <= 1) {
+        sel.style.display = "inline-block";
+        tvParameters.forEach((param, j) => {
+          const opt = new Option(param.name, j);
+          if (param.type === ParameterType.DatePicker) opt.hidden = true;
+          sel.add(opt);
+        });
       }
-      autoFillSelect.value = userSelectedIndex
 
-      let parameter = tvParameters[userSelectedIndex]
-      // Numeric is always set to default, transform to others for Plus
-      if (tvParameters[userSelectedIndex].type == ParameterType.Checkbox) {
-        let checkboxInput = {
-          type: parameter.type,
-          parameterIndex: i,
-          parameterName: parameter.name,
-        }
-        transformInput(checkboxInput)
-      } else if (tvParameters[userSelectedIndex].type == ParameterType.Selectable) {
-        let selectableInput = {
-          type: parameter.type,
-          parameterIndex: i,
-          parameterName: parameter.name,
-          parameterOptions: parameter.options
-        }
-        transformInput(selectableInput)
+      // check for a user-stored override
+      const stored = await chrome.storage.local.get("selectAutoFill" + i);
+      const userIdx = stored["selectAutoFill" + i];
+
+      // decide which index to pick
+      let pickIdx = null;
+      if (
+        userIdx != null &&
+        tvParameters[userIdx]?.type !== ParameterType.DatePicker
+      ) {
+        pickIdx = userIdx;
+      } else if (autoFillIndices[i] != null) {
+        pickIdx = autoFillIndices[i];
       }
-    });
+
+      // apply it
+      if (pickIdx != null) {
+        sel.value = pickIdx;
+        const param = tvParameters[pickIdx];
+        if (param.type === ParameterType.Checkbox) {
+          transformInput({
+            type: param.type,
+            parameterIndex: i,
+            parameterName: param.name,
+          });
+        } else if (param.type === ParameterType.Selectable) {
+          transformInput({
+            type: param.type,
+            parameterIndex: i,
+            parameterName: param.name,
+            parameterOptions: param.options,
+          });
+        }
+      }
+    }
+  } finally {
+    _autoFillBusy = false;
   }
 }
 
@@ -655,7 +699,7 @@ logoutButtons.forEach(logoutButton => {
 
 //#endregion
 
-function addParameterBlock(parameterLimit) {
+async function addParameterBlock(parameterLimit) {
   let parameters = document.getElementById("parameters")
   let parameterCount = parameters.children.length
 
@@ -671,13 +715,16 @@ function addParameterBlock(parameterLimit) {
     let divToAppend = addParameterBlockHtml(orderOfParameter)
     parameters.insertAdjacentHTML('beforeend', divToAppend)
 
+
     // Enable auto fill plus feature if eligible  
     setTimeout(() => {
-      chrome.storage.local.get("tvParameters", ({ tvParameters }) => {
+      (async () => {
+        await firstFillDone;
+        let tvParameters = await storageGetTvParameters()
         if (tvParameters != null && tvParameters.length > 0) {
-          autoFillParameters(tvParameters)
+          await autoFillParameters(tvParameters);
         }
-      });
+      })();
     }, 250);
 
     // Increment User's Last Parameter Count State    
@@ -953,10 +1000,10 @@ async function CreateUserInputsMessage(userInputs) {
 
   let tvParameters = await storageGetTvParameters()
   let numericTvParameters;
-  
+
   // at least 1 numeric input is required 
   let containsNumericInput = false
-  
+
   // retrieve numericParameters for free users
   if (!isPlusUser && firstAutoFillOptions <= 1) {
     numericTvParameters = await executeGetNumericTvParameters()
@@ -1012,7 +1059,7 @@ async function CreateUserInputsMessage(userInputs) {
       case ParameterType.Selectable:
         let selectParameter = parameters[i].querySelector("#selectParameter")
         let selectedValues = Array.from(selectParameter.selectedOptions).map(option => option.value);
-        if (selectedValues.length == 0)  {
+        if (selectedValues.length == 0) {
           return new Error("missing-parameters")
         }
         userInputs.parameters.push({
@@ -1024,8 +1071,7 @@ async function CreateUserInputsMessage(userInputs) {
         break;
     }
   }
-  
-  if (!containsNumericInput){
+  if (!containsNumericInput) {
     return new Error("numeric-parameter-required")
   }
 
@@ -1085,7 +1131,7 @@ function getNumericTvParameters() {
 
     // handle numeric & selectable parameters, only prepare numeric inputs
     if (className.includes("cell") && className.includes("first")) {
-      var numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode='numeric']");
+      var numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
       if (numericParameter != null) {
         numericTvParameters.push({
           type: "Numeric",
