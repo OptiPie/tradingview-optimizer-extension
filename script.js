@@ -1,19 +1,20 @@
 // Select all input values
 var tvInputsContainer = "div[data-name='indicator-properties-dialog'] div[class*='content' i]"
-var tvInputsQuery = `${tvInputsContainer} input, ${tvInputsContainer} span[role*='button' i]`
+var tvInputsQuery = `${tvInputsContainer} input:not([aria-activedescendant*='time_input' i]), ${tvInputsContainer} span[role*='button' i], ${tvInputsContainer} div[data-name*='color' i]`
 var tvInputs = document.querySelectorAll(tvInputsQuery)
 // user parameters and time frames
 var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
 var optimizationResults = new Map();
-var maxProfit = -99999
+var maxProfit = -999999
 
 //parameter types
 var ParameterType = {
     Selectable: "Selectable",
     Numeric: "Numeric",
-    Checkbox: "Checkbox"
+    Checkbox: "Checkbox",
+    DatePicker: "DatePicker" // not supported atm
 }
 
 var sleep = (ms) => new Promise((resolve) => {
