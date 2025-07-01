@@ -468,7 +468,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         }, 15 * 1000);
     });
 
-    // Promise race the obvervation with 10 sec timeout in case of Startegy Test Overview window fails to load
+    // Promise race the obvervation with 15 sec timeout in case of Startegy Test Overview window fails to load
     await Promise.race([p1, p2])
         .then()
         .catch((error) => {
