@@ -13,7 +13,7 @@ title: "News"
 - **Convenient and Cleaner Report Summary** for Plus users.
 - Optimization speed has been updated and balanced.  
 
-### Latest Version: v1.3.0, v1.3.1
+### Latest Version: v1.3.2
 
 ## Previous Updates
 
