@@ -1025,6 +1025,9 @@ async function CreateUserInputsMessage(userInputs) {
     }
     // free user & autoFill feature is not active
     if (!isPlusUser && firstAutoFillOptions <= 1) {
+      if (i >= numericTvParameters.length){
+        return new Error("missing-parameters")
+      }
       parameterName = null
       parameterIndex = numericTvParameters[i].parameterIndex
     }
@@ -1121,29 +1124,37 @@ async function executeGetNumericTvParameters() {
 
 // getNumericTvInputs prepares only numeric inputs for free user flow
 function getNumericTvParameters() {
-  var numericTvParameters = []
+  let numericTvParameters = []
+  let parameterIndex = 0
+  let parameterNameElements = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div");
 
-  var parameterNameElements = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div");
-  var parameterIndex = 0
   for (let i = 0; i < parameterNameElements.length; i++) {
-    var className = parameterNameElements[i].className;
-    var parameterName = parameterNameElements[i].innerText;
+    let className = parameterNameElements[i].className;
+    let parameterName = parameterNameElements[i].innerText;
 
-    // handle numeric & selectable parameters, only prepare numeric inputs
+    // handle selectable and numeric parameters
     if (className.includes("cell") && className.includes("first")) {
-      var numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
-      if (numericParameter != null) {
+      let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
+      let numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
+      let dateParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='datePicker' i]");
+      let colorParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='colorPicker' i]");
+
+      if (selectableParameter != null) {
+        parameterIndex++
+      } else if (numericParameter != null) {
         numericTvParameters.push({
           type: "Numeric",
           name: parameterName,
           parameterIndex: parameterIndex
         });
         parameterIndex++
-      } else {
+      } else if (dateParameter != null) {
+        parameterIndex++
+      } else if (colorParameter != null) {
         parameterIndex++
       }
     } // handle checkboxes
-    else if (className.includes("cell") && className.includes("fill")) {
+    else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
       parameterIndex++
     }
   }
