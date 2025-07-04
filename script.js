@@ -435,14 +435,13 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     const p1 = new Promise((resolve, reject) => {
         let observer = new MutationObserver(function (mutations) {
             mutations.every(function (mutation) {
-                if (mutation.type === 'childList') {
-                    if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].className.includes("reportContainer") &&
-                    mutation.addedNodes[0].isConnected) {
-                        var result = saveOptimizationReport(reportData, mutation.addedNodes[0])
-                        resolve(result)
-                        observer.disconnect()
-                        return false
-                    }
+                if (mutation?.type === 'characterData') {
+                    let reportContainer = mutation.target?.parentElement?.parentElement?.parentElement?.parentElement
+                    var result = saveOptimizationReport(reportData,reportContainer)
+                    resolve(result)
+                    observer.disconnect()
+                    return false
+                    
                 }
 
                 return true
@@ -608,7 +607,7 @@ function GetParametersFromWindow() {
 // Build Report data from performance overview
 function ReportBuilder(reportData, mutation) {
     let reportDataSelector;
-    // if mutation is nil, save the same report as there is no report data update
+    
     if (mutation != null) {
         reportDataSelector = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
     }
