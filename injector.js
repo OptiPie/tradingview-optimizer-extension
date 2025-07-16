@@ -1,5 +1,20 @@
 var isInjected = InjectScriptIntoDOM()
 
+var sleepEventCallback = (event) => {
+  if (event.source !== window || event.data.type !== "SleepEventStart") {
+    return;
+  }
+
+  const delay = event.data.delay;
+  // Send SleepEvent to the background script
+  chrome.runtime.sendMessage({ type: "SleepEventStart", delay }, (response) => {
+    if (response.type === "SleepEventComplete") {
+      // Notify script.js that the sleep is complete
+      window.postMessage({ type: "SleepEventComplete" }, "*");
+    }
+  });
+}
+
 /*
 chrome.storage.local.clear(() => {
   if (chrome.runtime.lastError) {
@@ -18,7 +33,7 @@ var reportDataEventCallback = (event) => {
   const report = message.detail;
   const reportKey = "report-data-" + report.strategyID;
   const status = report.status;
-  const newRow = report.reportData; 
+  const newRow = report.reportData;
 
   switch (status) {
     case "IN_PROGRESS":
@@ -63,9 +78,15 @@ var reportDataEventCallback = (event) => {
           content: "Optimization Completed Successfully & Added to Reports"
         }
       });
+      window.removeEventListener("message", sleepEventCallback);
+      window.removeEventListener("message", reportDataEventCallback);
       break;
   }
-};
+}
+
+
+window.addEventListener("message", sleepEventCallback, false)
+
 
 
 window.addEventListener("message", (event) => {
