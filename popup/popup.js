@@ -182,6 +182,7 @@ async function createReportTable() {
     for (const [key, value] of Object.entries(items)) {
       if (key.startsWith("report-data-")) {
         var date = new Date(value.created)
+        console.log(value)
         var formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
         var report = {
           "strategyID": value.strategyID,
@@ -193,6 +194,7 @@ async function createReportTable() {
           "maxprofit": value.maxProfit,
           "detail": reportDetailHtml(value.strategyID)
         }
+        console.log(report)
         reportData.push(report)
       }
     }
@@ -1025,7 +1027,7 @@ async function CreateUserInputsMessage(userInputs) {
     }
     // free user & autoFill feature is not active
     if (!isPlusUser && firstAutoFillOptions <= 1) {
-      if (i >= numericTvParameters.length){
+      if (i >= numericTvParameters.length) {
         return new Error("missing-parameters")
       }
       parameterName = null

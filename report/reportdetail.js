@@ -11,6 +11,7 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   var reportDetailData = [], reportDetailDataCSV = []
   var timePeriodValue = Object.values(item)[0].timePeriod
   var values = Object.values(item)[0].reportData
+  console.log(values)
   var detailedParameters = Object.values(values)[0].detailedParameters
   var timePeriod = document.querySelector("#timePeriod")
   timePeriod.textContent = timePeriodValue

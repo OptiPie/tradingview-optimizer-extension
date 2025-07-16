@@ -1,35 +1,72 @@
 var isInjected = InjectScriptIntoDOM()
 
+/*
+chrome.storage.local.clear(() => {
+  if (chrome.runtime.lastError) {
+    console.error('Error clearing chrome.storage.local:', chrome.runtime.lastError);
+  } else {
+    console.log('All chrome.storage.local data has been cleared.');
+  }
+});
+*/
+
 // Handle Optimization Report coming from script.js
 var reportDataEventCallback = (event) => {
-  var message = event.data
-  if (message.type === "ReportDataEvent") {
-    // Unlock optimize button
-    chrome.runtime.sendMessage({
-      popupAction: {
-        event: "unlockOptimizeButton"
-      }
-    });
-    var reportKey = "report-data-" + message.detail.strategyID
-    if (Object.keys(message.detail.reportData).length > 0) {
-      chrome.storage.local.set({ [reportKey]: message.detail }, function () {
-        chrome.runtime.sendMessage({
-          notify: {
-            type: "success",
-            content: "Optimization Completed Successfully & Added to Reports"
+  var message = event.data;
+  if (message.type !== "ReportDataEvent") return;
+
+  const report = message.detail;
+  const reportKey = "report-data-" + report.strategyID;
+  const status = report.status;
+  const newRow = report.reportData; 
+
+  switch (status) {
+    case "IN_PROGRESS":
+      // Merge each chunk into the existing reportData object, or initialize if missing/empty
+      if (newRow && Object.keys(newRow).length > 0) {
+        chrome.storage.local.get([reportKey], items => {
+          let existingReport = items[reportKey];
+
+          if (existingReport) {
+            let existingData = existingReport.reportData;
+            // If existingData is a non‐empty object, merge newRow into it
+            if (existingData && Object.keys(existingData).length > 0) {
+              console.log(existingReport.reportData)
+              existingReport.reportData = {
+                ...existingData,
+                ...newRow
+              };
+              console.log(existingReport.reportData)
+            } else {
+              // If empty or undefined, just take newRow as the base
+              existingReport.reportData = { ...newRow };
+            }
+          } else {
+            // No report yet → initialize with the full incoming report object
+            existingReport = report;
           }
+
+          chrome.storage.local.set({ [reportKey]: existingReport });
         });
-      })
-    } else {
+      }
+      break;
+
+
+    case "FINISHED":
+      // Optimization is fully done → unlock & success notify
+      chrome.runtime.sendMessage({
+        popupAction: { event: "unlockOptimizeButton" }
+      });
       chrome.runtime.sendMessage({
         notify: {
-          type: "warning",
-          content: "Optimization Failed - Try again and follow the steps carefully"
+          type: "success",
+          content: "Optimization Completed Successfully & Added to Reports"
         }
       });
-    }
+      break;
   }
-}
+};
+
 
 window.addEventListener("message", (event) => {
   if (event.source !== window || event.data.type !== "SleepEventStart") {
