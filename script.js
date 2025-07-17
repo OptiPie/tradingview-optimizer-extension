@@ -483,7 +483,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             mutations.every(function (mutation) {
                 if (mutation?.type === 'characterData' && mutation?.target?.isConnected) {
                     let reportContainer = mutation.target?.parentElement?.parentElement?.parentElement?.parentElement
-                    var result = saveOptimizationReport(optimizationResult, reportData, reportContainer)
+                    var result = saveOptimizationReport(optimizationResult, reportData)
                     resolve(result)
                     observer.disconnect()
                     return false
@@ -550,11 +550,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     tvInputs = document.querySelectorAll(tvInputsQuery)
 }
 
-function saveOptimizationReport(optimizationResult, reportData, mutation) {
+function saveOptimizationReport(optimizationResult, reportData) {
     let result = GetParametersFromWindow()
     let parameters = result.parameters
     if (!optimizationHistory.has(parameters) && parameters != "ParameterOutOfRange") {
-        let error = ReportBuilder(reportData, mutation)
+        let error = ReportBuilder(reportData)
         if (error != null) {
             return error.message
         }

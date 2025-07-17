@@ -1,5 +1,15 @@
 var isInjected = InjectScriptIntoDOM()
 
+/*
+chrome.storage.local.clear(() => {
+  if (chrome.runtime.lastError) {
+    console.error('Error clearing chrome.storage.local:', chrome.runtime.lastError);
+  } else {
+    console.log('All chrome.storage.local data has been cleared.');
+  }
+});
+*/
+
 var sleepEventCallback = (event) => {
   if (event.source !== window || event.data.type !== "SleepEventStart") {
     return;
@@ -14,16 +24,6 @@ var sleepEventCallback = (event) => {
     }
   });
 }
-
-/*
-chrome.storage.local.clear(() => {
-  if (chrome.runtime.lastError) {
-    console.error('Error clearing chrome.storage.local:', chrome.runtime.lastError);
-  } else {
-    console.log('All chrome.storage.local data has been cleared.');
-  }
-});
-*/
 
 // Handle Optimization Report coming from script.js
 var reportDataEventCallback = (event) => {
@@ -46,12 +46,10 @@ var reportDataEventCallback = (event) => {
             let existingData = existingReport.reportData;
             // If existingData is a non‐empty object, merge newRow into it
             if (existingData && Object.keys(existingData).length > 0) {
-              console.log(existingReport.reportData)
               existingReport.reportData = {
                 ...existingData,
                 ...newRow
               };
-              console.log(existingReport.reportData)
             } else {
               // If empty or undefined, just take newRow as the base
               existingReport.reportData = { ...newRow };
@@ -84,25 +82,7 @@ var reportDataEventCallback = (event) => {
   }
 }
 
-
 window.addEventListener("message", sleepEventCallback, false)
-
-
-
-window.addEventListener("message", (event) => {
-  if (event.source !== window || event.data.type !== "SleepEventStart") {
-    return;
-  }
-
-  const delay = event.data.delay;
-  // Send SleepEvent to the background script
-  chrome.runtime.sendMessage({ type: "SleepEventStart", delay }, (response) => {
-    if (response.type === "SleepEventComplete") {
-      // Notify script.js that the sleep is complete
-      window.postMessage({ type: "SleepEventComplete" }, "*");
-    }
-  });
-});
 
 // Add ReportData Callback if script.js injected successfully
 if (isInjected) {
