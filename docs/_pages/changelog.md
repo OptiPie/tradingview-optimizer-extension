@@ -7,8 +7,8 @@ title: "News"
 ### Start Optimizing Selectable and Checkbox Inputs 
 > Checkbox and Selectable inputs are now optimizable, exclusive to Plus users.
 
-- OptiPie is synced with the latest TradingView changes
-- Deepback testing issue is resovled. 
+- OptiPie is synced with the latest TradingView changes.
+- Deepback testing optimizations function as expected. 
 - DatePicker causing an issue with the optimization process has been fixed.
 - Improved user experience when navigating through different strategies.
 - **Convenient and Cleaner Report Summary** for Plus users.
