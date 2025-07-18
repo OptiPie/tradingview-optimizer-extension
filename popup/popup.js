@@ -451,18 +451,18 @@ async function autoFillParameters(tvParameters) {
       // check for a user-stored override
       const stored = await chrome.storage.local.get("selectAutoFill" + i);
       const userIdx = stored["selectAutoFill" + i];
-
       // decide which index to pick
       let pickIdx = null;
       if (
         userIdx != null &&
-        tvParameters[userIdx]?.type !== ParameterType.DatePicker
+        tvParameters[userIdx]?.type !== ParameterType.DatePicker && 
+        userIdx < tvParameters.length
       ) {
         pickIdx = userIdx;
       } else if (autoFillIndices[i] != null) {
         pickIdx = autoFillIndices[i];
       }
-
+      
       // apply it
       if (pickIdx != null) {
         sel.value = pickIdx;

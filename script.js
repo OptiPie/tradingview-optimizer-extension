@@ -9,6 +9,7 @@ var userTimeFrames = [] // time frames chosen by the user
 var optimizationResults = new Map();
 var maxProfit = -999999
 
+
 //parameter types
 var ParameterType = {
     Selectable: "Selectable",
@@ -219,10 +220,10 @@ async function Process() {
             }
             return
         }
-        
+
         // cartesian product to build up all selectable combinations
         let selectableInputCombinations = generateCombinationsFromInputs(userSelectableInputs)
-        
+
         for (let i = 0; i < selectableInputCombinations.length; i++) {
             let selectableInputCombination = selectableInputCombinations[i]
             for (let j = 0; j < selectableInputCombination.length; j++) {
@@ -246,20 +247,20 @@ async function Process() {
             }
         }
     }
-    
+
     function generateCombinationsFromInputs(inputs) {
         const allOptions = inputs.map(input =>
-          input.options.map(option => ({
-            option,
-            parameterIndex: input.parameterIndex
-          }))
+            input.options.map(option => ({
+                option,
+                parameterIndex: input.parameterIndex
+            }))
         );
-      
+
         return allOptions.reduce((acc, current) => {
-          return acc.flatMap(existing => current.map(opt => [...existing, opt]));
+            return acc.flatMap(existing => current.map(opt => [...existing, opt]));
         }, [[]]);
-      }
-      
+    }
+
 
     function isOptimizationCalled(inputs) {
         if (inputs == null || inputs.length == 0) {
@@ -424,26 +425,30 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     }
     okButton.click()
 
+    let isBacktestUpdated = false
     // check if deep backtesting is enabled
-    let isDeepTestingOn = document.querySelector("div[class*='deepHistory' i] span[class*='switch' i] input")?.ariaChecked
-    if (isDeepTestingOn === "true") {
-        await sleep(200)
-        document.querySelector("div[class*='historyParams' i] button[class*='generateReport' i]").click()
+    let isBacktestingOn = document.querySelector("span[class*='deepBacktesting' i]") != null
+    if (isBacktestingOn === true) {
+        await sleep(500)
+        let backtestUpdateButton = document.querySelector("div[data-qa-id*='backtesting-updated' i] button")
+        if (backtestUpdateButton != null) {
+            backtestUpdateButton.click()
+            isBacktestUpdated = true
+        }
     }
 
+    let observer;
     // Observe mutation for new Test results, validate it and save it to optimizationResults Map
     const p1 = new Promise((resolve, reject) => {
-        let observer = new MutationObserver(function (mutations) {
+        observer = new MutationObserver(function (mutations) {
             mutations.every(function (mutation) {
-                if (mutation?.type === 'characterData') {
+                if (mutation?.type === 'characterData' && mutation?.target?.isConnected) {
                     let reportContainer = mutation.target?.parentElement?.parentElement?.parentElement?.parentElement
-                    var result = saveOptimizationReport(reportData,reportContainer)
+                    var result = saveOptimizationReport(reportData)
                     resolve(result)
                     observer.disconnect()
                     return false
-                    
                 }
-
                 return true
             });
         });
@@ -463,16 +468,21 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     const p2 = new Promise((resolve, reject) => {
         setTimeout(() => {
             // expected error type, kind of warning
-            reject("Timeout exceeded")
+            observer.disconnect()
+            resolve({ timedOut: true })
         }, 15 * 1000);
     });
 
     // Promise race the obvervation with 15 sec timeout in case of Startegy Test Overview window fails to load
-    await Promise.race([p1, p2])
-        .then()
-        .catch((error) => {
-            console.log(`Rejected: ${error}`)
-        });
+    const finalOptimizationResult = await Promise.race([p1, p2])
+
+    if (finalOptimizationResult?.timedOut) {
+        // try to save if optimization data is the same as previous, after timeout
+        let isReportDataEmpty = document.querySelector("div[class*='backtesting deep-history' i] div[class*='emptyStateIcon' i]") != null
+        if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
+            saveOptimizationReport(reportData)
+        }
+    }
 
     await sleep(100)
     // Re-open strategy settings window
@@ -494,14 +504,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     tvInputs = document.querySelectorAll(tvInputsQuery)
 }
 
-function saveOptimizationReport(reportData, mutation) {
+function saveOptimizationReport(reportData) {
     let result = GetParametersFromWindow()
     let parameters = result.parameters
     if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-        let error = ReportBuilder(reportData, mutation)
-        if (error != null) {
-            return error.message
-        }
+        ReportBuilder(reportData)
         reportData.detailedParameters = result.detailedParameters
         optimizationResults.set(parameters, reportData)
         //Update Max Profit
@@ -605,16 +612,10 @@ function GetParametersFromWindow() {
 }
 
 // Build Report data from performance overview
-function ReportBuilder(reportData, mutation) {
+function ReportBuilder(reportData) {
     let reportDataSelector;
-    
-    if (mutation != null) {
-        reportDataSelector = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
-    }
 
-    if (reportDataSelector == null || reportDataSelector.length <= 0) {
-        return new Error("report data is not available")
-    }
+    reportDataSelector = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")
 
     let valueSelector = "[class*='value' i]"
     let currencySelector = "[class*='currency' i]"
@@ -639,6 +640,10 @@ function ReportBuilder(reportData, mutation) {
     //reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector(valueSelector).innerText
 }
 
+
+function implies(a, b) {
+    return !a || b;
+}
 
 // isFloat to check whether given number is float or not
 function isFloat(number) {
