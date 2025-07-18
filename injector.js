@@ -1,5 +1,20 @@
 var isInjected = InjectScriptIntoDOM()
 
+var sleepEventCallback = (event) => {
+  if (event.source !== window || event.data.type !== "SleepEventStart") {
+    return;
+  }
+
+  const delay = event.data.delay;
+  // Send SleepEvent to the background script
+  chrome.runtime.sendMessage({ type: "SleepEventStart", delay }, (response) => {
+    if (response.type === "SleepEventComplete") {
+      // Notify script.js that the sleep is complete
+      window.postMessage({ type: "SleepEventComplete" }, "*");
+    }
+  });
+}
+
 // Handle Optimization Report coming from script.js
 var reportDataEventCallback = (event) => {
   var message = event.data
@@ -28,23 +43,13 @@ var reportDataEventCallback = (event) => {
         }
       });
     }
+    
+    window.removeEventListener("message", sleepEventCallback);
+    window.removeEventListener("message", reportDataEventCallback);
   }
 }
 
-window.addEventListener("message", (event) => {
-  if (event.source !== window || event.data.type !== "SleepEventStart") {
-    return;
-  }
-
-  const delay = event.data.delay;
-  // Send SleepEvent to the background script
-  chrome.runtime.sendMessage({ type: "SleepEventStart", delay }, (response) => {
-    if (response.type === "SleepEventComplete") {
-      // Notify script.js that the sleep is complete
-      window.postMessage({ type: "SleepEventComplete" }, "*");
-    }
-  });
-});
+window.addEventListener("message", sleepEventCallback, false)
 
 // Add ReportData Callback if script.js injected successfully
 if (isInjected) {
