@@ -223,10 +223,10 @@ async function Process() {
             }
             return
         }
-        
+
         // cartesian product to build up all selectable combinations
         let selectableInputCombinations = generateCombinationsFromInputs(userSelectableInputs)
-        
+
         for (let i = 0; i < selectableInputCombinations.length; i++) {
             let selectableInputCombination = selectableInputCombinations[i]
             for (let j = 0; j < selectableInputCombination.length; j++) {
@@ -250,20 +250,20 @@ async function Process() {
             }
         }
     }
-    
+
     function generateCombinationsFromInputs(inputs) {
         const allOptions = inputs.map(input =>
-          input.options.map(option => ({
-            option,
-            parameterIndex: input.parameterIndex
-          }))
+            input.options.map(option => ({
+                option,
+                parameterIndex: input.parameterIndex
+            }))
         );
-      
+
         return allOptions.reduce((acc, current) => {
-          return acc.flatMap(existing => current.map(opt => [...existing, opt]));
+            return acc.flatMap(existing => current.map(opt => [...existing, opt]));
         }, [[]]);
-      }
-      
+    }
+
 
     function isOptimizationCalled(inputs) {
         if (inputs == null || inputs.length == 0) {
@@ -276,33 +276,8 @@ async function Process() {
 
 // SendReport sends the report after optimization is complete
 async function SendReport(status) {
-    /* TODO 
-    1. Receive report data from OptimizeParams() or other places
-    2. Have a state variable, e.g. Optimization.START, Optimization.IN_PROGRESS, Optimization.END 
-    3. Based on states, build the report data message
-        a. START:
-            1. Create initial strategyId and maintain that as a global flag until optimization is done
-            2. Send out initial report data message with new strategyId
-        b. IN_PROGRESS:
-            1. Send every new report data after succesfull race promise within OptimizeParams()
-            2. OptimizationResults map is still kept but only for checking if given parameters has been already optimized, 
-            e.g. map format: string(23, ON, 12): true/false
-        c. END:
-            1. Send out final message as optimization is finalized, handle that END flag in other places appropriately
-    
-    */
-    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+    // set the report status
     reportDataMessage.status = status
-
-    /*
-    // optional
-    if (typeof optimizationResult === 'undefined') {
-        reportDataMessage.reportData = null
-    } else {
-        let optimizationResultsObject = Object.fromEntries(optimizationResult);
-        reportDataMessage.reportData = optimizationResultsObject
-    }
-*/
 
     // Send Optimization Report to injector
     window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
@@ -388,7 +363,7 @@ function prepareInitialReport() {
         "reportData": [], // NOT READY
         "status": null, // NOT READY
     }
-    
+
     return reportDataMessage
 }
 
@@ -529,7 +504,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     reportDataMessage.maxProfit = maxProfit;
     let optimizationResultsObject = Object.fromEntries(optimizationResult);
     reportDataMessage.reportData = optimizationResultsObject
-    SendReport("IN_PROGRESS", optimizationResult)
+    SendReport("IN_PROGRESS")
 
     // Re-open strategy settings window
     let reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")

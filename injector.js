@@ -50,9 +50,11 @@ var reportDataEventCallback = (event) => {
                 ...existingData,
                 ...newRow
               };
+              existingReport.maxProfit = report.maxProfit
             } else {
               // If empty or undefined, just take newRow as the base
               existingReport.reportData = { ...newRow };
+              existingReport.maxProfit = report.maxProfit
             }
           } else {
             // No report yet → initialize with the full incoming report object
@@ -60,6 +62,15 @@ var reportDataEventCallback = (event) => {
           }
 
           chrome.storage.local.set({ [reportKey]: existingReport });
+
+          chrome.runtime.sendMessage({
+            popupAction: {
+              event: "reportUpdated",
+              message: {
+                report: report
+              }
+            }
+          });
         });
       }
       break;
@@ -82,11 +93,10 @@ var reportDataEventCallback = (event) => {
   }
 }
 
-window.addEventListener("message", sleepEventCallback, false)
-
-// Add ReportData Callback if script.js injected successfully
+// Add callbacks if script.js injected successfully
 if (isInjected) {
   window.addEventListener("message", reportDataEventCallback, false);
+  window.addEventListener("message", sleepEventCallback, false);
   // Lock optimize button to prevent accidental multiple submissions
   chrome.runtime.sendMessage({
     popupAction: {
