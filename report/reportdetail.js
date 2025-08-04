@@ -1,28 +1,87 @@
+// Popup action event types
+const reportUpdated = 'reportUpdated'
+
 const params = new Proxy(new URLSearchParams(window.location.search), {
   get: (searchParams, prop) => searchParams.get(prop),
 });
 
 let strategyID = params.strategyID;
+var reportDetailData = [], reportDetailDataCSV = []
+var $table = $('#table')
 
 // update non-functional UI components for free/plus users
 updateUserUI();
 
+// Message handling
+chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  (async () => {
+    const properties = Object.keys(message);
+    const values = Object.values(message);
+
+    // popupAction type defines popup html UI actions according to event type
+    if (properties[0] === 'popupAction') {
+      const popupAction = values[0];
+
+      switch (popupAction.event) {
+        case reportUpdated:
+          if (popupAction.message.report.strategyID != strategyID){
+            // omit if strategyId does not match 
+            break;
+          }
+          for (const [key, value] of Object.entries(popupAction.message.report.reportData)) {
+            let reportDetail = {
+              "parameters": key,
+              "netProfitAmount": value.netProfit.amount,
+              "netProfitPercent": value.netProfit.percent,
+              "maxDrawdownAmount": value.maxDrawdown.amount,
+              "maxDrawdownPercent": value.maxDrawdown.percent,
+              "closedTrades": value.closedTrades,
+              "percentProfitable": value.percentProfitable,
+              "profitFactor": value.profitFactor,
+              "averageTradeAmount": value?.averageTrade.amount,
+              "averageTradePercent": value?.averageTrade.percent,
+              "avgerageBarsInTrades": value?.avgerageBarsInTrades,
+            }
+            let reportDetailCSV = { ...reportDetail }
+            value.detailedParameters.forEach((element, index) => {
+              index += 1
+              reportDetail['parameter' + index] = element.value
+              reportDetailCSV[element.name] = element.value
+            });
+            reportDetailData.push(reportDetail)
+            reportDetailDataCSV.push(reportDetailCSV)
+
+            $table.bootstrapTable('removeByUniqueId', key);
+            $table.bootstrapTable('prepend', reportDetail)
+
+            let $newRow = $table.find(`tr[data-uniqueid="${key}"]`);
+            $newRow.addClass('new-row-highlight');
+
+          }
+          break;
+
+      }
+    }
+  })();
+
+  return false;
+});
+
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
-  var reportDetailData = [], reportDetailDataCSV = []
   var timePeriodValue = Object.values(item)[0].timePeriod
   var values = Object.values(item)[0].reportData
   console.log(values)
   var detailedParameters = Object.values(values)[0].detailedParameters
   var timePeriod = document.querySelector("#timePeriod")
   timePeriod.textContent = timePeriodValue
-  
+  let isDeprecatedReportData = false;
+
   for (const [key, value] of Object.entries(values)) {
-    var isDeprecatedReportData = false;
-    if (value.averageTrade != null && value.averageTrade.amount != 0){
+    if (value.averageTrade != null && value.averageTrade.amount != 0) {
       isDeprecatedReportData = true; // meaning it's old report data structure
     }
-    
-    var reportDetail = {
+
+    let reportDetail = {
       "parameters": key,
       "netProfitAmount": value.netProfit.amount,
       "netProfitPercent": value.netProfit.percent,
@@ -35,7 +94,7 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
       "averageTradePercent": value?.averageTrade.percent,
       "avgerageBarsInTrades": value?.avgerageBarsInTrades,
     }
-    var reportDetailCSV = { ...reportDetail }
+    let reportDetailCSV = { ...reportDetail }
     value.detailedParameters.forEach((element, index) => {
       index += 1
       reportDetail['parameter' + index] = element.value
@@ -44,10 +103,9 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
     reportDetailData.push(reportDetail)
     reportDetailDataCSV.push(reportDetailCSV)
   }
-  var $table = $('#table')
   $table.bootstrapTable('showLoading')
-  
-  if (!isDeprecatedReportData){
+
+  if (!isDeprecatedReportData) {
     // new report data doesn't have those values
     $table.bootstrapTable('hideColumn', 'averageTradeAmount');
     $table.bootstrapTable('hideColumn', 'averageTradePercent');
@@ -59,7 +117,7 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
     $table.bootstrapTable('hideLoading')
     hideDropDownParameters()
     detailedParameters.forEach((detailedParameter, index) => {
-      var parameterName = `parameter${index + 1}`
+      let parameterName = `parameter${index + 1}`
       $table.bootstrapTable('showColumn', parameterName);
       $table.bootstrapTable('updateColumnTitle', {
         field: parameterName,
@@ -94,9 +152,9 @@ function hideDropDownParameters() {
 }
 
 // non-functional UI changes made with storage
-function updateUserUI(){
+function updateUserUI() {
   chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
-    if(isPlusUser){
+    if (isPlusUser) {
       // show plus logo
       var logo = document.getElementById("normalLogo")
       logo.style.cssText = 'display:none !important';
@@ -105,7 +163,7 @@ function updateUserUI(){
       // remove plus upgrade button 
       var plusUpgrade = document.getElementById("plusUpgrade")
       plusUpgrade.style.display = 'none'
-    }else{
+    } else {
       // hide plus logo
       var plusLogo = document.getElementById("plusLogo")
       plusLogo.style.cssText = 'display:none !important'

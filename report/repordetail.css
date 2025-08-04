@@ -26,3 +26,13 @@
 #plusUpgrade i {
     color: white;
 }
+
+/* a quick “flash” from pale-yellow back to transparent */
+@keyframes flash {
+  from { background-color: #82caff;; }
+  to   { background-color: transparent; }
+}
+
+.new-row-highlight {
+  animation: flash 2s ease forwards;
+}
