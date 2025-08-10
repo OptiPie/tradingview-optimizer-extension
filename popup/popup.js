@@ -1163,6 +1163,7 @@ function getNumericTvParameters() {
     if (className.includes("cell") && className.includes("first")) {
       let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
       let numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
+      let stringParameter = parameterNameElements[i].nextSibling?.querySelector("input[maxlength*='4096' i]");
       let dateParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='datePicker' i]");
       let colorParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='colorPicker' i]");
 
@@ -1178,6 +1179,8 @@ function getNumericTvParameters() {
       } else if (dateParameter != null) {
         parameterIndex++
       } else if (colorParameter != null) {
+        parameterIndex++
+      }else if (stringParameter != null){
         parameterIndex++
       }
     } // handle checkboxes

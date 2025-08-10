@@ -33,6 +33,7 @@ var reportDataEventCallback = (event) => {
   const report = message.detail;
   const reportKey = "report-data-" + report.strategyID;
   const status = report.status;
+  const isFinal = report.isFinal
   const newRow = report.reportData;
 
   switch (status) {
@@ -87,8 +88,11 @@ var reportDataEventCallback = (event) => {
           content: "Optimization Completed Successfully & Added to Reports"
         }
       });
-      window.removeEventListener("message", sleepEventCallback);
-      window.removeEventListener("message", reportDataEventCallback);
+      // remove listeners after final optimization for multi-time frame support 
+      if (isFinal) {
+        window.removeEventListener("message", sleepEventCallback);
+        window.removeEventListener("message", reportDataEventCallback);
+      }
       break;
   }
 }

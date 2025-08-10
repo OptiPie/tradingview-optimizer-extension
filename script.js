@@ -101,34 +101,44 @@ async function Process() {
             ranges.push(roundedRange)
         }
     });
-    reportDataMessage = prepareInitialReport()
     if (userTimeFrames == null || userTimeFrames.length <= 0) {
         // no time frame selection or free user flow
+        reportDataMessage = prepareInitialReport()
         await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-        await SendReport("FINISHED")
+        updateReport({ status: "FINISHED", isFinal: true })
+        await PublishReport()
     } else {
         for (let i = 0; i < userTimeFrames.length; i++) {
             // open time intervals dropdown and change it
             await sleep(500)
 
-            var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
+            let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
             // check if user has favorite time frames selected
             if (timeIntervalDropdown == null) {
                 timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
             }
             timeIntervalDropdown.click()
 
-            var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(500)
+            let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+            await sleep(1000)
             document.querySelector(timeIntervalQuery).click()
+            await sleep(1000)
+            reportDataMessage = prepareInitialReport()
             await sleep(500)
+            try {
+                await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            } catch (err) {
+                console.log(err)
+                // catch the error, continue with the next time-frame
+            }
 
-            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-            await SendReport("FINISHED")
+            let isFinalOptimization = (i === userTimeFrames.length - 1)
+            updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+            await PublishReport()
+
             // reset global variables for new strategy optimization and for new timeframe
             optimizationHistory = new Map();
             maxProfit = -99999
-            reportDataMessage = prepareInitialReport()
         }
     }
 
@@ -274,11 +284,8 @@ async function Process() {
 
 }
 
-// SendReport sends the report after optimization is complete
-async function SendReport(status) {
-    // set the report status
-    reportDataMessage.status = status
-
+// PublishReport publishes the report after optimization is complete
+async function PublishReport() {
     // Send Optimization Report to injector
     window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
 }
@@ -433,10 +440,10 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     await sleep(200)
 
     // Click on "Ok" button
-    let okButton = document.querySelector("button[data-name='submit-button' i]")
-    if (okButton == null) {
-        okButton = document.querySelector("span[class*='submit' i] button")
-    }
+    let okButton =
+        document.querySelector("button[data-name='submit-button' i]") ||
+        document.querySelector("span[class*='submit' i] button");
+
     okButton.click()
 
     let isBacktestUpdated = false
@@ -495,29 +502,35 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         // try to save if optimization data is the same as previous, after timeout
         let isReportDataEmpty = document.querySelector("div[class*='backtesting deep-history' i] div[class*='emptyStateIcon' i]") != null
         if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
-            saveOptimizationReport(reportData)
+            saveOptimizationReport(optimizationResult, reportData)
         }
     }
 
     await sleep(100)
     // Send single optimization result as a batch, update maxProfit and Optimization result before hand
-    reportDataMessage.maxProfit = maxProfit;
     let optimizationResultsObject = Object.fromEntries(optimizationResult);
-    reportDataMessage.reportData = optimizationResultsObject
-    SendReport("IN_PROGRESS")
+
+    updateReport({
+        status: "IN_PROGRESS",
+        maxProfit,
+        reportData: optimizationResultsObject
+    });
+    PublishReport()
 
     // Re-open strategy settings window
-    let reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
-    if (reportTitleButton == null) {
-        reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
-    }
+    let reportTitleButton =
+        document.querySelector("button[data-strategy-title*='report' i]") ||
+        document.querySelector("div[class*='strategyGroup' i] button");
+
     reportTitleButton.click()
     await sleep(50)
-    let settingsButton = document.querySelector("div[aria-label*='settings' i]")
-    // if different language is set, select second popup menu item
-    if (settingsButton == null) {
-        settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
-    }
+
+    let settingsButton =
+        document.querySelector("div[aria-label*='settings' i]") ||
+        // if different language is set, select shortcut label selector "+ P" or select second popup menu item
+        document.querySelector('div[aria-keyshortcuts*="+P"]') ||
+        document.querySelector('div[aria-keyshortcuts*="+ P"]') ||
+        document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]");
 
     settingsButton.click()
 
@@ -665,6 +678,10 @@ function ReportBuilder(reportData) {
     //reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector(valueSelector).innerText
 }
 
+// Mutates (or adds) top-level fields on your global report object
+function updateReport(updates) {
+    reportDataMessage = { ...reportDataMessage, ...updates };
+}
 
 function implies(a, b) {
     return !a || b;
