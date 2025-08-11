@@ -7,9 +7,9 @@ title: "News"
 ### Real-time Report Monitoring & Instant Analysis!
 > No delays. No data loss. Analyze instantly.
 
-- Multi-time Frame optimization bug is fixed.
-- Optimization perfomance is improved.
-- Optimization not working for Non-English languages has been resolved.
+- Multi-time Frame optimization bug fixed.
+- Optimization performance is improved.
+- Improved support for non-English languages.
 
 ### Version: v1.4.0
 
