@@ -6,9 +6,11 @@ var tvInputs = document.querySelectorAll(tvInputsQuery)
 var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
-var optimizationResults = new Map();
+var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not 
 var maxProfit = -999999
 
+// reportDataMessage defined globally and initiated from start
+var reportDataMessage;
 
 //parameter types
 var ParameterType = {
@@ -99,32 +101,43 @@ async function Process() {
             ranges.push(roundedRange)
         }
     });
-
     if (userTimeFrames == null || userTimeFrames.length <= 0) {
         // no time frame selection or free user flow
+        reportDataMessage = prepareInitialReport()
         await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-        await SendReport()
+        updateReport({ status: "FINISHED", isFinal: true })
+        await PublishReport()
     } else {
         for (let i = 0; i < userTimeFrames.length; i++) {
             // open time intervals dropdown and change it
             await sleep(500)
 
-            var timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
+            let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
             // check if user has favorite time frames selected
             if (timeIntervalDropdown == null) {
                 timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
             }
             timeIntervalDropdown.click()
 
-            var timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(500)
+            let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+            await sleep(1000)
             document.querySelector(timeIntervalQuery).click()
+            await sleep(1000)
+            reportDataMessage = prepareInitialReport()
             await sleep(500)
+            try {
+                await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            } catch (err) {
+                console.log(err)
+                // catch the error, continue with the next time-frame
+            }
 
-            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-            await SendReport()
+            let isFinalOptimization = (i === userTimeFrames.length - 1)
+            updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+            await PublishReport()
+
             // reset global variables for new strategy optimization and for new timeframe
-            optimizationResults = new Map();
+            optimizationHistory = new Map();
             maxProfit = -99999
         }
     }
@@ -271,13 +284,19 @@ async function Process() {
 
 }
 
-// SendReport sends the report after optimization is complete
-async function SendReport() {
-    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    var strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
-    var strategyTimePeriod = ""
+// PublishReport publishes the report after optimization is complete
+async function PublishReport() {
+    // Send Optimization Report to injector
+    window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
+}
 
-    var timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+// prepareInitialReport populates initial report before starting a fresh optimization
+function prepareInitialReport() {
+    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+    let strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+    let strategyTimePeriod = ""
+
+    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
     if (timePeriodGroup.length > 1) {
         selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
 
@@ -291,7 +310,7 @@ async function SendReport() {
 
     let title = document.querySelector("title")?.innerText
     let strategySymbol = title.split(' ')[0]
-    let optimizationResultsObject = Object.fromEntries(optimizationResults);
+
     let userInputsToString = ""
 
     userInputs.forEach((element, index) => {
@@ -340,18 +359,19 @@ async function SendReport() {
 
     })
 
-    var reportDataMessage = {
+    let reportDataMessage = {
         "strategyID": Date.now(),
         "created": Date.now(),
         "strategyName": strategyName,
         "symbol": strategySymbol,
         "timePeriod": strategyTimePeriod,
         "parameters": userInputsToString,
-        "maxProfit": maxProfit,
-        "reportData": optimizationResultsObject
+        "maxProfit": maxProfit, // NOT READY
+        "reportData": [], // NOT READY
+        "status": null, // NOT READY
     }
-    // Send Optimization Report to injector
-    window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
+
+    return reportDataMessage
 }
 
 // Set User Given Intervals Before Optimization Starts
@@ -379,7 +399,7 @@ async function SetUserIntervals() {
     //TO-DO: Inform user about Parameter Intervals are set and optimization starting now.
 }
 
-// Optimize strategy for given tvParameterIndex, increment parameter and observe mutation 
+// Optimize strategy for given tvParameterIndex, increment parameter, observe mutation 
 async function OptimizeParams(tvParameterIndex, stepSize) {
     function newReportData() {
         return new Object({
@@ -403,7 +423,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         });
     }
 
-    let reportData = newReportData()
+    let reportData = newReportData();
+    let optimizationResult = new Map();
 
     tvInputs[tvParameterIndex].dispatchEvent(new MouseEvent('mouseover', { 'bubbles': true }));
 
@@ -419,10 +440,10 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     await sleep(200)
 
     // Click on "Ok" button
-    let okButton = document.querySelector("button[data-name='submit-button' i]")
-    if (okButton == null) {
-        okButton = document.querySelector("span[class*='submit' i] button")
-    }
+    let okButton =
+        document.querySelector("button[data-name='submit-button' i]") ||
+        document.querySelector("span[class*='submit' i] button");
+
     okButton.click()
 
     let isBacktestUpdated = false
@@ -444,10 +465,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             mutations.every(function (mutation) {
                 if (mutation?.type === 'characterData' && mutation?.target?.isConnected) {
                     let reportContainer = mutation.target?.parentElement?.parentElement?.parentElement?.parentElement
-                    var result = saveOptimizationReport(reportData)
+                    var result = saveOptimizationReport(optimizationResult, reportData)
                     resolve(result)
                     observer.disconnect()
                     return false
+
                 }
                 return true
             });
@@ -480,23 +502,35 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         // try to save if optimization data is the same as previous, after timeout
         let isReportDataEmpty = document.querySelector("div[class*='backtesting deep-history' i] div[class*='emptyStateIcon' i]") != null
         if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
-            saveOptimizationReport(reportData)
+            saveOptimizationReport(optimizationResult, reportData)
         }
     }
 
     await sleep(100)
+    // Send single optimization result as a batch, update maxProfit and Optimization result before hand
+    let optimizationResultsObject = Object.fromEntries(optimizationResult);
+
+    updateReport({
+        status: "IN_PROGRESS",
+        maxProfit,
+        reportData: optimizationResultsObject
+    });
+    PublishReport()
+
     // Re-open strategy settings window
-    let reportTitleButton = document.querySelector("button[data-strategy-title*='report' i]")
-    if (reportTitleButton == null) {
-        reportTitleButton = document.querySelector("div[class*='strategyGroup' i] button")
-    }
+    let reportTitleButton =
+        document.querySelector("button[data-strategy-title*='report' i]") ||
+        document.querySelector("div[class*='strategyGroup' i] button");
+
     reportTitleButton.click()
     await sleep(50)
-    let settingsButton = document.querySelector("div[aria-label*='settings' i]")
-    // if different language is set, select second popup menu item
-    if (settingsButton == null) {
-        settingsButton = document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]")
-    }
+
+    let settingsButton =
+        document.querySelector("div[aria-label*='settings' i]") ||
+        // if different language is set, select shortcut label selector "+ P" or select second popup menu item
+        document.querySelector('div[aria-keyshortcuts*="+P"]') ||
+        document.querySelector('div[aria-keyshortcuts*="+ P"]') ||
+        document.querySelector("div[class*='mainContent' i] > div:nth-child(2) div[role*='menuItem' i]");
 
     settingsButton.click()
 
@@ -504,21 +538,25 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     tvInputs = document.querySelectorAll(tvInputsQuery)
 }
 
-function saveOptimizationReport(reportData) {
+function saveOptimizationReport(optimizationResult, reportData) {
     let result = GetParametersFromWindow()
     let parameters = result.parameters
-    if (!optimizationResults.has(parameters) && parameters != "ParameterOutOfRange") {
-        ReportBuilder(reportData)
+    if (!optimizationHistory.has(parameters) && parameters != "ParameterOutOfRange") {
+        let error = ReportBuilder(reportData)
+        if (error != null) {
+            return error.message
+        }
         reportData.detailedParameters = result.detailedParameters
-        optimizationResults.set(parameters, reportData)
+        optimizationHistory.set(parameters, true)
+        optimizationResult.set(parameters, reportData)
         //Update Max Profit
         replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
         profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
         if (profit > maxProfit) {
             maxProfit = profit
         }
-        return ("Optimization param added to map: " + parameters + " Profit: " + optimizationResults.get(parameters).netProfit.amount)
-    } else if (optimizationResults.has(parameters)) {
+        return ("Optimization param added to map")
+    } else if (optimizationHistory.has(parameters)) {
         return ("Optimization param already exist " + parameters)
     } else {
         return ("Parameter is out of range, omitted")
@@ -526,7 +564,7 @@ function saveOptimizationReport(reportData) {
 }
 
 // Reset & Optimize (tvParameterIndex)th parameter to starting value  
-async function ResetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize) {
+async function resetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize) {
     ChangeTvInput(tvInputs[tvParameterIndex], resetValue)
     await sleep(300)
     await OptimizeParams(tvParameterIndex, stepSize)
@@ -542,7 +580,7 @@ async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
     let previousStepSize = userNumericInputs[index - 1].stepSize
     let currentStepSize = userNumericInputs[index].stepSize
     //Reset and optimze inner
-    await ResetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
+    await resetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration
     if (rangeIteration != ranges[index] - 1) {
         await OptimizeParams(currentTvParameterIndex, currentStepSize)
@@ -640,6 +678,10 @@ function ReportBuilder(reportData) {
     //reportData.avgerageBarsInTrades = reportDataSelector[6].querySelector(valueSelector).innerText
 }
 
+// Mutates (or adds) top-level fields on your global report object
+function updateReport(updates) {
+    reportDataMessage = { ...reportDataMessage, ...updates };
+}
 
 function implies(a, b) {
     return !a || b;

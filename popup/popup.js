@@ -2,6 +2,7 @@
 const lockOptimizeButton = 'lockOptimizeButton'
 const unlockOptimizeButton = 'unlockOptimizeButton'
 const getTvParameters = 'getTvParameters'
+const reportUpdated = 'reportUpdated'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
@@ -153,6 +154,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           chrome.storage.local.set({ "tvParameters": tvParameters });
           _resolveFirstFill();
           break;
+
+        case reportUpdated:
+          let strategyId = popupAction.message.report.strategyID
+          let maxProfit = popupAction.message.report.maxProfit
+          UpdateStrategyReportRow(strategyId, maxProfit)
+          break;
+
       }
     }
   })();
@@ -190,7 +198,7 @@ async function createReportTable() {
           "symbol": value.symbol,
           "timePeriod": value.timePeriod,
           "parameters": value.parameters,
-          "maxprofit": value.maxProfit,
+          "maxProfit": value.maxProfit,
           "detail": reportDetailHtml(value.strategyID)
         }
         reportData.push(report)
@@ -455,14 +463,14 @@ async function autoFillParameters(tvParameters) {
       let pickIdx = null;
       if (
         userIdx != null &&
-        tvParameters[userIdx]?.type !== ParameterType.DatePicker && 
+        tvParameters[userIdx]?.type !== ParameterType.DatePicker &&
         userIdx < tvParameters.length
       ) {
         pickIdx = userIdx;
       } else if (autoFillIndices[i] != null) {
         pickIdx = autoFillIndices[i];
       }
-      
+
       // apply it
       if (pickIdx != null) {
         sel.value = pickIdx;
@@ -1025,7 +1033,7 @@ async function CreateUserInputsMessage(userInputs) {
     }
     // free user & autoFill feature is not active
     if (!isPlusUser && firstAutoFillOptions <= 1) {
-      if (i >= numericTvParameters.length){
+      if (i >= numericTvParameters.length) {
         return new Error("missing-parameters")
       }
       parameterName = null
@@ -1090,6 +1098,25 @@ async function CreateUserInputsMessage(userInputs) {
   return null
 }
 
+function UpdateStrategyReportRow(strategyId, maxProfit) {
+  let row = document.querySelector(`[data-uniqueid*='${strategyId}']`)
+  if (row == null) {
+    // refresh table from scratch due to first iteration is missing
+    createReportTable()
+    return
+  }
+
+  let $table = $('#table')
+  $table.bootstrapTable('updateByUniqueId', {
+    id: strategyId,
+    row: {
+      "maxProfit": maxProfit
+    }
+  })
+  row = document.querySelector(`[data-uniqueid*='${strategyId}']`)
+  flashUpdatedRow(row)
+}
+
 async function storageIsPlusUser() {
   let isPlusUserObj = await chrome.storage.local.get("isPlusUser")
   return isPlusUserObj?.isPlusUser
@@ -1136,6 +1163,7 @@ function getNumericTvParameters() {
     if (className.includes("cell") && className.includes("first")) {
       let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
       let numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
+      let stringParameter = parameterNameElements[i].nextSibling?.querySelector("input[maxlength*='4096' i]");
       let dateParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='datePicker' i]");
       let colorParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='colorPicker' i]");
 
@@ -1152,6 +1180,8 @@ function getNumericTvParameters() {
         parameterIndex++
       } else if (colorParameter != null) {
         parameterIndex++
+      }else if (stringParameter != null){
+        parameterIndex++
       }
     } // handle checkboxes
     else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
@@ -1160,6 +1190,32 @@ function getNumericTvParameters() {
   }
 
   return numericTvParameters
+}
+
+function flashUpdatedRow(row) {
+  // 1) Cancel any existing flash animation on this row
+  if (row._flashAnim) {
+    row._flashAnim.cancel();
+  }
+
+  // 2) Kick off a new background-color animation
+  const anim = row.animate([
+    { backgroundColor: '#82caff' },   // start color
+    { backgroundColor: 'transparent' } // end
+  ], {
+    duration: 1000,
+    easing: 'ease-out',
+    fill: 'forwards'
+  });
+
+  // 3) Clean up when it finishes or is cancelled
+  anim.onfinish = anim.oncancel = () => {
+    row.style.backgroundColor = '';
+    delete row._flashAnim;
+  };
+
+  // 4) Store the animation on the row so we can cancel it next time
+  row._flashAnim = anim;
 }
 
 // plus membership

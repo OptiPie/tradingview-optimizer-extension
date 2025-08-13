@@ -25,6 +25,7 @@ async function getTvParameters() {
         if (className.includes("cell") && className.includes("first")) {
             let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
             let numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
+            let stringParameter = parameterNameElements[i].nextSibling?.querySelector("input[maxlength*='4096' i]");
             let dateParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='datePicker' i]");
             let colorParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='colorPicker' i]");
             
@@ -46,12 +47,19 @@ async function getTvParameters() {
                     name: parameterName
                 });
             } else if (colorParameter != null){
-                // treat color picker as dateParameter as both not supported atm
+                // treat color picker as dateParameter as not supported atm
+                tvParameters.push({
+                    type: ParameterType.DatePicker,
+                    name: parameterName
+                });
+            }else if (stringParameter != null){
+                // treat string parameter as dateParameter as not supported atm
                 tvParameters.push({
                     type: ParameterType.DatePicker,
                     name: parameterName
                 });
             }
+            
         } // handle checkboxes
         else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
             tvParameters.push({

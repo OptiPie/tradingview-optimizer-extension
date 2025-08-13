@@ -1,5 +1,15 @@
 var isInjected = InjectScriptIntoDOM()
 
+/*
+chrome.storage.local.clear(() => {
+  if (chrome.runtime.lastError) {
+    console.error('Error clearing chrome.storage.local:', chrome.runtime.lastError);
+  } else {
+    console.log('All chrome.storage.local data has been cleared.');
+  }
+});
+*/
+
 var sleepEventCallback = (event) => {
   if (event.source !== window || event.data.type !== "SleepEventStart") {
     return;
@@ -17,43 +27,80 @@ var sleepEventCallback = (event) => {
 
 // Handle Optimization Report coming from script.js
 var reportDataEventCallback = (event) => {
-  var message = event.data
-  if (message.type === "ReportDataEvent") {
-    // Unlock optimize button
-    chrome.runtime.sendMessage({
-      popupAction: {
-        event: "unlockOptimizeButton"
-      }
-    });
-    var reportKey = "report-data-" + message.detail.strategyID
-    if (Object.keys(message.detail.reportData).length > 0) {
-      chrome.storage.local.set({ [reportKey]: message.detail }, function () {
-        chrome.runtime.sendMessage({
-          notify: {
-            type: "success",
-            content: "Optimization Completed Successfully & Added to Reports"
+  var message = event.data;
+  if (message.type !== "ReportDataEvent") return;
+
+  const report = message.detail;
+  const reportKey = "report-data-" + report.strategyID;
+  const status = report.status;
+  const isFinal = report.isFinal
+  const newRow = report.reportData;
+
+  switch (status) {
+    case "IN_PROGRESS":
+      // Merge each chunk into the existing reportData object, or initialize if missing/empty
+      if (newRow && Object.keys(newRow).length > 0) {
+        chrome.storage.local.get([reportKey], items => {
+          let existingReport = items[reportKey];
+
+          if (existingReport) {
+            let existingData = existingReport.reportData;
+            // If existingData is a non‐empty object, merge newRow into it
+            if (existingData && Object.keys(existingData).length > 0) {
+              existingReport.reportData = {
+                ...existingData,
+                ...newRow
+              };
+              existingReport.maxProfit = report.maxProfit
+            } else {
+              // If empty or undefined, just take newRow as the base
+              existingReport.reportData = { ...newRow };
+              existingReport.maxProfit = report.maxProfit
+            }
+          } else {
+            // No report yet → initialize with the full incoming report object
+            existingReport = report;
           }
+
+          chrome.storage.local.set({ [reportKey]: existingReport });
+
+          chrome.runtime.sendMessage({
+            popupAction: {
+              event: "reportUpdated",
+              message: {
+                report: report
+              }
+            }
+          });
         });
-      })
-    } else {
+      }
+      break;
+
+
+    case "FINISHED":
+      // Optimization is fully done → unlock & success notify
+      chrome.runtime.sendMessage({
+        popupAction: { event: "unlockOptimizeButton" }
+      });
       chrome.runtime.sendMessage({
         notify: {
-          type: "warning",
-          content: "Optimization Failed - Try again and follow the steps carefully"
+          type: "success",
+          content: "Optimization Completed Successfully & Added to Reports"
         }
       });
-    }
-    
-    window.removeEventListener("message", sleepEventCallback);
-    window.removeEventListener("message", reportDataEventCallback);
+      // remove listeners after final optimization for multi-time frame support 
+      if (isFinal) {
+        window.removeEventListener("message", sleepEventCallback);
+        window.removeEventListener("message", reportDataEventCallback);
+      }
+      break;
   }
 }
 
-window.addEventListener("message", sleepEventCallback, false)
-
-// Add ReportData Callback if script.js injected successfully
+// Add callbacks if script.js injected successfully
 if (isInjected) {
   window.addEventListener("message", reportDataEventCallback, false);
+  window.addEventListener("message", sleepEventCallback, false);
   // Lock optimize button to prevent accidental multiple submissions
   chrome.runtime.sendMessage({
     popupAction: {
