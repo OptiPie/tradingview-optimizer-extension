@@ -4,6 +4,17 @@ title: "News"
 ---
 
 ## What's New!
+### Real-time Report Monitoring & Instant Analysis!
+> No delays. No data loss. Analyze instantly.
+
+- Multi-time Frame optimization bug fixed.
+- Optimization performance is improved.
+- Improved support for non-English languages.
+
+### Version: v1.4.0
+
+## Previous Updates
+
 ### Start Optimizing Selectable and Checkbox Inputs 
 > Checkbox and Selectable inputs are now optimizable, exclusive to Plus users.
 
@@ -14,9 +25,7 @@ title: "News"
 - **Convenient and Cleaner Report Summary** for Plus users.
 - Optimization speed has been updated and balanced.  
 
-### Latest Version: v1.3.4
-
-## Previous Updates
+### Latest Version: v1.3.0 - v1.3.4
 
 ### Version: v1.2.7
 
@@ -27,13 +36,13 @@ Stay tuned for **Upcoming release**!
 
 **Selectable** and **Checkbox** inputs will be available for optimization, exclusive to **Plus members**
 
-### Version: v1.2.5, v1.2.6
+### Version: v1.2.5 - v1.2.6
 
 - **Know how big your optimization will be**, number of iterations for given parameters are dynamically shown at the top-right corner.
 - Fixed an issue if optimization report has a missing field, do not fail to capture rest of the data for that step.
 - Fixed an issue where some of non English languages were not working properly with OptiPie.
 
-### Version: v1.2.2, v1.2.3, v1.2.4
+### Version: v1.2.2 - v1.2.4
 
 - Due to recent TradingView updates, OptiPie was failing to run an optimization.
 

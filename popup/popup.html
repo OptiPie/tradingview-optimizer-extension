@@ -92,39 +92,39 @@
         </div>
         <div class="container" id="parameters">
           <div id="wrapper">
-          <div class="row g-2" id="header">
-            <div class="col-8">
-              <label for="inputStart" class="form-label">1. Parameter Inputs</label>
-              <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
-                <option selected disabled>Select Parameter</option>
-              </select>
-            </div>
-            <div class="col-4">
-              <label for="inputStep" class="form-label">Step Size</label>
-            </div>
-          </div>
-          <div class="row g-2 pb-2" id="content">
-            <div class="col-8">
-              <div class="form-check" id="divCheckbox">
-                <input class="form-check-input" type="checkbox" id="inputCheckbox" value="" checked>
-                <label class="form-check-label" for="inputCheckbox">
-                  Default checkbox
-                </label>
-              </div>
-              <div class="btn-group select-parameter" id="divSelectParameter">
-                <select multiple="multiple" class="sm" id="selectParameter">
-                  <option disabled>Select</option>
+            <div class="row g-2" id="header">
+              <div class="col-8">
+                <label for="inputStart" class="form-label">1. Parameter Inputs</label>
+                <select class="form-select-sm" aria-label="Select Parameter" id="selectAutoFill">
+                  <option selected disabled>Select Parameter</option>
                 </select>
               </div>
-              <div class="input-group input-group">
-                <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">
-                <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">
+              <div class="col-4">
+                <label for="inputStep" class="form-label">Step Size</label>
               </div>
             </div>
-            <div class="col-4">
-              <input type="text" aria-label="Step" placeholder="Step" class="form-control" id="inputStep">
+            <div class="row g-2 pb-2" id="content">
+              <div class="col-8">
+                <div class="form-check" id="divCheckbox">
+                  <input class="form-check-input" type="checkbox" id="inputCheckbox" value="" checked>
+                  <label class="form-check-label" for="inputCheckbox">
+                    Default checkbox
+                  </label>
+                </div>
+                <div class="btn-group select-parameter" id="divSelectParameter">
+                  <select multiple="multiple" class="sm" id="selectParameter">
+                    <option disabled>Select</option>
+                  </select>
+                </div>
+                <div class="input-group input-group">
+                  <input type="text" aria-label="Start" placeholder="Start" class="form-control" id="inputStart">
+                  <input type="text" aria-label="End" placeholder="End" class="form-control" id="inputEnd">
+                </div>
+              </div>
+              <div class="col-4">
+                <input type="text" aria-label="Step" placeholder="Step" class="form-control" id="inputStep">
+              </div>
             </div>
-          </div>
           </div>
         </div>
 
@@ -154,7 +154,7 @@
           </div>
           <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
             data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-            data-buttons-prefix="btn-sm btn" data-search-align="left">
+            data-buttons-prefix="btn-sm btn" data-search-align="left" data-unique-id="strategyID">
             <thead>
               <tr>
                 <th data-field="strategyID" data-visible="false">ID</th>
@@ -165,7 +165,7 @@
                 <th data-field="timePeriod" data-sortable="false">Period</th>
                 <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
                 </th>
-                <th data-field="maxprofit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
+                <th data-field="maxProfit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
                 <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
                   data-events="openReportDetail">Report Detail</th>
               </tr>
