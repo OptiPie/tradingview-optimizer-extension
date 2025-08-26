@@ -4,6 +4,14 @@ title: "Try OptiPie Free"
 permalink: /try-optipie/
 description: "Easily optimize TradingView strategies. Store reports & analyze results with a simple UI. Real-time Report Monitoring & Instant Analysis!"
 classes: wide
+
+feature_row:
+  - title: "Optimize in minutes"
+    excerpt: "Skip the busywork. Let OptiPie do the runs for you."
+  - title: "Store reports"
+    excerpt: "Save and revisit optimization results whenever you need."
+  - title: "Simple analysis"
+    excerpt: "Clean UI to review results and decide faster."
 ---
 
 # Easily optimize TradingView strategies — **Free**
@@ -22,30 +30,12 @@ classes: wide
   </a>
 </p>
 
-{% include feature_row
-  features="
-  [
-    { 'title':'Optimize in minutes', 'excerpt':'Skip the busywork. Let OptiPie do the runs for you.' },
-    { 'title':'Store reports', 'excerpt':'Save and revisit optimization results whenever you need.' },
-    { 'title':'Simple analysis', 'excerpt':'Clean UI to review results and decide faster.' }
-  ]"
-%}
+{% include feature_row %}
 
 <p class="text-center" style="margin-top:1rem;">
   Need more power later? <a href="/plus/">Try OptiPie Plus</a>.
 </p>
 
-<!-- Optional visual (keeps MM look). Put your GIF/shot in assets and uncomment. -->
-{%
-  comment
-%}
-{% include figure image_path="/assets/images/optipie-demo.gif"
-   alt="OptiPie demo"
-   caption=" "
-   width="900" %}
-{%
-  endcomment
-%}
 <script>
 function gtag_report_conversion(url) {
   var callback = function () {
