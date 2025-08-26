@@ -47,3 +47,24 @@ classes: wide
 <p style="text-align:center;margin:1.75rem 0 0;font-size:.95rem;color:#666;">
   Need more power later? <a href="/plus/">Try OptiPie Plus</a>.
 </p>
+
+
+
+<!-- Event snippet for Install Click(Free) conversion page
+In your html page, add the snippet and call gtag_report_conversion when someone clicks on the chosen link or button. -->
+<script>
+function gtag_report_conversion(url) {
+  var callback = function () {
+    if (typeof(url) != 'undefined') {
+      window.location = url;
+    }
+  };
+  gtag('event', 'conversion', {
+      'send_to': 'AW-17495457166/quONCOjEso4bEI77vZZB',
+      'value': 0.0,
+      'currency': 'TRY',
+      'event_callback': callback
+  });
+  return false;
+}
+</script>
