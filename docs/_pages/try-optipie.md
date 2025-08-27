@@ -1,5 +1,6 @@
 ---
 layout: single
+title: ""
 permalink: /try-optipie/
 description: "Easily optimize TradingView strategies. Store reports & analyze results with a simple UI. Real-time Report Monitoring & Instant Analysis!"
 classes: wide
@@ -15,8 +16,9 @@ Easily optimize strategies, save reports — analyze them in seconds.
   <a id="cta-install"
      class="btn btn--inverse btn--large"
      href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
-     onclick="return gtag_report_conversion(this.href)">
-    <i class="fas fa-download"></i> Try Now
+     onclick="return gtag_report_conversion(this.href)"
+     style="background-color:#fd0;border:none;">
+    <i class="fas fa-download"></i> Download for Free
   </a>
 </p>
 
@@ -24,7 +26,7 @@ Easily optimize strategies, save reports — analyze them in seconds.
    image_path="/assets/images/demo.gif"
    alt="OptiPie demo"
    caption=""
-   width="60"
+   width="70%"
    justify-content="center" %}
 
 :arrow_forward: Optimize strategies in seconds.  
