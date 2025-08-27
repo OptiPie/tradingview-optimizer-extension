@@ -27,9 +27,13 @@ Easily optimize strategies, save reports — analyze them in seconds.
 ![OptiPie demo]({{ '/assets/images/demo.gif' | relative_url }}){: style="max-width:70%; height:auto;" }
 
 #### :arrow_forward: Optimize strategies in seconds.
+{: style="margin-top:.8rem;" }
 #### :dart: Store and manage optimization reports.  
+{: style="margin-top:.8rem;" }
 #### :unlock: Analyze results with ease.
+{: style="margin-top:.8rem;" }
 #### 💡 Limitless input range, fine-tune any strategy. 
+{: style="margin-top:.8rem;" }
 
 <p class="text-start">
   <a id="cta-install"
