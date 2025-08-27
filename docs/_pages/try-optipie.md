@@ -20,7 +20,7 @@ Easily optimize strategies, save reports — analyze them in seconds.
      href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
      onclick="return gtag_report_conversion(this.href)"
      style="background-color:#fd0;border:none;">
-    <i class="fas fa-download"></i> Chrome Extension - Download for Free
+    <i class="fas fa-download"></i> Chrome Extension - Download Free
   </a>
 </p>
 
@@ -41,7 +41,7 @@ Easily optimize strategies, save reports — analyze them in seconds.
      href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
      onclick="return gtag_report_conversion(this.href)"
      style="background-color:#fd0;border:none;">
-    <i class="fas fa-chart-line"></i> Start Optimizing Now - Free
+    <i class="fas fa-chart-line fa-lg"></i> Start Optimizing Now - Free
   </a>
 </p>
 
