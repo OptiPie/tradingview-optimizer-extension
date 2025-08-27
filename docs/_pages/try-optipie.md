@@ -6,7 +6,7 @@ description: "Easily optimize TradingView strategies. Store reports & analyze re
 classes: wide
 ---
 
-## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:72px;margin-right:8px;vertical-align:middle;" } TradingView Optimizer Extension
+## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:72px;margin-right:8px;vertical-align:middle;" } TradingView Optimizer
 {: style="margin-top:0.5rem;margin-bottom:0.5rem;" }
 
 
@@ -20,15 +20,26 @@ Easily optimize strategies, save reports — analyze them in seconds.
      href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
      onclick="return gtag_report_conversion(this.href)"
      style="background-color:#fd0;border:none;">
-    <i class="fas fa-download"></i> Download for Free
+    <i class="fas fa-download"></i> Chrome Extension - Download for Free
   </a>
 </p>
 
 ![OptiPie demo]({{ '/assets/images/demo.gif' | relative_url }}){: style="max-width:70%; height:auto;" }
 
-:arrow_forward: Optimize strategies in seconds.  
-:dart: Store and manage optimization reports.  
-:unlock: Analyze results with a simple UI.
+#### :arrow_forward: Optimize strategies in seconds.
+#### :dart: Store and manage optimization reports.  
+#### :unlock: Analyze results with ease.
+#### 💡 Limitless input range, fine-tune any strategy. 
+
+<p class="text-start">
+  <a id="cta-install"
+     class="btn btn--inverse btn--large"
+     href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
+     onclick="return gtag_report_conversion(this.href)"
+     style="background-color:#fd0;border:none;">
+    <i class="fas fa-download"></i> Start Optimizing Now - Free
+  </a>
+</p>
 
 
 <script>
