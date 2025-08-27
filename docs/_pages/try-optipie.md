@@ -5,25 +5,20 @@ description: "Easily optimize TradingView strategies. Store reports & analyze re
 classes: wide
 ---
 
-<p align="left">
-  <a href="https://optipie.app">
-      <img src="/assets/images/optipie_app_logo_lshift2.png" alt="OptiPie" title="OptiPie" align="left"  />
-  </a>
-  <h1>TradingView Optimizer Extension   </h1>
-</p>
+<img src="/assets/images/optipie_app_logo_lshift2.png" alt="OptiPie" title="OptiPie"  />
+
+## TradingView Optimizer Extension 
 
 Easily optimize strategies, save reports — analyze them in seconds.
 
-Real-time monitoring, instant insights.
-
-### Download
+**Real-time monitoring, instant insights.**
 
 <p class="text-start">
   <a id="cta-install"
      class="btn btn--inverse btn--large"
      href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
      onclick="return gtag_report_conversion(this.href)">
-    <i class="fa-solid fa-download"></i> Try Now
+    <i class="fas fa-download"></i> Try Now
   </a>
 </p>
 
