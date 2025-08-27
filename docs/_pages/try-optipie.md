@@ -1,41 +1,41 @@
 ---
 layout: single
-title: "Easily optimize TradingView Strategies"
 permalink: /try-optipie/
 description: "Easily optimize TradingView strategies. Store reports & analyze results with a simple UI. Real-time Report Monitoring & Instant Analysis!"
 classes: wide
 ---
 
-![OptiPie]({{ '/assets/images/optipie_app_logo_lshift2.png' | relative_url }})
-
-<p class="page__lead">
-  Store optimization reports and analyze results with a simple UI.<br>
-  <strong>Real-time Report Monitoring &amp; Instant Analysis!</strong>
+<p align="left">
+  <a href="https://optipie.app">
+      <img src="/assets/images/optipie_app_logo_lshift2.png" alt="OptiPie" title="OptiPie" align="left"  />
+  </a>
+  <h1>TradingView Optimizer Extension   </h1>
 </p>
 
-<p class="text-center">
+<p class="page__lead">
+  Easily optimize strategies, save reports — analyze them in seconds.<br>
+  <strong>Real-time monitoring, instant insights.</strong>
+</p>
+
+<p class="text-start">
   <a id="cta-install"
-     class="btn btn--primary btn--large"
+     class="btn btn--inverse btn--large"
      href="https://chromewebstore.google.com/detail/optipie-tradingview-optim/fdndgpohalkoklpaopahkblpomlhmifm"
      onclick="return gtag_report_conversion(this.href)">
-    Try OptiPie Free
+    <i class="fa-solid fa-download"></i> Try Now
   </a>
 </p>
 
 {% include figure
-   image_path="/assets/images/optipie-demo.gif"
+   image_path="/assets/images/demo.gif"
    alt="OptiPie demo"
    caption=""
    width="60"
    justify-content="center" %}
 
-- :arrow_forward: Optimize strategies in seconds.  
-- :dart: Store and manage optimization reports.  
-- :unlock: Analyze results with a simple UI.
-
-<p class="text-center" style="margin-top: .5rem;">
-  Need more power later? <a href="/plus/">Try OptiPie Plus</a>.
-</p>
+:arrow_forward: Optimize strategies in seconds.  
+:dart: Store and manage optimization reports.  
+:unlock: Analyze results with a simple UI.
 
 
 <script>
