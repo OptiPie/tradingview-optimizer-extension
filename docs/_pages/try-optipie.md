@@ -12,10 +12,11 @@ classes: wide
   <h1>TradingView Optimizer Extension   </h1>
 </p>
 
-<p class="page__lead">
-  Easily optimize strategies, save reports — analyze them in seconds.<br>
-  <strong>Real-time monitoring, instant insights.</strong>
-</p>
+Easily optimize strategies, save reports — analyze them in seconds.
+
+Real-time monitoring, instant insights.
+
+### Download
 
 <p class="text-start">
   <a id="cta-install"
