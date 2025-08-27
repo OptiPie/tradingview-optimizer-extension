@@ -6,7 +6,7 @@ description: "Easily optimize TradingView strategies. Store reports & analyze re
 classes: wide
 ---
 
-## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:36px;margin-right:8px;vertical-align:middle;" } TradingView Optimizer Extension
+## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:36px;margin-right:8px;vertical-align:middle;" } TradingView Optimizer Extension {: style="margin-top:0.5rem" }
 
 Easily optimize strategies, save reports — analyze them in seconds.
 
@@ -22,12 +22,7 @@ Easily optimize strategies, save reports — analyze them in seconds.
   </a>
 </p>
 
-{% include figure
-   image_path="/assets/images/demo.gif"
-   alt="OptiPie demo"
-   caption=""
-   width="70%"
-   justify-content="center" %}
+![OptiPie demo]({{ '/assets/images/demo.gif' | relative_url }}){: .align-center style="max-width:70%; height:auto;" }
 
 :arrow_forward: Optimize strategies in seconds.  
 :dart: Store and manage optimization reports.  
