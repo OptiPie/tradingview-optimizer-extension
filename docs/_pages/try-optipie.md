@@ -24,7 +24,11 @@ Easily optimize strategies, save reports — analyze them in seconds.
   </a>
 </p>
 
-![OptiPie demo]({{ '/assets/images/demo.gif' | relative_url }}){: style="max-width:70%; height:auto;" }
+<video autoplay muted loop playsinline width="70%">
+  <source src="{{ '/assets/videos/optipie_try_ad.mp4' | relative_url }}" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
 
 #### :arrow_forward: Optimize strategies in seconds.
 {: style="margin-top:.8rem;" }
