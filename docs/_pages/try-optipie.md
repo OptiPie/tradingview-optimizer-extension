@@ -6,7 +6,7 @@ description: "Easily optimize TradingView strategies. Store reports & analyze re
 classes: wide
 ---
 
-## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:72px;margin-right:8px;vertical-align:middle;" } TradingView Optimizer {: #tradingview-optimizer }
+## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:72px;margin-right:8px;vertical-align:middle;"} TradingView Optimizer {: #tradingview-optimizer }
 {: style="margin-top:0.5rem;margin-bottom:0.5rem;" }
 
 
@@ -33,9 +33,9 @@ Easily optimize strategies, save reports — analyze them in seconds.
 {: style="margin-top:.8rem;" }
 #### :dart: Store and manage optimization reports.  
 {: style="margin-top:.8rem;" }
-#### :unlock: Analyze results with ease.
+#### 💡 Analyze results with ease.
 {: style="margin-top:.8rem;" }
-#### 💡 Limitless input range, fine-tune any strategy. 
+#### :unlock: Limitless input range, fine-tune any strategy. 
 {: style="margin-top:.8rem;" }
 
 <p class="text-start" style="margin-top:2rem;">
