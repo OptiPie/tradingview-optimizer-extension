@@ -6,8 +6,12 @@ description: "Easily optimize TradingView strategies. Store reports & analyze re
 classes: wide
 ---
 
-## ![OptiPie Logo](/assets/images/optipie_app_logo_lshift2.png){: style="height:72px;margin-right:8px;vertical-align:middle;"} TradingView Optimizer {: #tradingview-optimizer }
-{: style="margin-top:0.5rem;margin-bottom:0.5rem;" }
+<h2 id="tradingview-optimizer" style="margin-top:0.5rem;margin-bottom:0.5rem;">
+  <img src="/assets/images/optipie_app_logo_lshift2.png"
+       alt="OptiPie Logo"
+       style="height:72px;margin-right:8px;vertical-align:middle;">
+  TradingView Optimizer
+</h2>
 
 
 Easily optimize strategies, save reports — analyze them in seconds.
