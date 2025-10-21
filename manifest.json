@@ -1,7 +1,7 @@
 {
   "name": "OptiPie TradingView Optimizer",
   "description": "TradingView Parameter Optimizer as an extension",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "manifest_version": 3,
   "icons": {
     "16": "images/icons/optipie16.png",
