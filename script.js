@@ -475,7 +475,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        let element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
+        let element = document.querySelector("div[class*=backtesting i] div[class*=deephistory i]")
         let options = {
             childList: true,
             subtree: true,
