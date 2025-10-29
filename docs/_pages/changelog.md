@@ -10,8 +10,9 @@ title: "News"
 - Multi-time Frame optimization bug fixed.
 - Optimization performance is improved.
 - Improved support for non-English languages.
+- Keeping up with the TradingView UI updates to keep extension functional.
 
-### Version: v1.4.0
+### Version: v1.4.2
 
 ## Previous Updates
 
