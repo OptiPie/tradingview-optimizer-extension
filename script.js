@@ -475,7 +475,11 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        let element = document.querySelector("div[class*=backtesting i][class*=deep-history i]")
+        let element = document.querySelector("div[class*=backtesting i] div[class*=deephistory i]")
+        if (element == null) {
+            // fallback scenario for selector naming convention
+            element = document.querySelector("div[class*=backtesting i] div[class*=deep-history i]")
+        }
         let options = {
             childList: true,
             subtree: true,
@@ -500,7 +504,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     if (finalOptimizationResult?.timedOut) {
         // try to save if optimization data is the same as previous, after timeout
-        let isReportDataEmpty = document.querySelector("div[class*='backtesting deep-history' i] div[class*='emptyStateIcon' i]") != null
+        let isReportDataEmpty = document.querySelector("div[class*='emptyStateIcon' i]") != null
         if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
             saveOptimizationReport(optimizationResult, reportData)
         }
