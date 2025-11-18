@@ -23,7 +23,7 @@ async function getTvParameters() {
 
         // handle selectable and numeric parameters
         if (className.includes("cell") && className.includes("first")) {
-            let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("span[data-role='listbox']");
+            let selectableParameter = parameterNameElements[i].nextSibling?.querySelector("button[role='combobox']");
             let numericParameter = parameterNameElements[i].nextSibling?.querySelector("input[inputmode*='numeric' i]");
             let stringParameter = parameterNameElements[i].nextSibling?.querySelector("input[maxlength*='4096' i]");
             let dateParameter = parameterNameElements[i].nextSibling?.querySelector("div[class*='datePicker' i]");
