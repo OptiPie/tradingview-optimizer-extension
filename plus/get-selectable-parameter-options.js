@@ -1,11 +1,11 @@
 var parameterIndex = document.querySelector("#get-selectable-parameter-key").getAttribute("parameter-index")
 
-var selectableParameter = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div")[parameterIndex]
-.nextSibling.querySelector("span[data-role='listbox']") 
+var selectableParameterInput = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div")[parameterIndex]
+.nextSibling.querySelector("button[role='combobox']").parentElement.parentElement
 
-var reactFiberKey = Object.keys(selectableParameter).find(key => key.includes("reactFiber"));
+var reactPropsKey = Object.keys(selectableParameterInput).find(key => key.includes("reactProps"));
 
-var options = selectableParameter[reactFiberKey].return.pendingProps.items
+var options = selectableParameterInput[reactPropsKey].children.props.items
 
 // Notify get-parameters.js about selectable-parameter key
 window.postMessage({ type: "GetSelectableParameterOptionsEvent", options: options }, "*");
