@@ -7,12 +7,13 @@ title: "News"
 ### Real-time Report Monitoring & Instant Analysis!
 > No delays. No data loss. Analyze instantly.
 
-- Multi-time Frame optimization bug fixed.
+- Selectable parameters bug is fixed.
+- Multi-time Frame optimization bug is fixed.
 - Optimization performance is improved.
 - Improved support for non-English languages.
 - Keeping up with the TradingView UI updates to keep extension functional.
 
-### Version: v1.4.2
+### Version: v1.4.3
 
 ## Previous Updates
 

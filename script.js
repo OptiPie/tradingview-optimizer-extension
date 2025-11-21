@@ -1,6 +1,6 @@
 // Select all input values
 var tvInputsContainer = "div[data-name='indicator-properties-dialog'] div[class*='content' i]"
-var tvInputsQuery = `${tvInputsContainer} input:not([aria-activedescendant*='time_input' i]), ${tvInputsContainer} span[role*='button' i], ${tvInputsContainer} div[data-name*='color' i]`
+var tvInputsQuery = `${tvInputsContainer} input:not([aria-activedescendant*='time_input' i]), ${tvInputsContainer} button[role*='combobox' i], ${tvInputsContainer} div[data-name*='color' i]`
 var tvInputs = document.querySelectorAll(tvInputsQuery)
 // user parameters and time frames
 var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
@@ -245,11 +245,21 @@ async function Process() {
                 // renew tv inputs
                 tvInputs = document.querySelectorAll(tvInputsQuery)
                 // open up dropdown
-                tvInputs[parameterIndex].querySelector("span").click()
+                tvInputs[parameterIndex].click()
+                
                 await sleep(500)
-                // click on dropdown option
-                document.querySelector(`div[class*=menuBox i] div[id*='${option}' i]`).click()
-
+                let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
+                let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
+                
+                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children
+                // click on dropdown
+                for (let i = 0; i < ddOptions.length; i++) {
+                    const ddOptionVal = ddOptions[i].props.item.value
+                    if (ddOptionVal === option) {
+                        document.getElementById(ddOptions[i].props.id).click()
+                        break
+                    }
+                }
                 await sleep(250)
             }
             if (nextFunction) {
