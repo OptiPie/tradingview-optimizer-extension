@@ -24,10 +24,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 
       switch (popupAction.event) {
         case reportUpdated:
-          if (popupAction.message.report.strategyID != strategyID){
-            // omit if strategyId does not match 
+          if (popupAction.message.report.strategyID != strategyID) {
+            // omit if strategyId does not match
             break;
           }
+          // Update progress spinner with live data
+          updateProgressSpinner(popupAction.message.report)
+
           for (const [key, value] of Object.entries(popupAction.message.report.reportData)) {
             let reportDetail = {
               "parameters": key,
@@ -68,14 +71,20 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 });
 
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
-  var timePeriodValue = Object.values(item)[0].timePeriod
-  var values = Object.values(item)[0].reportData
-  
+  var report = Object.values(item)[0]
+  var timePeriodValue = report.timePeriod
+  var values = report.reportData
+
   var detailedParameters = Object.values(values)[0].detailedParameters
   var timePeriod = document.querySelector("#timePeriod")
   timePeriod.textContent = timePeriodValue
   let isDeprecatedReportData = false;
 
+  setInterval(() => {
+    // Update progress spinner
+    updateProgressSpinner(report)
+  }, 3000);
+  
   for (const [key, value] of Object.entries(values)) {
     if (value.averageTrade != null && value.averageTrade.amount != 0) {
       isDeprecatedReportData = true; // meaning it's old report data structure
@@ -238,4 +247,26 @@ function customSort(sortName, sortOrder, data) {
     }
     return 0
   })
+}
+
+// Update progress spinner based on report data
+function updateProgressSpinner(report) {
+  const spinner = document.querySelector('.progress-spinner')
+
+  if (!spinner) return
+
+  const status = report.status
+  const lastUpdated = report.lastUpdated || 0
+  const now = Date.now()
+  const twoMinutes = 2 * 60 * 1000 // 2 minutes in milliseconds
+
+  // If last update was over 2 minutes ago, treat as completed (stalled/abandoned)
+  const isStale = (now - lastUpdated) > twoMinutes
+  // Show spinner only when optimization is in progress AND recently updated
+  if (status === 'IN_PROGRESS' && !isStale) {
+    spinner.style.display = 'inline-flex'
+  } else {
+    // Hide spinner for completed, stale, or any other status
+    spinner.style.display = 'none'
+  }
 }

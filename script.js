@@ -6,7 +6,7 @@ var tvInputs = document.querySelectorAll(tvInputsQuery)
 var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
-var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not 
+var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not
 var maxProfit = -999999
 
 // reportDataMessage defined globally and initiated from start
@@ -77,7 +77,7 @@ async function Process() {
 
     //Wait for UserInputsEvent Callback
     await sleep(750)
-    // sort userInputs before starting optimization 
+    // sort userInputs before starting optimization
     userNumericInputs.sort(function (a, b) {
         return a.parameterIndex - b.parameterIndex;
     });
@@ -378,7 +378,7 @@ function prepareInitialReport() {
         "parameters": userInputsToString,
         "maxProfit": maxProfit, // NOT READY
         "reportData": [], // NOT READY
-        "status": null, // NOT READY
+        "status": null // NOT READY
     }
 
     return reportDataMessage
