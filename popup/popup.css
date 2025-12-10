@@ -104,6 +104,12 @@ body {
     transform: translateY(0);
 }
 
+#settings{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .3rem;
+}
+
 #skeleton-time-frame {
     display: none;
     position: absolute;
