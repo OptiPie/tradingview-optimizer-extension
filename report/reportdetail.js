@@ -8,6 +8,7 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 let strategyID = params.strategyID;
 var reportDetailData = [], reportDetailDataCSV = []
 var $table = $('#table')
+let progressSpinnerInterval = null
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -30,6 +31,12 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           }
           // Update progress spinner with live data
           updateProgressSpinner(popupAction.message.report)
+
+          // Clear interval if status is FINISHED
+          if (popupAction.message.report.status === 'FINISHED' && progressSpinnerInterval) {
+            clearInterval(progressSpinnerInterval)
+            progressSpinnerInterval = null
+          }
 
           for (const [key, value] of Object.entries(popupAction.message.report.reportData)) {
             let reportDetail = {
@@ -80,7 +87,10 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   timePeriod.textContent = timePeriodValue
   let isDeprecatedReportData = false;
 
-  setInterval(() => {
+  // Show progress spinner immediately on page load
+  updateProgressSpinner(report)
+
+  progressSpinnerInterval = setInterval(() => {
     // Update progress spinner
     updateProgressSpinner(report)
   }, 3000);
@@ -268,5 +278,11 @@ function updateProgressSpinner(report) {
   } else {
     // Hide spinner for completed, stale, or any other status
     spinner.style.display = 'none'
+
+    // Clear interval if optimization is no longer in progress or stale
+    if (progressSpinnerInterval) {
+      clearInterval(progressSpinnerInterval)
+      progressSpinnerInterval = null
+    }
   }
 }
