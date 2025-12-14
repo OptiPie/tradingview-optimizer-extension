@@ -508,7 +508,6 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     });
 
     const p2 = new Promise((resolve, reject) => {
-        console.log(optimizationTimeout)
         setTimeout(() => {
             // expected error type, kind of warning
             observer.disconnect()
