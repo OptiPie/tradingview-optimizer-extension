@@ -8,6 +8,7 @@ var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
 var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not
 var maxProfit = -999999
+var optimizationTimeout = 15 * 1000; // default timeout in milliseconds
 
 // reportDataMessage defined globally and initiated from start
 var reportDataMessage;
@@ -60,6 +61,11 @@ async function Process() {
                 userInputs.push(parameter)
             }
             userTimeFrames = message.detail.timeFrames
+
+            // Extract settings and set optimization timeout
+            if (message.detail.settings?.isLongRunningOptimizations) {
+                optimizationTimeout = 60 * 1000; // 60 seconds
+            }
         }
     }
 
@@ -246,11 +252,11 @@ async function Process() {
                 tvInputs = document.querySelectorAll(tvInputsQuery)
                 // open up dropdown
                 tvInputs[parameterIndex].click()
-                
+
                 await sleep(500)
                 let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
                 let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
-                
+
                 let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children
                 // click on dropdown
                 for (let i = 0; i < ddOptions.length; i++) {
@@ -502,11 +508,12 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
     });
 
     const p2 = new Promise((resolve, reject) => {
+        console.log(optimizationTimeout)
         setTimeout(() => {
             // expected error type, kind of warning
             observer.disconnect()
             resolve({ timedOut: true })
-        }, 15 * 1000);
+        }, optimizationTimeout);
     });
 
     // Promise race the obvervation with 15 sec timeout in case of Startegy Test Overview window fails to load
