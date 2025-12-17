@@ -62,6 +62,11 @@ var reportDataEventCallback = (event) => {
             existingReport = report;
           }
 
+          // Update lastUpdated timestamp
+          const now = Date.now();
+          existingReport.lastUpdated = now;
+          report.lastUpdated = now;
+
           chrome.storage.local.set({ [reportKey]: existingReport });
 
           chrome.runtime.sendMessage({
@@ -76,8 +81,18 @@ var reportDataEventCallback = (event) => {
       }
       break;
 
-
     case "FINISHED":
+      // Mark existing report status as finished
+      chrome.storage.local.get([reportKey], items => {
+        let existingReport = items[reportKey];
+
+        const now = Date.now();
+        existingReport.lastUpdated = now;
+        existingReport.status = report.status;
+
+        chrome.storage.local.set({ [reportKey]: existingReport });
+      });
+
       // Optimization is fully done → unlock & success notify
       chrome.runtime.sendMessage({
         popupAction: { event: "unlockOptimizeButton" }
@@ -86,6 +101,15 @@ var reportDataEventCallback = (event) => {
         notify: {
           type: "success",
           content: "Optimization Completed Successfully & Added to Reports"
+        }
+      });
+      // send reportUpdate with 'FINISHED' status
+      chrome.runtime.sendMessage({
+        popupAction: {
+          event: "reportUpdated",
+          message: {
+            report: report
+          }
         }
       });
       // remove listeners after final optimization for multi-time frame support 
