@@ -7,13 +7,16 @@ title: "News"
 ### Real-time Report Monitoring & Instant Analysis!
 > No delays. No data loss. Analyze instantly.
 
+> Increase timeout for slow-loading stragies, through **Settings** 
+
+- Added progress spinner to show whether Optimization is still running or not.
 - Selectable parameters bug is fixed.
 - Multi-time Frame optimization bug is fixed.
 - Optimization performance is improved.
 - Improved support for non-English languages.
 - Keeping up with the TradingView UI updates to keep extension functional.
 
-### Version: v1.4.3
+### Version: v1.4.0 - v1.4.4
 
 ## Previous Updates
 

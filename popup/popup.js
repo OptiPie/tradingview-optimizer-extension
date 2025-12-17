@@ -23,6 +23,12 @@ const ParameterType = {
   DatePicker: "DatePicker" // not supported atm
 }
 
+// Get current settings from storage
+async function getSettings() {
+  const result = await chrome.storage.sync.get("settings");
+  return result?.settings || { isLongRunningOptimizations: false };
+}
+
 // Initialize popup html according to last user parameter count state
 async function initPopupParametersByState() {
   const { userParameterCount } = await new Promise((resolve) => {
@@ -117,6 +123,11 @@ optimize.addEventListener("click", async () => {
 
     return
   }
+
+  // Add settings to userInputs
+  const settings = await getSettings();
+  userInputs.settings = settings;
+
   chrome.storage.local.set({ "userInputs": userInputs });
 
   chrome.scripting.executeScript({
@@ -1389,5 +1400,47 @@ function eventPath(evt) {
 
   return [target].concat(getParents(target), window);
 }
+
+//#endregion
+
+//#region Settings Management
+
+// Initialize settings on popup load
+async function initializeSettings() {
+  const settings = await chrome.storage.sync.get("settings");
+  const isLongRunningOptimizations = settings?.settings?.isLongRunningOptimizations || false;
+
+  // Set checkbox state
+  const checkbox = document.getElementById("longRunningOptimizations");
+  if (checkbox) {
+    checkbox.checked = isLongRunningOptimizations;
+  }
+}
+
+// Save settings to chrome.storage.sync
+async function saveSettings(settingsObj) {
+  await chrome.storage.sync.set({ settings: settingsObj });
+}
+
+// Prevent settings dropdown from closing when clicking inside it
+const settingsDropdown = document.querySelector('#settingsDropdown + .dropdown-menu');
+if (settingsDropdown) {
+  settingsDropdown.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+}
+
+// Add event listener for long-running optimizations toggle
+const longRunningOptCheckbox = document.getElementById("longRunningOptimizations");
+if (longRunningOptCheckbox) {
+  longRunningOptCheckbox.addEventListener("change", async (event) => {
+    const currentSettings = await getSettings();
+    currentSettings.isLongRunningOptimizations = event.target.checked;
+    await saveSettings(currentSettings);
+  });
+}
+
+// Initialize settings when popup loads
+initializeSettings();
 
 //#endregion

@@ -104,6 +104,12 @@ body {
     transform: translateY(0);
 }
 
+#settings{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .3rem;
+}
+
 #skeleton-time-frame {
     display: none;
     position: absolute;
@@ -240,4 +246,27 @@ table#table tbody {
 
 .container-fluid.footer {
     font-size: 14px;
+}
+
+/* Settings Dropdown */
+#settingsDropdown {
+    cursor: pointer;
+}
+
+#settingsDropdown + .dropdown-menu {
+    min-width: auto;
+}
+
+#longRunningOptimizations.form-check-input {
+    width: 2.5em;
+    height: 1.25em;
+}
+
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+#settingsDropdown + .dropdown-menu .form-check-label {
+    width: fit-content;
 }
