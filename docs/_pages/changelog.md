@@ -7,7 +7,7 @@ title: "News"
 ### Real-time Report Monitoring & Instant Analysis!
 > No delays. No data loss. Analyze instantly.
 
-> Increase timeout for slow-loading stragies, through **Settings** 
+> Increase timeout for slow-loading strategies, through **Settings** 
 
 - **Keeping up with the TradingView UI updates to keep extension functional.**
 - Added progress spinner to show whether Optimization is still running or not.
