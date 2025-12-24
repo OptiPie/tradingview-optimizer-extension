@@ -9,14 +9,14 @@ title: "News"
 
 > Increase timeout for slow-loading stragies, through **Settings** 
 
+- **Keeping up with the TradingView UI updates to keep extension functional.**
 - Added progress spinner to show whether Optimization is still running or not.
 - Selectable parameters bug is fixed.
 - Multi-time Frame optimization bug is fixed.
 - Optimization performance is improved.
 - Improved support for non-English languages.
-- Keeping up with the TradingView UI updates to keep extension functional.
 
-### Version: v1.4.0 - v1.4.4
+### Version: v1.4.0 - v1.4.5
 
 ## Previous Updates
 
