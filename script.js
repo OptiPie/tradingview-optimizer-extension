@@ -491,10 +491,10 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        let element = document.querySelector("div[class*=backtesting i] div[class*=deephistory i]")
+        let element = document.querySelector("div[class*=backtesting i] div[class*=reportContainer i]")
         if (element == null) {
             // fallback scenario for selector naming convention
-            element = document.querySelector("div[class*=backtesting i] div[class*=deep-history i]")
+            element = document.querySelector("div[class*=backtesting i] div[class*=report-container i]")
         }
         let options = {
             childList: true,
