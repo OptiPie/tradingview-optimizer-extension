@@ -21,6 +21,8 @@ var ParameterType = {
     DatePicker: "DatePicker" // not supported atm
 }
 
+var isReportDataEmptySelector = "div[class*='emptyStateIcon' i]"
+
 var sleep = (ms) => new Promise((resolve) => {
     const handler = (event) => {
         if (event.data.type === "SleepEventComplete") {
@@ -496,6 +498,14 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             // fallback scenario for selector naming convention
             element = document.querySelector("div[class*=backtesting i] div[class*=report-container i]")
         }
+        
+        let isReportDataEmpty = document.querySelector(isReportDataEmptySelector) != null
+        if (element == null || isReportDataEmpty) {
+            // scenario where report data is missing for the iteration, e.g. "No Data" widget shown 
+            resolve({ skipIteration: true })
+            return
+        }
+        
         let options = {
             childList: true,
             subtree: true,
@@ -520,10 +530,14 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     if (finalOptimizationResult?.timedOut) {
         // try to save if optimization data is the same as previous, after timeout
-        let isReportDataEmpty = document.querySelector("div[class*='emptyStateIcon' i]") != null
-        if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
-            saveOptimizationReport(optimizationResult, reportData)
-        }
+        tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData)
+    }
+    
+    if (finalOptimizationResult.skipIteration){
+        // due to skipped iteration without timeout, wait for report container to update itself
+        await sleep(optimizationTimeout)
+        // try to save if optimization data is available, after backup timeout
+        tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData)
     }
 
     await sleep(100)
@@ -705,6 +719,14 @@ function updateReport(updates) {
 
 function implies(a, b) {
     return !a || b;
+}
+
+// Helper function to try saving optimization report during expected failure scenarios
+function tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData) {
+    let isReportDataEmpty = document.querySelector(isReportDataEmptySelector) != null
+    if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
+        saveOptimizationReport(optimizationResult, reportData)
+    }
 }
 
 // isFloat to check whether given number is float or not
