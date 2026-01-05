@@ -86,37 +86,49 @@ var reportDataEventCallback = (event) => {
       chrome.storage.local.get([reportKey], items => {
         let existingReport = items[reportKey];
 
-        const now = Date.now();
-        existingReport.lastUpdated = now;
-        existingReport.status = report.status;
+        if (existingReport != null) {
+          const now = Date.now();
+          existingReport.lastUpdated = now;
+          existingReport.status = report.status;
 
-        chrome.storage.local.set({ [reportKey]: existingReport });
-      });
+          chrome.storage.local.set({ [reportKey]: existingReport });
 
-      // Optimization is fully done → unlock & success notify
-      chrome.runtime.sendMessage({
-        popupAction: { event: "unlockOptimizeButton" }
-      });
-      chrome.runtime.sendMessage({
-        notify: {
-          type: "success",
-          content: "Optimization Completed Successfully & Added to Reports"
+          //notify with the success
+          chrome.runtime.sendMessage({
+            notify: {
+              type: "success",
+              content: "Optimization Completed Successfully & Added to Reports"
+            }
+          });
+        } else {
+          //notify with the warning
+          chrome.runtime.sendMessage({
+            notify: {
+              type: "warning",
+              content: "Optimization Failed & No Report Generated"
+            }
+          });
         }
-      });
-      // send reportUpdate with 'FINISHED' status
-      chrome.runtime.sendMessage({
-        popupAction: {
-          event: "reportUpdated",
-          message: {
-            report: report
+        // Optimization is fully done → unlock 
+        chrome.runtime.sendMessage({
+          popupAction: { event: "unlockOptimizeButton" }
+        });
+
+        // send reportUpdate with 'FINISHED' status
+        chrome.runtime.sendMessage({
+          popupAction: {
+            event: "reportUpdated",
+            message: {
+              report: report
+            }
           }
+        });
+        // remove listeners after final optimization for multi-time frame support
+        if (isFinal) {
+          window.removeEventListener("message", sleepEventCallback);
+          window.removeEventListener("message", reportDataEventCallback);
         }
       });
-      // remove listeners after final optimization for multi-time frame support 
-      if (isFinal) {
-        window.removeEventListener("message", sleepEventCallback);
-        window.removeEventListener("message", reportDataEventCallback);
-      }
       break;
   }
 }
