@@ -533,7 +533,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData)
     }
     
-    if (finalOptimizationResult.skipIteration){
+    if (finalOptimizationResult?.skipIteration){
         // due to skipped iteration without timeout, wait for report container to update itself
         await sleep(optimizationTimeout)
         // try to save if optimization data is available, after backup timeout
