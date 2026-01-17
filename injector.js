@@ -37,6 +37,17 @@ var reportDataEventCallback = (event) => {
   const newRow = report.reportData;
 
   switch (status) {
+    case "STARTED":
+      chrome.runtime.sendMessage({
+        popupAction: {
+          event: "reportStarted",
+          message: {
+            report: report
+          }
+        }
+      });
+      break;
+
     case "IN_PROGRESS":
       // Merge each chunk into the existing reportData object, or initialize if missing/empty
       if (newRow && Object.keys(newRow).length > 0) {

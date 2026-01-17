@@ -18,7 +18,6 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   (async () => {
     const properties = Object.keys(message);
     const values = Object.values(message);
-
     // popupAction type defines popup html UI actions according to event type
     if (properties[0] === 'popupAction') {
       const popupAction = values[0];
