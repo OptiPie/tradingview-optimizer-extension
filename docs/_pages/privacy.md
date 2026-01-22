@@ -13,7 +13,14 @@ whether the user has OptiPie Plus membership or not throught verified OptiPie AP
 
 OptiPie Plus user's data are not being collected by extension, data is being processed and sent to OptiPie by the 'www.buymeacoffee.com', with the OptiPie Plus user's consent through processor.
 
-In the future OptiPie may collect browser version, platform name, and user's optimization settings and reports anonymously (except website lists or any other data that can help identify the user). This information is needed for decisions on implementing new features, removing unused features or suggesting default settings for new users. It will happen only with the user's consent.
+## Anonymous Strategy Data Collection
+For authenticated users, OptiPie collects anonymous strategy optimization metadata when an optimization starts. This includes:
+- Strategy name (as displayed in TradingView)
+- Trading symbol (e.g., BTCUSD, AAPL)
+- Time period/interval
+- Date range of the backtest
+
+This data does not include any personal information, optimization results, parameter values, or profit/loss data. It is used solely to understand which strategies and instruments are commonly optimized, helping us improve the product and prioritize new features. No browsing history, personal data, or sensitive information is collected.
 
 ## Third Party Services
 OptiPie uses Chrome (Chromium) or WebExtensions Web Storage Local API (localStorage) for storing the user's last optimization settings and optimization report outputs. All saved data to Chrome Local Storage consists of scraped data within 'tradingview.com' domain and the user's optimization settings without any personally identifiable information. 
@@ -24,4 +31,4 @@ Donations and OptiPie Plus memberships are processed by 'www.buymeacoffee.com' a
 ## The Website
 For statistical purposes optipie.app website counts page visits and link clicks using Google Analytics. A language and a time zone of a visitor are sent to the web server anonymously.
 
-Updated: July 14, 2024
+Updated: January 18, 2026

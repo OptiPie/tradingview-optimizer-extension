@@ -377,6 +377,9 @@ function prepareInitialReport() {
 
     })
 
+    let dateRange = document.querySelector(`div[class*='backtesting' i] div[class*='dateRange' i] 
+        span[class*='container' i]`)?.innerText
+
     let reportDataMessage = {
         "strategyID": Date.now(),
         "created": Date.now(),
@@ -386,8 +389,12 @@ function prepareInitialReport() {
         "parameters": userInputsToString,
         "maxProfit": maxProfit, // NOT READY
         "reportData": [], // NOT READY
-        "status": null // NOT READY
+        "status": "STARTED",
+        "dateRange": dateRange // solely for analytics 
     }
+
+    // Send update that optimization has started
+    window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
 
     return reportDataMessage
 }
@@ -498,14 +505,14 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             // fallback scenario for selector naming convention
             element = document.querySelector("div[class*=backtesting i] div[class*=report-container i]")
         }
-        
+
         let isReportDataEmpty = document.querySelector(isReportDataEmptySelector) != null
         if (element == null || isReportDataEmpty) {
             // scenario where report data is missing for the iteration, e.g. "No Data" widget shown 
             resolve({ skipIteration: true })
             return
         }
-        
+
         let options = {
             childList: true,
             subtree: true,
@@ -532,8 +539,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         // try to save if optimization data is the same as previous, after timeout
         tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData)
     }
-    
-    if (finalOptimizationResult?.skipIteration){
+
+    if (finalOptimizationResult?.skipIteration) {
         // due to skipped iteration without timeout, wait for report container to update itself
         await sleep(optimizationTimeout)
         // try to save if optimization data is available, after backup timeout
