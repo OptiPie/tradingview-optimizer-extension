@@ -16,7 +16,7 @@ title: "News"
 - Optimization performance is improved.
 - Improved support for non-English languages.
 
-### Version: v1.4.0 - v1.4.6
+### Version: v1.4.0 - v1.4.7
 
 ## Previous Updates
 

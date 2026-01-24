@@ -171,7 +171,6 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           let maxProfit = popupAction.message.report.maxProfit
           UpdateStrategyReportRow(strategyId, maxProfit)
           break;
-
       }
     }
   })();
@@ -1191,7 +1190,7 @@ function getNumericTvParameters() {
         parameterIndex++
       } else if (colorParameter != null) {
         parameterIndex++
-      }else if (stringParameter != null){
+      } else if (stringParameter != null) {
         parameterIndex++
       }
     } // handle checkboxes
@@ -1444,3 +1443,4 @@ if (longRunningOptCheckbox) {
 initializeSettings();
 
 //#endregion
+

@@ -2,6 +2,7 @@
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   var properties = Object.keys(message)
   var values = Object.values(message)
+
   // Notify type represents chrome notification request
   if (properties[0] === 'notify') {
     var notification = values[0]
@@ -18,6 +19,34 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         message: notification.content,
         iconUrl: 'images/success30.png',
         type: 'basic'
+      });
+    }
+  }
+
+  // Handle analytics collection when optimization starts
+  if (properties[0] === 'popupAction') {
+    var popupAction = values[0]
+    if (popupAction.event === 'reportStarted') {
+      chrome.identity.getAuthToken({ interactive: false }, function (token) {
+        if (token) {
+          const analyticsData = {
+            strategy_name: popupAction.message.report.strategyName,
+            strategy_symbol: popupAction.message.report.symbol,
+            strategy_period: popupAction.message.report.timePeriod,
+            strategy_date_range: popupAction.message.report.dateRange
+          };
+
+          fetch('https://api-stg.optipie.app/api/v1/analytics/collect', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(analyticsData)
+          }).catch(error => {
+            console.error("Analytics collection error:", error);
+          });
+        }
       });
     }
   }
