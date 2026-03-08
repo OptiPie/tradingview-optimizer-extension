@@ -885,6 +885,26 @@ async function restoreStrategyInputs() {
   const entry = result[siKey]
   if (!entry?.parameters) return
 
+  const storedCount = entry.parameters.length
+  const parametersEl = document.getElementById("parameters")
+  const currentCount = parametersEl.children.length
+
+  // Add missing rows or remove excess rows to match stored count exactly
+  if (storedCount > currentCount) {
+    for (let i = currentCount; i < storedCount; i++) {
+      await addParameterBlock(plusParameterLimit)
+    }
+  } else if (storedCount < currentCount) {
+    for (let i = currentCount; i > storedCount; i--) {
+      parametersEl.lastElementChild.remove()
+    }
+    const newCount = parametersEl.children.length
+    if (newCount > 1) {
+      parametersEl.lastElementChild.querySelector(`#remove${newCount}`)?.style.setProperty('display', 'block')
+    }
+    chrome.storage.local.set({ userParameterCount: storedCount })
+  }
+
   const startInputs = document.querySelectorAll("#inputStart")
   const endInputs = document.querySelectorAll("#inputEnd")
   const stepInputs = document.querySelectorAll("#inputStep")
