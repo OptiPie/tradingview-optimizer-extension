@@ -754,7 +754,6 @@ async function addParameterBlock(parameterLimit) {
         if (tvParameters != null && tvParameters.length > 0) {
           await autoFillParameters(tvParameters);
         }
-        await restoreStrategyInputs();
       })();
     }, 250);
 
@@ -991,6 +990,27 @@ function addTabEventListeners() {
 function addRefreshDataEventListener() {
   document.querySelector("#refresh").addEventListener("click", function () {
     createReportTable()
+  })
+
+  document.querySelector("#inputReset").addEventListener("click", async function () {
+    bootstrap.Tooltip.getInstance(this).hide()
+
+    if (_currentStrategyKey) {
+      await chrome.storage.local.remove(STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey)
+    }
+
+    const parametersEl = document.getElementById("parameters")
+    const excessCount = parametersEl.children.length - 1
+    for (let i = 0; i < excessCount; i++) {
+      parametersEl.lastElementChild.remove()
+    }
+    chrome.storage.local.set({ userParameterCount: 1 })
+
+    document.querySelectorAll("#inputStart").forEach(el => el.value = '')
+    document.querySelectorAll("#inputEnd").forEach(el => el.value = '')
+    document.querySelectorAll("#inputStep").forEach(el => el.value = '')
+
+    calculateIterations()
   })
 }
 

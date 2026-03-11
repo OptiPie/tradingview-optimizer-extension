@@ -99,8 +99,15 @@
                   <option selected disabled>Select Parameter</option>
                 </select>
               </div>
-              <div class="col-4">
+              <div class="col-4 d-flex">
                 <label for="inputStep" class="form-label">Step Size</label>
+                <button id="inputReset" class="ms-auto btn btn-link p-0 text-muted border-0"
+                  style="outline:none;box-shadow:none;" data-bs-toggle="tooltip" data-bs-html="true"
+                  data-bs-custom-class="tooltip-warning" data-bs-placement="left"
+                  data-bs-delay='{"show":500,"hide":150}'
+                  title="<i class='bi bi-exclamation-triangle-fill'></i> Clear Strategy Parameters">
+                  <i class="bi bi-trash" style="font-size:1.1rem;"></i>
+                </button>
               </div>
             </div>
             <div class="row g-2 pb-2" id="content">
