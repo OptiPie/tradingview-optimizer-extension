@@ -87,12 +87,3 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.tabs.create({url: "https://optipie.app/news/", active: true});
   }
 })
-
-chrome.runtime.onStartup.addListener(() => {
-  chrome.storage.local.set({
-    "userParameterCount": 1, "inputStart0": null, "inputEnd0": null, "inputStep0": null,
-    "userTimeFrames": null, "selectAutoFill0": null
-  }, function () {
-    console.log("User parameter count state set to 0 at start up");
-  });
-})

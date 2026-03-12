@@ -34,7 +34,7 @@ const ParameterType = {
 // Get current settings from storage
 async function getSettings() {
   const result = await chrome.storage.sync.get("settings");
-  return result?.settings || { isLongRunningOptimizations: false };
+  return result?.settings || { isLongRunningOptimizations: false, savedParamsCleanupAge: 90 };
 }
 
 // Initialize popup html according to last user parameter count state
@@ -1476,13 +1476,16 @@ function eventPath(evt) {
 
 // Initialize settings on popup load
 async function initializeSettings() {
-  const settings = await chrome.storage.sync.get("settings");
-  const isLongRunningOptimizations = settings?.settings?.isLongRunningOptimizations || false;
+  const settings = await getSettings();
 
-  // Set checkbox state
   const checkbox = document.getElementById("longRunningOptimizations");
   if (checkbox) {
-    checkbox.checked = isLongRunningOptimizations;
+    checkbox.checked = settings.isLongRunningOptimizations || false;
+  }
+
+  const cleanupSelect = document.getElementById("savedParamsCleanupAge");
+  if (cleanupSelect) {
+    cleanupSelect.value = settings.savedParamsCleanupAge || 90;
   }
 }
 
@@ -1509,8 +1512,36 @@ if (longRunningOptCheckbox) {
   });
 }
 
+// Add event listener for saved params cleanup age select
+const cleanupAgeSelect = document.getElementById("savedParamsCleanupAge");
+if (cleanupAgeSelect) {
+  cleanupAgeSelect.addEventListener("change", async (event) => {
+    const currentSettings = await getSettings();
+    currentSettings.savedParamsCleanupAge = parseInt(event.target.value);
+    await saveSettings(currentSettings);
+  });
+}
+
+// Delete si:: entries older than the user's configured cleanup age
+async function cleanupSavedStrategyInputs() {
+  const settings = await getSettings();
+  const maxAgeDays = settings.savedParamsCleanupAge || 90;
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  
+  const allItems = await chrome.storage.local.get(null);
+  console.log(allItems)
+  const keysToDelete = Object.entries(allItems)
+    .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
+    .map(([key]) => key);
+  
+  if (keysToDelete.length > 0) {
+    await chrome.storage.local.remove(keysToDelete);
+  }
+}
+
 // Initialize settings when popup loads
 initializeSettings();
+cleanupSavedStrategyInputs();
 
 //#endregion
 

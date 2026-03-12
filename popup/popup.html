@@ -404,17 +404,34 @@
             aria-expanded="false">
             <i class="bi bi-gear fs-5"></i>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown" style="min-width: 300px;">
             <li class="px-3 py-2">
-              <div class="form-check form-switch d-flex align-items-center justify-content-between mb-0">
-                <div class="d-flex align-items-center">
-                  <input class="form-check-input" type="checkbox" id="longRunningOptimizations">
-                  <label class="form-check-label ms-2" for="longRunningOptimizations">
-                    Long-running Optimizations
-                  </label>
+              <div class="d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="form-check form-switch mb-0 me-1">
+                    <input class="form-check-input" type="checkbox" id="longRunningOptimizations">
+                  </div>
+                  <label class="form-check-label text-nowrap" for="longRunningOptimizations">Long-running Optimizations</label>
                 </div>
-                <i class="bi bi-info-circle text-muted ms-2" data-bs-toggle="tooltip" data-bs-placement="left"
+                <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
                   title="Increases timeout from 15s to 60s per iteration for slow-loading strategies"></i>
+              </div>
+            </li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li class="px-3 py-2">
+              <div class="d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                  <select class="form-select form-select-sm" id="savedParamsCleanupAge" style="width: auto;">
+                    <option value="30">30 days</option>
+                    <option value="60">60 days</option>
+                    <option value="90" selected>90 days</option>
+                  </select>
+                  <label class="form-check-label text-nowrap" for="savedParamsCleanupAge">Clear Saved Parameters</label>
+                </div>
+                <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
+                  title="Saved strategy parameters older than this will be automatically deleted"></i>
               </div>
             </li>
           </ul>
