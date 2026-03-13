@@ -1529,7 +1529,6 @@ async function cleanupSavedStrategyInputs() {
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
   
   const allItems = await chrome.storage.local.get(null);
-  console.log(allItems)
   const keysToDelete = Object.entries(allItems)
     .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
     .map(([key]) => key);
