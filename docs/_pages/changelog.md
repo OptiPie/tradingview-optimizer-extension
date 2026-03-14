@@ -4,6 +4,17 @@ title: "News"
 ---
 
 ## What's New!
+### Save & Restore Your Optimizations!
+> No more re-entering parameters, Switch strategies freely.
+
+- **Auto-save per strategy** — OptiPie remembers your optimization parameters per strategy, symbol, and interval.
+- **Auto-restore on switch** — parameters are automatically restored when you switch back to a strategy.
+- **Reset Parameters** button to clear inputs and start fresh.
+- Saved configs are automatically cleaned up after 30, 60, or 90 days — configurable in **Settings**.
+
+### Version: v1.5.0
+
+## Previous Updates
 ### Real-time Report Monitoring & Instant Analysis!
 > No delays. No data loss. Analyze instantly.
 

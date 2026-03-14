@@ -2,6 +2,7 @@
 const lockOptimizeButton = 'lockOptimizeButton'
 const unlockOptimizeButton = 'unlockOptimizeButton'
 const getTvParameters = 'getTvParameters'
+const getStrategyContext = 'getStrategyContext'
 const reportUpdated = 'reportUpdated'
 
 let optimize = document.getElementById("optimize");
@@ -10,6 +11,13 @@ let freeParameterLimit = 5
 let plusParameterLimit = 20
 // global lock flag
 let _autoFillBusy = false;
+// composite key for the current strategy context: strategyName::interval::symbol
+let _currentStrategyKey = null;
+// storage key prefix for per-strategy saved inputs
+const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
+// resolves when popup rows have been added and are ready for value restoration
+let _resolvePopupInitDone;
+const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
 // retrieve parameters from Tv initially before anything
 let _resolveFirstFill;
 const firstFillDone = new Promise(resolve => {
@@ -26,7 +34,7 @@ const ParameterType = {
 // Get current settings from storage
 async function getSettings() {
   const result = await chrome.storage.sync.get("settings");
-  return result?.settings || { isLongRunningOptimizations: false };
+  return result?.settings || { isLongRunningOptimizations: false, savedParamsCleanupAge: 90 };
 }
 
 // Initialize popup html according to last user parameter count state
@@ -39,16 +47,27 @@ async function initPopupParametersByState() {
     await addParameterBlock(plusParameterLimit);
   }
 
-  setLastUserParameters(userParameterCount);
+  _resolvePopupInitDone();
 
   setTimeout(() => {
     calculateIterations(); // update iteration based on last user parameters
   }, 500);
 }
 
-initPopupParametersByState()
+// Inject get-strategy-context.js for all users to build the composite storage key
+async function initStrategyContext() {
+  const tab = await getCurrentTab()
+  if (!tab?.id) return
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['popup/get-strategy-context.js']
+  })
+}
 
-// Tab event listeners to change body width 
+initPopupParametersByState()
+initStrategyContext()
+
+// Tab event listeners to change body width
 addTabEventListeners()
 
 // Save Inputs EventListener for first parameters as default
@@ -153,6 +172,16 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 
         case unlockOptimizeButton:
           document.querySelector("#optimize").removeAttribute("disabled", "");
+          break;
+
+        case getStrategyContext:
+          _currentStrategyKey = buildStrategyKey(
+            popupAction.message.strategyName,
+            popupAction.message.strategySymbol,
+            popupAction.message.strategyInterval
+          );
+          await popupInitDone;
+          await restoreStrategyInputs();
           break;
 
         case getTvParameters:
@@ -453,6 +482,9 @@ async function autoFillParameters(tvParameters) {
       .filter(({ p }) => p.type !== ParameterType.DatePicker)
       .map(({ idx }) => idx);
 
+    const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
+    const siResult = await chrome.storage.local.get(siKey)
+    const savedParameters = siResult[siKey]?.parameters;
     for (let i = 0; i < selects.length; i++) {
       const sel = selects[i];
 
@@ -465,10 +497,8 @@ async function autoFillParameters(tvParameters) {
           sel.add(opt);
         });
       }
-
       // check for a user-stored override
-      const stored = await chrome.storage.local.get("selectAutoFill" + i);
-      const userIdx = stored["selectAutoFill" + i];
+      const userIdx = savedParameters?.[i]?.autoFillIndex ?? null;
       // decide which index to pick
       let pickIdx = null;
       if (
@@ -550,8 +580,6 @@ function transformInput(input) {
         $select.multiselect('rebuild');
       }
 
-      let storageKey = 'selectParameter' + input.parameterIndex
-
       $select.multiselect({
         buttonClass: 'form-select',
         buttonWidth: '25%',
@@ -577,32 +605,16 @@ function transformInput(input) {
             return labels.join(', ') + '';
           }
         },
-        onChange: async function (option, checked) {
-          let selectedParameter = option[0].value
-
-          chrome.storage.local.get([storageKey], function (result) {
-            let selectedParameters = result[storageKey] || []; // fallback to empty if nothing there
-
-            if (checked) {
-              if (!selectedParameters.includes(selectedParameter)) {
-                selectedParameters.push(selectedParameter);
-              }
-            } else {
-              selectedParameters = selectedParameters.filter(item => item !== selectedParameter);
-            }
-
-            chrome.storage.local.set({ [storageKey]: selectedParameters });
-          });
+        onChange: async function (_option, _checked) {
+          saveStrategyInputs()
           calculateIterations()
         }
       });
 
-      chrome.storage.local.get([storageKey], function (result) {
-        let selectedParameters = result[storageKey] || []
-        $select
-          .val(selectedParameters)
-          .trigger('change');
-
+      const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
+      chrome.storage.local.get(siKey, function (result) {
+        let selectedValues = result[siKey]?.parameters?.[input.parameterIndex]?.selectedValues || []
+        $select.val(selectedValues).trigger('change');
         $select.multiselect('refresh');
       });
 
@@ -734,7 +746,7 @@ async function addParameterBlock(parameterLimit) {
     parameters.insertAdjacentHTML('beforeend', divToAppend)
 
 
-    // Enable auto fill plus feature if eligible  
+    // Enable auto fill plus feature if eligible, then restore saved values for the new row
     setTimeout(() => {
       (async () => {
         await firstFillDone;
@@ -818,14 +830,9 @@ function addRemoveParameterBlockEventListener(parameterCount) {
     let parameters = document.getElementById("parameters")
     let parameterCount = parameters.children.length
 
-    // Decrement User's Last Parameter Count State    
+    // Decrement User's Last Parameter Count State
     chrome.storage.local.set({ "userParameterCount": parameterCount });
-    //Clear user parameter values from storage
-    let start = "inputStart" + parameterCount
-    let end = "inputEnd" + parameterCount
-    let step = "inputStep" + parameterCount
-    let autoFill = "selectAutoFill" + parameterCount
-    chrome.storage.local.set({ [start]: null, [end]: null, [step]: null, [autoFill]: null });
+    saveStrategyInputs();
 
 
     //Show previously added hidden remove button
@@ -837,59 +844,96 @@ function addRemoveParameterBlockEventListener(parameterCount) {
   });
 }
 
-// Retrieve and set user parameters from last saved state
-function setLastUserParameters(parameterCount) {
-  for (let i = 0; i < parameterCount; i++) {
-    chrome.storage.local.get(["inputStart" + i], function (result) {
-      var userValue = null
-      if (result["inputStart" + i]) {
-        userValue = result["inputStart" + i]
-      }
-      document.querySelectorAll("#inputStart")[i].value = userValue
-    });
+// Save all current input values under a per-strategy storage key
+async function saveStrategyInputs() {
+  if (!_currentStrategyKey) return
 
-    chrome.storage.local.get(["inputEnd" + i], function (result) {
-      var userValue = null
-      if (result["inputEnd" + i]) {
-        userValue = result["inputEnd" + i]
-      }
-      document.querySelectorAll("#inputEnd")[i].value = userValue
-    });
+  const autoFillSelects = document.querySelectorAll("#selectAutoFill")
+  const startInputs = document.querySelectorAll("#inputStart")
+  const endInputs = document.querySelectorAll("#inputEnd")
+  const stepInputs = document.querySelectorAll("#inputStep")
+  const wrappers = document.querySelectorAll("#parameters #wrapper")
 
-    chrome.storage.local.get(["inputStep" + i], function (result) {
-      var userValue = null
-      if (result["inputStep" + i]) {
-        userValue = result["inputStep" + i]
-      }
-      document.querySelectorAll("#inputStep")[i].value = userValue
-    });
+  const parameters = []
+  for (let i = 0; i < startInputs.length; i++) {
+    const divSelectable = wrappers[i]?.querySelector("#divSelectParameter")
+    const isSelectable = divSelectable && window.getComputedStyle(divSelectable).display !== 'none'
+    const selectEl = wrappers[i]?.querySelector("#selectParameter")
+    const selectedValues = isSelectable && selectEl
+      ? Array.from(selectEl.selectedOptions).map(o => o.value)
+      : null
+
+    parameters.push({
+      autoFillIndex: autoFillSelects[i]?.value ?? null,
+      start: startInputs[i]?.value ?? null,
+      end: endInputs[i]?.value ?? null,
+      step: stepInputs[i]?.value ?? null,
+      selectedValues,
+    })
   }
+
+  chrome.storage.local.set({ [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, savedAt: Date.now() } })
+}
+
+// Restore saved input values keyed directly by strategy context
+async function restoreStrategyInputs() {
+  if (!_currentStrategyKey) return
+
+  const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
+  const result = await chrome.storage.local.get(siKey)
+  const entry = result[siKey]
+  if (!entry?.parameters) return
+
+  const storedCount = entry.parameters.length
+  const parametersEl = document.getElementById("parameters")
+  const currentCount = parametersEl.children.length
+
+  // Add missing rows or remove excess rows to match stored count exactly
+  if (storedCount > currentCount) {
+    for (let i = currentCount; i < storedCount; i++) {
+      await addParameterBlock(plusParameterLimit)
+    }
+  } else if (storedCount < currentCount) {
+    for (let i = currentCount; i > storedCount; i--) {
+      parametersEl.lastElementChild.remove()
+    }
+    const newCount = parametersEl.children.length
+    if (newCount > 1) {
+      parametersEl.lastElementChild.querySelector(`#remove${newCount}`)?.style.setProperty('display', 'block')
+    }
+    chrome.storage.local.set({ userParameterCount: storedCount })
+  }
+
+  const startInputs = document.querySelectorAll("#inputStart")
+  const endInputs = document.querySelectorAll("#inputEnd")
+  const stepInputs = document.querySelectorAll("#inputStep")
+
+  entry.parameters.forEach((param, i) => {
+    if (startInputs[i]) startInputs[i].value = param.start || ''
+    if (endInputs[i]) endInputs[i].value = param.end || ''
+    if (stepInputs[i]) stepInputs[i].value = param.step || ''
+  })
+
+  setTimeout(() => calculateIterations(), 500)
 }
 // Save last user inputs to storage as state
 function addSaveInputEventListener(parameterCount) {
-  document.querySelectorAll("#inputStart")[parameterCount].addEventListener("blur", function (e) {
-    var start = "inputStart" + parameterCount
-    var value = document.querySelectorAll("#inputStart")[parameterCount].value
-    chrome.storage.local.set({ [start]: value });
+  document.querySelectorAll("#inputStart")[parameterCount].addEventListener("blur", function () {
+    saveStrategyInputs()
     calculateIterations()
   });
-  document.querySelectorAll("#inputEnd")[parameterCount].addEventListener("blur", function (e) {
-    var end = "inputEnd" + parameterCount
-    var value = document.querySelectorAll("#inputEnd")[parameterCount].value
-    chrome.storage.local.set({ [end]: value });
+  document.querySelectorAll("#inputEnd")[parameterCount].addEventListener("blur", function () {
+    saveStrategyInputs()
     calculateIterations()
   });
-  document.querySelectorAll("#inputStep")[parameterCount].addEventListener("blur", function (e) {
-    var step = "inputStep" + parameterCount
-    var value = document.querySelectorAll("#inputStep")[parameterCount].value
-    chrome.storage.local.set({ [step]: value });
+  document.querySelectorAll("#inputStep")[parameterCount].addEventListener("blur", function () {
+    saveStrategyInputs()
     calculateIterations()
   });
 }
 // Save last user selected time frame(s) as state
 function addSaveAutoFillSelectionListener(parameterCount) {
   document.querySelectorAll("#selectAutoFill")[parameterCount].addEventListener("change", async (event) => {
-    let key = "selectAutoFill" + parameterCount
     let value = event.target.value
     let selectedText = event.target.options[event.target.selectedIndex].text;
     let tvParameter = await storageGetTvParameter(value)
@@ -919,7 +963,7 @@ function addSaveAutoFillSelectionListener(parameterCount) {
         break;
     }
 
-    chrome.storage.local.set({ [key]: value });
+    saveStrategyInputs()
     // timeout > 0.2s after input transformation is essential due to transition effect
     setTimeout(() => {
       calculateIterations()
@@ -946,6 +990,27 @@ function addTabEventListeners() {
 function addRefreshDataEventListener() {
   document.querySelector("#refresh").addEventListener("click", function () {
     createReportTable()
+  })
+
+  document.querySelector("#inputReset").addEventListener("click", async function () {
+    bootstrap.Tooltip.getInstance(this).hide()
+
+    if (_currentStrategyKey) {
+      await chrome.storage.local.remove(STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey)
+    }
+
+    const parametersEl = document.getElementById("parameters")
+    const excessCount = parametersEl.children.length - 1
+    for (let i = 0; i < excessCount; i++) {
+      parametersEl.lastElementChild.remove()
+    }
+    chrome.storage.local.set({ userParameterCount: 1 })
+
+    document.querySelectorAll("#inputStart").forEach(el => el.value = '')
+    document.querySelectorAll("#inputEnd").forEach(el => el.value = '')
+    document.querySelectorAll("#inputStep").forEach(el => el.value = '')
+
+    calculateIterations()
   })
 }
 
@@ -1288,7 +1353,12 @@ var TimeFrameMap = new Map([
   ['12 months', '12M'],
 ]);
 
-//#region Helpers 
+//#region Helpers
+
+function buildStrategyKey(strategyName, strategySymbol, strategyInterval) {
+  const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+  return `${normalize(strategyName)}::${normalize(strategySymbol)}::${normalize(strategyInterval)}`
+}
 
 async function getCurrentTab() {
   let queryOptions = { active: true, lastFocusedWindow: true };
@@ -1406,13 +1476,16 @@ function eventPath(evt) {
 
 // Initialize settings on popup load
 async function initializeSettings() {
-  const settings = await chrome.storage.sync.get("settings");
-  const isLongRunningOptimizations = settings?.settings?.isLongRunningOptimizations || false;
+  const settings = await getSettings();
 
-  // Set checkbox state
   const checkbox = document.getElementById("longRunningOptimizations");
   if (checkbox) {
-    checkbox.checked = isLongRunningOptimizations;
+    checkbox.checked = settings.isLongRunningOptimizations || false;
+  }
+
+  const cleanupSelect = document.getElementById("savedParamsCleanupAge");
+  if (cleanupSelect) {
+    cleanupSelect.value = settings.savedParamsCleanupAge || 90;
   }
 }
 
@@ -1439,8 +1512,35 @@ if (longRunningOptCheckbox) {
   });
 }
 
+// Add event listener for saved params cleanup age select
+const cleanupAgeSelect = document.getElementById("savedParamsCleanupAge");
+if (cleanupAgeSelect) {
+  cleanupAgeSelect.addEventListener("change", async (event) => {
+    const currentSettings = await getSettings();
+    currentSettings.savedParamsCleanupAge = parseInt(event.target.value);
+    await saveSettings(currentSettings);
+  });
+}
+
+// Delete si:: entries older than the user's configured cleanup age
+async function cleanupSavedStrategyInputs() {
+  const settings = await getSettings();
+  const maxAgeDays = settings.savedParamsCleanupAge || 90;
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  
+  const allItems = await chrome.storage.local.get(null);
+  const keysToDelete = Object.entries(allItems)
+    .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
+    .map(([key]) => key);
+  
+  if (keysToDelete.length > 0) {
+    await chrome.storage.local.remove(keysToDelete);
+  }
+}
+
 // Initialize settings when popup loads
 initializeSettings();
+cleanupSavedStrategyInputs();
 
 //#endregion
 
