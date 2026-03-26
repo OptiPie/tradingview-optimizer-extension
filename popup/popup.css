@@ -270,3 +270,9 @@ table#table tbody {
 #settingsDropdown + .dropdown-menu .form-check-label {
     width: fit-content;
 }
+
+#inputReset:hover { color: var(--bs-danger) !important; }
+
+.tooltip-warning .bi-exclamation-triangle-fill { color: #ffc107 !important; }
+
+.tooltip-warning { --bs-tooltip-max-width: 220px; }
