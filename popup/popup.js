@@ -15,6 +15,8 @@ let _autoFillBusy = false;
 let _currentStrategyKey = null;
 // storage key prefix for per-strategy saved inputs
 const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
+// storage key for last used inputs fallback
+const LAST_USED_INPUTS_KEY = 'lastUsedInputs'
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -34,7 +36,7 @@ const ParameterType = {
 // Get current settings from storage
 async function getSettings() {
   const result = await chrome.storage.sync.get("settings");
-  return result?.settings || { isLongRunningOptimizations: false, savedParamsCleanupAge: 90 };
+  return result?.settings || { isLongRunningOptimizations: false, savedParamsCleanupAge: 90, applyLastUsedAsDefault: false };
 }
 
 // Initialize popup html according to last user parameter count state
@@ -484,7 +486,18 @@ async function autoFillParameters(tvParameters) {
 
     const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
     const siResult = await chrome.storage.local.get(siKey)
-    const savedParameters = siResult[siKey]?.parameters;
+    let savedParameters = siResult[siKey]?.parameters;
+
+    if (!savedParameters) {
+      const settings = await getSettings()
+      if (settings.applyLastUsedAsDefault) {
+        const lastUsedResult = await chrome.storage.local.get(LAST_USED_INPUTS_KEY)
+        const lastUsed = lastUsedResult[LAST_USED_INPUTS_KEY]
+        if (lastUsed?.parameters && isSameStrategy(_currentStrategyKey, lastUsed.strategyKey)) {
+          savedParameters = lastUsed.parameters
+        }
+      }
+    }
     for (let i = 0; i < selects.length; i++) {
       const sel = selects[i];
 
@@ -527,6 +540,7 @@ async function autoFillParameters(tvParameters) {
             parameterIndex: i,
             parameterName: param.name,
             parameterOptions: param.options,
+            selectedValues: savedParameters?.[i]?.selectedValues ?? [],
           });
         }
       }
@@ -611,12 +625,8 @@ function transformInput(input) {
         }
       });
 
-      const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
-      chrome.storage.local.get(siKey, function (result) {
-        let selectedValues = result[siKey]?.parameters?.[input.parameterIndex]?.selectedValues || []
-        $select.val(selectedValues).trigger('change');
-        $select.multiselect('refresh');
-      });
+      $select.val(input.selectedValues ?? []).trigger('change');
+      $select.multiselect('refresh');
 
       break;
     case ParameterType.Checkbox:
@@ -873,6 +883,7 @@ async function saveStrategyInputs() {
   }
 
   chrome.storage.local.set({ [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, savedAt: Date.now() } })
+  chrome.storage.local.set({ [LAST_USED_INPUTS_KEY]: { parameters, savedAt: Date.now(), strategyKey: _currentStrategyKey } })
 }
 
 // Restore saved input values keyed directly by strategy context
@@ -881,8 +892,16 @@ async function restoreStrategyInputs() {
 
   const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
   const result = await chrome.storage.local.get(siKey)
-  const entry = result[siKey]
-  if (!entry?.parameters) return
+  let entry = result[siKey]
+
+  if (!entry?.parameters) {
+    const settings = await getSettings()
+    if (!settings.applyLastUsedAsDefault) return
+    const lastUsedResult = await chrome.storage.local.get(LAST_USED_INPUTS_KEY)
+    const lastUsed = lastUsedResult[LAST_USED_INPUTS_KEY]
+    if (!lastUsed?.parameters || !isSameStrategy(_currentStrategyKey, lastUsed.strategyKey)) return
+    entry = lastUsed
+  }
 
   const storedCount = entry.parameters.length
   const parametersEl = document.getElementById("parameters")
@@ -946,14 +965,19 @@ function addSaveAutoFillSelectionListener(parameterCount) {
           parameterName: selectedText,
         });
         break;
-      case ParameterType.Selectable:
+      case ParameterType.Selectable: {
+        const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
+        const siResult = await chrome.storage.local.get(siKey)
+        const selectedValues = siResult[siKey]?.parameters?.[parameterCount]?.selectedValues ?? []
         transformInput({
           type: ParameterType.Selectable,
           parameterIndex: parameterCount,
           parameterName: selectedText,
           parameterOptions: tvParameter.options,
+          selectedValues,
         });
         break;
+      }
       case ParameterType.Numeric:
         transformInput({
           type: ParameterType.Numeric,
@@ -1355,6 +1379,11 @@ var TimeFrameMap = new Map([
 
 //#region Helpers
 
+function isSameStrategy(keyA, keyB) {
+  if (!keyA || !keyB) return false
+  return keyA.split('::')[0] === keyB.split('::')[0]
+}
+
 function buildStrategyKey(strategyName, strategySymbol, strategyInterval) {
   const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
   return `${normalize(strategyName)}::${normalize(strategySymbol)}::${normalize(strategyInterval)}`
@@ -1487,6 +1516,11 @@ async function initializeSettings() {
   if (cleanupSelect) {
     cleanupSelect.value = settings.savedParamsCleanupAge || 90;
   }
+
+  const applyLastUsedCheckbox = document.getElementById("applyLastUsedAsDefault");
+  if (applyLastUsedCheckbox) {
+    applyLastUsedCheckbox.checked = settings.applyLastUsedAsDefault || false;
+  }
 }
 
 // Save settings to chrome.storage.sync
@@ -1508,6 +1542,16 @@ if (longRunningOptCheckbox) {
   longRunningOptCheckbox.addEventListener("change", async (event) => {
     const currentSettings = await getSettings();
     currentSettings.isLongRunningOptimizations = event.target.checked;
+    await saveSettings(currentSettings);
+  });
+}
+
+// Add event listener for apply last used as default toggle
+const applyLastUsedCheckbox = document.getElementById("applyLastUsedAsDefault");
+if (applyLastUsedCheckbox) {
+  applyLastUsedCheckbox.addEventListener("change", async (event) => {
+    const currentSettings = await getSettings();
+    currentSettings.applyLastUsedAsDefault = event.target.checked;
     await saveSettings(currentSettings);
   });
 }

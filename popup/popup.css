@@ -257,7 +257,7 @@ table#table tbody {
     min-width: auto;
 }
 
-#longRunningOptimizations.form-check-input {
+#settingsDropdown + .dropdown-menu .form-check-input {
     width: 2.5em;
     height: 1.25em;
 }
