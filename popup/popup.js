@@ -882,8 +882,10 @@ async function saveStrategyInputs() {
     })
   }
 
-  chrome.storage.local.set({ [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, savedAt: Date.now() } })
-  chrome.storage.local.set({ [LAST_USED_INPUTS_KEY]: { parameters, savedAt: Date.now(), strategyKey: _currentStrategyKey } })
+  chrome.storage.local.set({
+    [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, savedAt: Date.now() },
+    [LAST_USED_INPUTS_KEY]: { strategyKey: _currentStrategyKey },
+  })
 }
 
 // Restore saved input values keyed directly by strategy context
@@ -1020,7 +1022,7 @@ function addRefreshDataEventListener() {
     bootstrap.Tooltip.getInstance(this).hide()
 
     if (_currentStrategyKey) {
-      await chrome.storage.local.remove(STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey)
+      await chrome.storage.local.remove([STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey, LAST_USED_INPUTS_KEY])
     }
 
     const parametersEl = document.getElementById("parameters")
