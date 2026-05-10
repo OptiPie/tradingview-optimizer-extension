@@ -500,11 +500,12 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        let element = document.querySelector("div[class*=backtesting i] div[class*=reportContainer i]")
-        if (element == null) {
-            // fallback scenario for selector naming convention
-            element = document.querySelector("div[class*=backtesting i] div[class*=report-container i]")
-        }
+        const findVisible = sel => { const el = document.querySelector(sel); return el?.textContent?.trim() ? el : null }
+        const element = [
+            "div[class*=backtesting i] div[class*=reportContainer i]",
+            "div[class*=backtesting i] div[class*=report-container i]",
+            "div[class*=backtesting i]",
+        ].reduce((found, sel) => found ?? findVisible(sel), null)
 
         let isReportDataEmpty = document.querySelector(isReportDataEmptySelector) != null
         if (element == null || isReportDataEmpty) {
