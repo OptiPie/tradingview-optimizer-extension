@@ -939,16 +939,16 @@ async function restoreStrategyInputs() {
 }
 // Save last user inputs to storage as state
 function addSaveInputEventListener(parameterCount) {
-  document.querySelectorAll("#inputStart")[parameterCount].addEventListener("blur", function () {
-    saveStrategyInputs()
+  document.querySelectorAll("#inputStart")[parameterCount].addEventListener("blur", async function () {
+    await saveStrategyInputs()
     calculateIterations()
   });
-  document.querySelectorAll("#inputEnd")[parameterCount].addEventListener("blur", function () {
-    saveStrategyInputs()
+  document.querySelectorAll("#inputEnd")[parameterCount].addEventListener("blur", async function () {
+    await saveStrategyInputs()
     calculateIterations()
   });
-  document.querySelectorAll("#inputStep")[parameterCount].addEventListener("blur", function () {
-    saveStrategyInputs()
+  document.querySelectorAll("#inputStep")[parameterCount].addEventListener("blur", async function () {
+    await saveStrategyInputs()
     calculateIterations()
   });
 }

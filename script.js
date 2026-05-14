@@ -255,8 +255,9 @@ async function Process() {
                 // open up dropdown
                 tvInputs[parameterIndex].click()
 
-                await sleep(500)
+                await sleep(600)
                 let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
+                if (ddOptionsWrapper == null) continue
                 let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
 
                 let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children
