@@ -620,7 +620,7 @@ function transformInput(input) {
           }
         },
         onChange: async function (_option, _checked) {
-          saveStrategyInputs()
+          await saveStrategyInputs()
           calculateIterations()
         }
       });
