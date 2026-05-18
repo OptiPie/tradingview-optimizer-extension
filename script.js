@@ -255,8 +255,9 @@ async function Process() {
                 // open up dropdown
                 tvInputs[parameterIndex].click()
 
-                await sleep(500)
+                await sleep(600)
                 let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
+                if (ddOptionsWrapper == null) continue
                 let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
 
                 let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children
@@ -504,6 +505,10 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         if (element == null) {
             // fallback scenario for selector naming convention
             element = document.querySelector("div[class*=backtesting i] div[class*=report-container i]")
+        }
+        // fallback for maximized view where reportContainer exists but is hidden
+        if (!element?.textContent?.trim()) {
+            element = document.querySelector("div[class*=backtesting i]")
         }
 
         let isReportDataEmpty = document.querySelector(isReportDataEmptySelector) != null

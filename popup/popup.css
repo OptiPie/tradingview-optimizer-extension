@@ -199,6 +199,7 @@ body {
     margin-bottom: 0.25rem;
     padding-left: 0.25rem;
     max-width: 50%;
+    text-overflow: ellipsis;
 }
 
 .toolbar {
@@ -257,7 +258,7 @@ table#table tbody {
     min-width: auto;
 }
 
-#longRunningOptimizations.form-check-input {
+#settingsDropdown + .dropdown-menu .form-check-input {
     width: 2.5em;
     height: 1.25em;
 }
