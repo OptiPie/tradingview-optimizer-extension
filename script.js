@@ -21,7 +21,7 @@ var ParameterType = {
     DatePicker: "DatePicker" // not supported atm
 }
 
-var isReportDataEmptySelector = "div[class*='emptyStateIcon' i]"
+var isReportDataEmptySelector = "div[class*='emptyState' i]"
 
 var sleep = (ms) => new Promise((resolve) => {
     const handler = (event) => {
@@ -474,7 +474,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     let isBacktestUpdated = false
     // check if deep backtesting is enabled
-    let isBacktestingOn = document.querySelector("span[class*='deepBacktesting' i]") != null
+    let isBacktestingOn = Array.from(document.querySelectorAll('[data-qa-id="date-range-menu"] span')).find(el => el.textContent.trim().toLowerCase() === 'deep') != null
     if (isBacktestingOn === true) {
         await sleep(500)
         let backtestUpdateButton = document.querySelector("div[data-qa-id*='backtesting-updated' i] button")
@@ -547,7 +547,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     if (finalOptimizationResult?.skipIteration) {
         // due to skipped iteration without timeout, wait for report container to update itself
-        await sleep(optimizationTimeout)
+        await sleep(2000)
         // try to save if optimization data is available, after backup timeout
         tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData)
     }

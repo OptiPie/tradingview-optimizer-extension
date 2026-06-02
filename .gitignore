@@ -5,3 +5,4 @@ _site/
 .jekyll-metadata
 vendor
 .manifest
+*optipie-report-dump*
