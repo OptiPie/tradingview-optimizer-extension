@@ -255,11 +255,12 @@ async function Process() {
                 // open up dropdown
                 tvInputs[parameterIndex].click()
 
-                await sleep(500)
+                await sleep(600)
                 let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
+                if (ddOptionsWrapper == null) continue
                 let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
 
-                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children
+                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children.props.children
                 // click on dropdown
                 for (let i = 0; i < ddOptions.length; i++) {
                     const ddOptionVal = ddOptions[i].props.item.value
@@ -311,7 +312,7 @@ async function PublishReport() {
 // prepareInitialReport populates initial report before starting a fresh optimization
 function prepareInitialReport() {
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    let strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
     let strategyTimePeriod = ""
 
     let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
@@ -500,12 +501,15 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
             });
         });
 
-        const findVisible = sel => { const el = document.querySelector(sel); return el?.textContent?.trim() ? el : null }
-        const element = [
-            "div[class*=backtesting i] div[class*=reportContainer i]",
-            "div[class*=backtesting i] div[class*=report-container i]",
-            "div[class*=backtesting i]",
-        ].reduce((found, sel) => found ?? findVisible(sel), null)
+        let element = document.querySelector("div[class*=backtesting i] div[class*=reportContainer i]")
+        if (element == null) {
+            // fallback scenario for selector naming convention
+            element = document.querySelector("div[class*=backtesting i] div[class*=report-container i]")
+        }
+        // fallback for maximized view where reportContainer exists but is hidden
+        if (!element?.textContent?.trim()) {
+            element = document.querySelector("div[class*=backtesting i]")
+        }
 
         let isReportDataEmpty = document.querySelector(isReportDataEmptySelector) != null
         if (element == null || isReportDataEmpty) {
@@ -561,8 +565,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     // Re-open strategy settings window
     let reportTitleButton =
-        document.querySelector("button[data-strategy-title*='report' i]") ||
-        document.querySelector("div[class*='strategyGroup' i] button");
+        document.querySelector("div[class*='menuButton' i] button") ||
+        document.querySelector("div[class*='menu-button' i] button");
 
     reportTitleButton.click()
     await sleep(50)

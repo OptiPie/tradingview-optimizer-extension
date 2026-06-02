@@ -4,12 +4,13 @@ title: "News"
 ---
 
 ## What's New!
-### Version: v1.5.1
+### Version: v1.5.1 - v1.5.2
 
 > Same strategy, no re-typing.
 
 - **Try Last Used Parameters** — Enable in **Settings** to automatically carry over parameters when running the same strategy across different symbols or intervals.
 - **Maximized report view support** — Optimizations now work correctly whether the backtesting panel is minimized or maximized.
+- **Keep up with TradingView UI Changes** — Optimizations work as expected with the latest TradingView UI changes.
 
 ## Previous Updates
 ### Save & Restore Your Optimizations!
