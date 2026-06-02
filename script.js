@@ -260,7 +260,7 @@ async function Process() {
                 if (ddOptionsWrapper == null) continue
                 let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
 
-                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children
+                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children.props.children
                 // click on dropdown
                 for (let i = 0; i < ddOptions.length; i++) {
                     const ddOptionVal = ddOptions[i].props.item.value
@@ -312,7 +312,7 @@ async function PublishReport() {
 // prepareInitialReport populates initial report before starting a fresh optimization
 function prepareInitialReport() {
     //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    let strategyName = document.querySelector("div[class*=strategyGroup]")?.innerText
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
     let strategyTimePeriod = ""
 
     let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
@@ -565,8 +565,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     // Re-open strategy settings window
     let reportTitleButton =
-        document.querySelector("button[data-strategy-title*='report' i]") ||
-        document.querySelector("div[class*='strategyGroup' i] button");
+        document.querySelector("div[class*='menuButton' i] button") ||
+        document.querySelector("div[class*='menu-button' i] button");
 
     reportTitleButton.click()
     await sleep(50)

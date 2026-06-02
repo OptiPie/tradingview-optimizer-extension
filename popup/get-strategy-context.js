@@ -1,5 +1,5 @@
 (function () {
-    let strategyName = document.querySelector("div[class*=dialog] div")?.getAttribute("data-dialog-name")
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
     if (!strategyName) return
 
     let strategySymbol = document.querySelector("title")?.innerText?.split(' ')[0]
