@@ -711,11 +711,12 @@ function ReportBuilder(reportData) {
     reportData.maxDrawdown.amount = reportDataSelector[1].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[1].querySelector(currencySelector)?.innerText
     reportData.maxDrawdown.percent = reportDataSelector[1].querySelector(changeSelector)?.innerText
     //3.
-    reportData.closedTrades = reportDataSelector[2].querySelector(valueSelector)?.innerText
+    let rawProfitableTrades = reportDataSelector[2].querySelector(changeSelector)?.innerText
+    reportData.closedTrades = rawProfitableTrades?.includes('/') ? rawProfitableTrades.split('/')[1].trim() : rawProfitableTrades
     //4.
-    reportData.percentProfitable = reportDataSelector[3].querySelector(valueSelector)?.innerText
+    reportData.percentProfitable = reportDataSelector[2].querySelector(valueSelector)?.innerText
     //4.
-    reportData.profitFactor = reportDataSelector[4].querySelector(valueSelector)?.innerText
+    reportData.profitFactor = reportDataSelector[3].querySelector(valueSelector)?.innerText
 
     //5. Deprecated
     //reportData.averageTrade.amount = reportDataSelector[5].querySelector(valueSelector).innerText + ' ' + reportDataSelector[5].querySelector(currencySelector).innerText
