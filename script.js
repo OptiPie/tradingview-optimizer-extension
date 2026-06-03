@@ -474,7 +474,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     let isBacktestUpdated = false
     // check if deep backtesting is enabled
+    // for non-english users, badge presence is used as fallback since text content won't match 'deep'
     let isBacktestingOn = Array.from(document.querySelectorAll('[data-qa-id="date-range-menu"] span')).find(el => el.textContent.trim().toLowerCase() === 'deep') != null
+        || document.querySelectorAll('[data-qa-id="date-range-menu"] span[class*="badge" i]').length > 0
     if (isBacktestingOn === true) {
         await sleep(500)
         let backtestUpdateButton = document.querySelector("div[data-qa-id*='backtesting-updated' i] button")
