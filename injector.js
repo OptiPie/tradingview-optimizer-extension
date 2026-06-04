@@ -1,15 +1,5 @@
 var isInjected = InjectScriptIntoDOM()
 
-/*
-chrome.storage.local.clear(() => {
-  if (chrome.runtime.lastError) {
-    console.error('Error clearing chrome.storage.local:', chrome.runtime.lastError);
-  } else {
-    console.log('All chrome.storage.local data has been cleared.');
-  }
-});
-*/
-
 var sleepEventCallback = (event) => {
   if (event.source !== window || event.data.type !== "SleepEventStart") {
     return;

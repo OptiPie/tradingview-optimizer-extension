@@ -4,7 +4,7 @@ title: "News"
 ---
 
 ## What's New!
-### Version: v1.5.1 - v1.5.2
+### Version: v1.5.1 - v1.5.3
 
 > Same strategy, no re-typing.
 
