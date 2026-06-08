@@ -21,7 +21,7 @@ var ParameterType = {
     DatePicker: "DatePicker" // not supported atm
 }
 
-var isReportDataEmptySelector = "div[class*='emptyStateIcon' i]"
+var isReportDataEmptySelector = "div[class*='emptyState' i]"
 
 var sleep = (ms) => new Promise((resolve) => {
     const handler = (event) => {
@@ -474,7 +474,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     let isBacktestUpdated = false
     // check if deep backtesting is enabled
-    let isBacktestingOn = document.querySelector("span[class*='deepBacktesting' i]") != null
+    // for non-english users, badge presence is used as fallback since text content won't match 'deep'
+    let isBacktestingOn = Array.from(document.querySelectorAll('[data-qa-id="date-range-menu"] span')).find(el => el.textContent.trim().toLowerCase() === 'deep') != null
+        || document.querySelectorAll('[data-qa-id="date-range-menu"] span[class*="badge" i]').length > 0
     if (isBacktestingOn === true) {
         await sleep(500)
         let backtestUpdateButton = document.querySelector("div[data-qa-id*='backtesting-updated' i] button")
@@ -547,7 +549,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     if (finalOptimizationResult?.skipIteration) {
         // due to skipped iteration without timeout, wait for report container to update itself
-        await sleep(optimizationTimeout)
+        await sleep(2000)
         // try to save if optimization data is available, after backup timeout
         tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimizationResult, reportData)
     }
@@ -711,11 +713,12 @@ function ReportBuilder(reportData) {
     reportData.maxDrawdown.amount = reportDataSelector[1].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[1].querySelector(currencySelector)?.innerText
     reportData.maxDrawdown.percent = reportDataSelector[1].querySelector(changeSelector)?.innerText
     //3.
-    reportData.closedTrades = reportDataSelector[2].querySelector(valueSelector)?.innerText
+    let rawProfitableTrades = reportDataSelector[2].querySelector(changeSelector)?.innerText
+    reportData.closedTrades = rawProfitableTrades?.includes('/') ? rawProfitableTrades.split('/')[1].trim() : rawProfitableTrades
     //4.
-    reportData.percentProfitable = reportDataSelector[3].querySelector(valueSelector)?.innerText
+    reportData.percentProfitable = reportDataSelector[2].querySelector(valueSelector)?.innerText
     //4.
-    reportData.profitFactor = reportDataSelector[4].querySelector(valueSelector)?.innerText
+    reportData.profitFactor = reportDataSelector[3].querySelector(valueSelector)?.innerText
 
     //5. Deprecated
     //reportData.averageTrade.amount = reportDataSelector[5].querySelector(valueSelector).innerText + ' ' + reportDataSelector[5].querySelector(currencySelector).innerText
