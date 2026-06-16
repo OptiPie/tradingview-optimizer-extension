@@ -2,6 +2,7 @@
 <html>
 
 <head>
+  <meta charset="UTF-8">
   <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
@@ -135,21 +136,78 @@
           </div>
         </div>
 
+        <div class="container" id="wfaPage">
+          <div class="mb-2">
+            <span class="fw-semibold small">Walk-Forward Analysis</span>
+          </div>
+          <div class="row g-2 pb-2">
+            <div class="col-4">
+              <label class="form-label small mb-1">Start Date</label>
+              <input type="date" class="form-control form-control-sm" id="wfaStartDate">
+            </div>
+            <div class="col-4">
+              <label class="form-label small mb-1">End Date</label>
+              <input type="date" class="form-control form-control-sm" id="wfaEndDate">
+            </div>
+            <div class="col-4">
+              <label class="form-label small mb-1">Windows</label>
+              <input type="number" class="form-control form-control-sm" id="wfaWindows" value="5" min="2" max="20">
+            </div>
+          </div>
+          <div class="row g-2 pb-2">
+            <div class="col-12">
+              <div class="card bg-light border-0" id="wfaSummary">
+                <div class="card-body py-2 px-3">
+                  <small class="text-secondary" id="wfaWindowPreview">—</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="container">
           <div class="row align-items-center">
             <div class="col">
               <button type="button" class="btn btn-outline-dark btn-sm" id="addParameter"><i
                   class="bi bi-plus-circle"></i>Add Parameter</button>
+              <button type="button" class="btn btn-soft-primary btn-sm rounded-pill" id="wfaBackNav">
+                <i class="bi bi-arrow-left-short"></i> Parameters
+              </button>
             </div>
             <div class="col">
-              <button type="button" class="btn btn-dark btn float-end" id="optimize"><i
-                  class="bi bi-graph-up-arrow"></i>Optimize</button>
+              <div class="btn-group float-end" role="group" aria-label="Basic radio toggle button group">
+                <button type="button" class="btn btn-dark btn" id="optimize"><i
+                    class="bi bi-graph-up-arrow"></i>Optimize</button>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-dark dropdown-toggle" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item d-flex align-items-center justify-content-between" href="#"
+                        id="wfaMenuItem">
+                        <span><i class="bi bi-arrow-repeat me-1"></i>Walk-Forward Analysis</span>
+                        <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
+                          title="Optimizes across multiple date windows to find parameters that hold up over time."></i>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
               <div class="container" id="skeleton-stop">
-                <span class="placeholder col-2" style="width: 15%;"></span>
-                <span class="placeholder col-1" style="width:5%;"></span>
+                <span class="placeholder col-2" style="width:6%;"></span>
+                <span class="placeholder col-1" style="width:4%;"></span>
               </div>
               <button type="button" class="btn btn-danger btn btn-sm float-end" id="stop"><i
                   class="bi bi-stop-circle-fill"></i>Stop</button>
+            </div>
+          </div>
+          <div class="row">
+            <div id="wfaNextGroup">
+              <button type="button" class="btn btn-soft-primary btn-sm rounded-pill" id="wfaNext">
+                Dates <i class="bi bi-arrow-right-short"></i>
+              </button>
+              <div id="wfaLabel">Walk-Forward</div>
             </div>
           </div>
         </div>
@@ -411,26 +469,32 @@
                   <div class="form-check form-switch mb-0 me-1">
                     <input class="form-check-input" type="checkbox" id="longRunningOptimizations">
                   </div>
-                  <label class="form-check-label text-nowrap" for="longRunningOptimizations">Long-running Optimizations</label>
+                  <label class="form-check-label text-nowrap" for="longRunningOptimizations">Long-running
+                    Optimizations</label>
                 </div>
                 <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
                   title="Increases timeout from 15s to 60s per iteration for slow-loading strategies"></i>
               </div>
             </li>
-            <li><hr class="dropdown-divider"></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
             <li class="px-3 py-2">
               <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                   <div class="form-check form-switch mb-0 me-1">
                     <input class="form-check-input" type="checkbox" id="applyLastUsedAsDefault">
                   </div>
-                  <label class="form-check-label text-nowrap" for="applyLastUsedAsDefault">Try Last Used Parameters</label>
+                  <label class="form-check-label text-nowrap" for="applyLastUsedAsDefault">Try Last Used
+                    Parameters</label>
                 </div>
                 <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
                   title="When no saved parameters are found for the current strategy, tries to apply the last used parameters"></i>
               </div>
             </li>
-            <li><hr class="dropdown-divider"></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
             <li class="px-3 py-2">
               <div class="d-flex align-items-center justify-content-end">
                 <div class="d-flex align-items-center gap-2">

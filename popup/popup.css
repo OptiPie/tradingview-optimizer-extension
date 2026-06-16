@@ -99,7 +99,7 @@ body {
     transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
-.with-transition.show {
+.with-transition.is-shown {
     opacity: 1;
     transform: translateY(0);
 }
@@ -277,3 +277,63 @@ table#table tbody {
 .tooltip-warning .bi-exclamation-triangle-fill { color: #ffc107 !important; }
 
 .tooltip-warning { --bs-tooltip-max-width: 220px; }
+
+/* Walk-Forward Analysis */
+#wfaPage {
+    display: none;
+}
+
+#wfaNextRow {
+    display: none;
+}
+
+#wfaBackNav,
+#wfaNext {
+    outline: none;
+    box-shadow: none;
+    text-decoration: none;
+    margin-top: 0.25rem;
+}
+
+#wfaBackNav i,
+#wfaNext i {
+    font-size: 1.3em;
+    vertical-align: -0.15em;
+}
+
+.btn-soft-primary {
+    background-color: #e7f1ff;
+    border-color: transparent;
+    color: #0d6efd;
+}
+
+.btn-soft-primary:hover,
+.btn-soft-primary:active,
+.btn-soft-primary:focus {
+    background-color: #d4e6ff;
+    border-color: transparent;
+    color: #0d6efd;
+}
+
+#wfaBackNav {
+    display: none;
+}
+
+#wfaNextGroup {
+    display: none;
+}
+
+#wfaBackNav:hover,
+#wfaNext:hover {
+    color: var(--bs-secondary) !important;
+}
+
+#wfaLabel {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    color: var(--bs-secondary);
+    margin-top: 2px;
+    
+    float:right
+}
+

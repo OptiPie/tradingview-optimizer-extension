@@ -17,6 +17,9 @@ let _currentStrategyKey = null;
 const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
 // storage key for last used inputs fallback
 const LAST_USED_INPUTS_KEY = 'lastUsedInputs'
+// flag to track wfa mode
+// TODO: revert to false once WFA dev work is done
+let _wfaActive = true
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -739,6 +742,82 @@ logoutButtons.forEach(logoutButton => {
 
 //#endregion
 
+//#region  Walk-Forward Analysis UI
+// TODO: remove this dev-only forced display once WFA work is done
+if (_wfaActive) {
+  showWithTransition(document.getElementById("wfaNextGroup"))
+}
+
+document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
+  e.preventDefault()
+  _wfaActive = !_wfaActive
+  const wfaNextGroup = document.getElementById("wfaNextGroup")
+  if (_wfaActive) {
+    showWithTransition(wfaNextGroup)
+  } else {
+    hideElement(wfaNextGroup)
+    if (document.getElementById("wfaPage").style.display !== "none") {
+      showWfaPage(false)
+    }
+  }
+})
+
+document.getElementById("wfaNext").addEventListener("click", () => showWfaPage(true))
+document.getElementById("wfaBackNav").addEventListener("click", () => showWfaPage(false))
+
+document.getElementById("wfaWindows").addEventListener("input", updateWfaPreview)
+document.getElementById("wfaStartDate").addEventListener("change", updateWfaPreview)
+document.getElementById("wfaEndDate").addEventListener("change", updateWfaPreview)
+
+function showWfaPage(show) {
+  const parameters = document.getElementById("parameters")
+  const wfaPage = document.getElementById("wfaPage")
+  const addParameterBtn = document.getElementById("addParameter")
+  const wfaBackNav = document.getElementById("wfaBackNav")
+  const wfaNextGroup = document.getElementById("wfaNextGroup")
+
+  if (show) {
+    hideElement(parameters)
+    hideElement(addParameterBtn)
+    hideElement(wfaNextGroup)
+    showWithTransition(wfaPage)
+    showWithTransition(wfaBackNav, "inline-block")
+  } else {
+    hideElement(wfaPage)
+    hideElement(wfaBackNav)
+    showWithTransition(parameters)
+    showWithTransition(addParameterBtn, "inline-block")
+    if (_wfaActive) showWithTransition(wfaNextGroup)
+  }
+}
+
+function updateWfaPreview() {
+  const start = document.getElementById("wfaStartDate").value
+  const end = document.getElementById("wfaEndDate").value
+  const windows = parseInt(document.getElementById("wfaWindows").value) || 0
+  const preview = document.getElementById("wfaWindowPreview")
+
+  if (start && end && windows >= 2) {
+    const totalDays = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
+    if (totalDays > 0) {
+      const daysPerWindow = Math.round(totalDays / windows)
+      let text = `~${daysPerWindow} days/window (${totalDays} days total)`
+
+      const iterationsPerWindow = parseInt(document.querySelector("#iteration #value").innerText)
+      if (iterationsPerWindow > 0) {
+        const totalIterations = iterationsPerWindow * windows
+        text += ` · ${totalIterations} iterations total`
+      }
+
+      preview.textContent = text
+      return
+    }
+  }
+  preview.textContent = "—"
+}
+
+//#endregion
+
 async function addParameterBlock(parameterLimit) {
   let parameters = document.getElementById("parameters")
   let parameterCount = parameters.children.length
@@ -1414,12 +1493,12 @@ function showWithTransition(el, displayType = "block") {
   // Force reflow to kick off transition
   void el.offsetWidth;
 
-  el.classList.add("show");
+  el.classList.add("is-shown");
 }
 
 // hideElement along with transition class
 function hideElement(el) {
-  el.classList.remove("show", "with-transition");
+  el.classList.remove("is-shown", "with-transition");
   el.style.display = "none";
 }
 
