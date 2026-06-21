@@ -745,17 +745,29 @@ logoutButtons.forEach(logoutButton => {
 //#region  Walk-Forward Analysis UI
 // TODO: remove this dev-only forced display once WFA work is done
 if (_wfaActive) {
-  showWithTransition(document.getElementById("wfaNextGroup"))
+  showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
+  document.getElementById("optimizeGroup").classList.add("btn-group-gold")
+  document.getElementById("optimizeLabel").textContent = "Analyze"
 }
 
 document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
   e.preventDefault()
   _wfaActive = !_wfaActive
   const wfaNextGroup = document.getElementById("wfaNextGroup")
+  const optimizeGroup = document.getElementById("optimizeGroup")
+  const optimizeLabel = document.getElementById("optimizeLabel")
+
   if (_wfaActive) {
-    showWithTransition(wfaNextGroup)
+    optimizeGroup.classList.add("btn-group-gold")
+    optimizeLabel.textContent = "Analyze"
+    // only show the Dates nav button if we're on the parameters page
+    if (document.getElementById("wfaPage").style.display === "none") {
+      showWithTransition(wfaNextGroup, "inline-block")
+    }
   } else {
     hideElement(wfaNextGroup)
+    optimizeGroup.classList.remove("btn-group-gold")
+    optimizeLabel.textContent = "Optimize"
     if (document.getElementById("wfaPage").style.display !== "none") {
       showWfaPage(false)
     }
@@ -775,6 +787,7 @@ function showWfaPage(show) {
   const addParameterBtn = document.getElementById("addParameter")
   const wfaBackNav = document.getElementById("wfaBackNav")
   const wfaNextGroup = document.getElementById("wfaNextGroup")
+  const wfaNextLabel = document.getElementById("wfaNextLabel")
 
   if (show) {
     hideElement(parameters)
@@ -782,12 +795,15 @@ function showWfaPage(show) {
     hideElement(wfaNextGroup)
     showWithTransition(wfaPage)
     showWithTransition(wfaBackNav, "inline-block")
+    showWithTransition(wfaNextLabel, "flex")
   } else {
     hideElement(wfaPage)
     hideElement(wfaBackNav)
+    // handled inside wfaNextGroup due to layout differences 
+    hideElement(wfaNextLabel)
     showWithTransition(parameters)
     showWithTransition(addParameterBtn, "inline-block")
-    if (_wfaActive) showWithTransition(wfaNextGroup)
+    if (_wfaActive) showWithTransition(wfaNextGroup, "inline-block")
   }
 }
 

@@ -283,7 +283,7 @@ table#table tbody {
     display: none;
 }
 
-#wfaNextRow {
+#wfaNextLabel {
     display: none;
 }
 
@@ -333,7 +333,35 @@ table#table tbody {
     letter-spacing: 0.06em;
     color: var(--bs-secondary);
     margin-top: 2px;
-    
+
     float:right
+}
+
+#wfaWindowPreview {
+    font-weight: 500;
+}
+
+:root {
+    /* sampled from the Plus logo's dominant gold pixel cluster (RGB 203,162,46) */
+    --gold-light: #CBA22E;
+    --gold-dark: #8C701F;
+    --gold-hover-light: #B08F28;
+    --gold-hover-dark: #79601A;
+}
+
+#optimizeGroup.btn-group-gold {
+    background: linear-gradient(270deg, var(--gold-dark), var(--gold-light));
+    border-radius: 0.375rem;
+}
+
+#optimizeGroup.btn-group-gold:hover {
+    background: linear-gradient(270deg, var(--gold-hover-dark), var(--gold-hover-light));
+}
+
+#optimizeGroup.btn-group-gold #optimize,
+#optimizeGroup.btn-group-gold #optimizeDropdown {
+    background: transparent;
+    border-color: transparent;
+    color: #f5f0e6;
 }
 

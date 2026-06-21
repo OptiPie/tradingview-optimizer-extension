@@ -137,9 +137,6 @@
         </div>
 
         <div class="container" id="wfaPage">
-          <div class="mb-2">
-            <span class="fw-semibold small">Walk-Forward Analysis</span>
-          </div>
           <div class="row g-2 pb-2">
             <div class="col-4">
               <label class="form-label small mb-1">Start Date</label>
@@ -156,9 +153,10 @@
           </div>
           <div class="row g-2 pb-2">
             <div class="col-12">
+              <label class="form-label small mb-1">Summary</label>
               <div class="card bg-light border-0" id="wfaSummary">
                 <div class="card-body py-2 px-3">
-                  <small class="text-secondary" id="wfaWindowPreview">—</small>
+                  <small id="wfaWindowPreview">—</small>
                 </div>
               </div>
             </div>
@@ -175,12 +173,12 @@
               </button>
             </div>
             <div class="col">
-              <div class="btn-group float-end" role="group" aria-label="Basic radio toggle button group">
+              <div class="btn-group float-end" id="optimizeGroup" role="group" aria-label="Basic radio toggle button group">
                 <button type="button" class="btn btn-dark btn" id="optimize"><i
-                    class="bi bi-graph-up-arrow"></i>Optimize</button>
+                    class="bi bi-graph-up-arrow"></i><span id="optimizeLabel">Optimize</span></button>
                 <div class="btn-group" role="group">
-                  <button type="button" class="btn btn-dark dropdown-toggle" data-bs-toggle="dropdown"
-                    aria-expanded="false">
+                  <button type="button" class="btn btn-dark dropdown-toggle" id="optimizeDropdown"
+                    data-bs-toggle="dropdown" aria-expanded="false">
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
@@ -200,6 +198,11 @@
               </div>
               <button type="button" class="btn btn-danger btn btn-sm float-end" id="stop"><i
                   class="bi bi-stop-circle-fill"></i>Stop</button>
+            </div>
+          </div>
+          <div class="row" id="wfaNextLabel">
+            <div class="col">
+              <div id="wfaLabel">Walk-Forward</div>
             </div>
           </div>
           <div class="row">
