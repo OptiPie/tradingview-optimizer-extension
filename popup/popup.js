@@ -772,6 +772,7 @@ document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
       showWfaPage(false)
     }
   }
+  calculateIterations()
 })
 
 document.getElementById("wfaNext").addEventListener("click", () => showWfaPage(true))
@@ -811,25 +812,22 @@ function updateWfaPreview() {
   const start = document.getElementById("wfaStartDate").value
   const end = document.getElementById("wfaEndDate").value
   const windows = parseInt(document.getElementById("wfaWindows").value) || 0
-  const preview = document.getElementById("wfaWindowPreview")
+  const statWindowSize = document.getElementById("wfaStatWindowSize")
+  const statTotalRange = document.getElementById("wfaStatTotalRange")
 
   if (start && end && windows >= 2) {
     const totalDays = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
     if (totalDays > 0) {
       const daysPerWindow = Math.round(totalDays / windows)
-      let text = `~${daysPerWindow} days/window (${totalDays} days total)`
-
-      const iterationsPerWindow = parseInt(document.querySelector("#iteration #value").innerText)
-      if (iterationsPerWindow > 0) {
-        const totalIterations = iterationsPerWindow * windows
-        text += ` · ${totalIterations} iterations total`
-      }
-
-      preview.textContent = text
+      statWindowSize.textContent = `~${daysPerWindow} days`
+      statTotalRange.textContent = `${totalDays} days`
+      calculateIterations()
       return
     }
   }
-  preview.textContent = "—"
+  statWindowSize.textContent = "—"
+  statTotalRange.textContent = "—"
+  calculateIterations()
 }
 
 //#endregion
@@ -1187,6 +1185,12 @@ function calculateIterations() {
   };
 
   if (isIterationValid) {
+    if (_wfaActive) {
+      const windows = parseInt(document.getElementById("wfaWindows").value) || 0
+      if (windows >= 2) {
+        totalIterations *= windows
+      }
+    }
     iterationValue.innerText = totalIterations
   } else {
     iterationValue.innerText = "-"
