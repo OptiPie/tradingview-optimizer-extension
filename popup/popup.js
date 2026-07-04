@@ -750,6 +750,36 @@ if (_wfaActive) {
   document.getElementById("optimizeLabel").textContent = "Analyze"
 }
 
+// JS is the single source of truth for the mode-switch line (label, icon, tooltip)
+updateWfaMenuItem()
+
+// keep the mode-switch dropdown line in sync with the current mode
+function updateWfaMenuItem() {
+  const menuItem = document.getElementById("wfaMenuItem")
+  const menuText = document.getElementById("wfaMenuText")
+  const menuIcon = document.getElementById("wfaMenuIcon")
+  let infoText
+  if (_wfaActive) {
+    menuText.textContent = "Switch to Classic Optimization"
+    menuIcon.className = "bi bi-graph-up-arrow me-2"
+    menuItem.classList.remove("wfa-menu-gold")
+    infoText = "Brute-force optimization — tests every parameter combination to find the single best performer over your date range."
+  } else {
+    menuText.textContent = "Switch to Walk-Forward Analysis"
+    menuIcon.className = "bi bi-calendar-week me-2"
+    menuItem.classList.add("wfa-menu-gold")
+    infoText = "Tests your strategy across several time periods and checks each result against later data, helping you find parameters that stay reliable over time rather than ones tuned to the past."
+  }
+  // tooltip inits ~200ms after load; use the instance once it exists, else seed the title attribute
+  const menuInfo = document.getElementById("wfaMenuInfo")
+  const tooltip = bootstrap.Tooltip.getInstance(menuInfo)
+  if (tooltip) {
+    tooltip.setContent({ ".tooltip-inner": infoText })
+  } else {
+    menuInfo.setAttribute("title", infoText)
+  }
+}
+
 document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
   e.preventDefault()
   _wfaActive = !_wfaActive
@@ -765,13 +795,14 @@ document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
       showWithTransition(wfaNextGroup, "inline-block")
     }
   } else {
-    hideElement(wfaNextGroup)
+    hideWithTransition(wfaNextGroup)
     optimizeGroup.classList.remove("btn-group-gold")
     optimizeLabel.textContent = "Optimize"
     if (document.getElementById("wfaPage").style.display !== "none") {
       showWfaPage(false)
     }
   }
+  updateWfaMenuItem()
   calculateIterations()
 })
 
@@ -1520,6 +1551,18 @@ function showWithTransition(el, displayType = "block") {
 function hideElement(el) {
   el.classList.remove("is-shown", "with-transition");
   el.style.display = "none";
+}
+
+// fade element out, then hide once the transition finishes
+function hideWithTransition(el) {
+  if (el.style.display === "none") return;
+  el.classList.remove("is-shown");
+  const done = () => {
+    el.removeEventListener("transitionend", done);
+    el.style.display = "none";
+    el.classList.remove("with-transition");
+  };
+  el.addEventListener("transitionend", done);
 }
 
 

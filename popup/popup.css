@@ -365,3 +365,26 @@ table#table tbody {
     color: #f5f0e6;
 }
 
+/* single-item menu: light up the whole dropdown on hover, not just the row */
+#optimizeGroup .dropdown-menu:has(#wfaMenuItem:hover) {
+    background-color: var(--bs-dropdown-link-hover-bg);
+}
+
+#optimizeGroup #wfaMenuItem:hover {
+    background-color: transparent;
+}
+
+/* soft gold wash on hover for the WFA upsell line */
+#optimizeGroup .dropdown-menu:has(#wfaMenuItem.wfa-menu-gold:hover) {
+    background-color: #f9f4e6;
+}
+
+/* shiny gold treatment on the "Switch to Walk-Forward Analysis" upsell line */
+#wfaMenuItem.wfa-menu-gold .wfa-menu-label {
+    background: linear-gradient(270deg, var(--gold-dark), var(--gold-light));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 500;
+}
+
