@@ -812,6 +812,7 @@ document.getElementById("wfaBackNav").addEventListener("click", () => showWfaPag
 document.getElementById("wfaWindows").addEventListener("input", updateWfaPreview)
 document.getElementById("wfaStartDate").addEventListener("change", updateWfaPreview)
 document.getElementById("wfaEndDate").addEventListener("change", updateWfaPreview)
+document.getElementById("wfaSplit").addEventListener("input", updateWfaSplit)
 
 function showWfaPage(show) {
   const parameters = document.getElementById("parameters")
@@ -840,25 +841,57 @@ function showWfaPage(show) {
 }
 
 function updateWfaPreview() {
+  updateWfaSplit()
+  calculateIterations()
+}
+
+// update the IS/OOS split readout, per-window day counts, and recommended-range alert
+function updateWfaSplit() {
+  const slider = document.getElementById("wfaSplit")
+  const isPct = parseInt(slider.value)
+  const oosPct = 100 - isPct
+
+  document.getElementById("wfaIsPct").textContent = `${isPct}%`
+  document.getElementById("wfaOosPct").textContent = `${oosPct}%`
+
+  // per-window day breakdown, only when the date range is valid
   const start = document.getElementById("wfaStartDate").value
   const end = document.getElementById("wfaEndDate").value
   const windows = parseInt(document.getElementById("wfaWindows").value) || 0
-  const statWindowSize = document.getElementById("wfaStatWindowSize")
-  const statTotalRange = document.getElementById("wfaStatTotalRange")
+  const isDays = document.getElementById("wfaStatIs")
+  const oosDays = document.getElementById("wfaStatOos")
+  const windowSize = document.getElementById("wfaStatWindowSize")
+  const totalDays = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
 
-  if (start && end && windows >= 2) {
-    const totalDays = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
-    if (totalDays > 0) {
-      const daysPerWindow = Math.round(totalDays / windows)
-      statWindowSize.textContent = `~${daysPerWindow} days`
-      statTotalRange.textContent = `${totalDays} days`
-      calculateIterations()
-      return
-    }
+  if (start && end && windows >= 2 && totalDays > 0) {
+    // classic rolling walk-forward: IS windows overlap, stepping forward by one OOS length.
+    // total = IS_length + windows * OOS_length, with OOS_length = IS_length * (oosPct / isPct)
+    const oosRatio = oosPct / isPct
+    const isLen = totalDays / (1 + windows * oosRatio)
+    const oosLen = isLen * oosRatio
+    isDays.textContent = `~${Math.round(isLen)} days`
+    oosDays.textContent = `~${Math.round(oosLen)} days`
+    windowSize.textContent = `~${Math.round(isLen + oosLen)} days`
+  } else {
+    isDays.textContent = "—"
+    oosDays.textContent = "—"
+    windowSize.textContent = "—"
   }
-  statWindowSize.textContent = "—"
-  statTotalRange.textContent = "—"
-  calculateIterations()
+
+  // recommended in-sample band is 60–90%; flag anything outside it
+  const alert = document.getElementById("wfaSplitAlert")
+  if (isPct < 60) {
+    slider.classList.add("wfa-split-alert")
+    alert.textContent = "This split is below the recommended 60–90% in-sample range."
+    alert.style.display = "block"
+  } else if (isPct > 90) {
+    slider.classList.add("wfa-split-alert")
+    alert.textContent = "This split is above the recommended 60–90% in-sample range."
+    alert.style.display = "block"
+  } else {
+    slider.classList.remove("wfa-split-alert")
+    alert.style.display = "none"
+  }
 }
 
 //#endregion

@@ -337,8 +337,32 @@ table#table tbody {
     float:right
 }
 
-#wfaWindowPreview {
-    font-weight: 500;
+.wfa-split-track {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* locked first 50% — in-sample can never drop below this */
+.wfa-split-frozen {
+    width: 50%;
+    height: 0.4rem;
+    border-radius: 0.25rem 0 0 0.25rem;
+    background: repeating-linear-gradient(45deg, #a3cfbb, #a3cfbb 4px, #d1e7dd 4px, #d1e7dd 8px);
+}
+
+#wfaSplit {
+    width: 50%;
+    accent-color: var(--bs-success);
+}
+
+#wfaSplit.wfa-split-alert {
+    accent-color: var(--bs-danger);
+}
+
+/* frozen base follows the alert state too, so the whole zone turns red */
+.wfa-split-track:has(#wfaSplit.wfa-split-alert) .wfa-split-frozen {
+    background: repeating-linear-gradient(45deg, #f1aeb5, #f1aeb5 4px, #f8d7da 4px, #f8d7da 8px);
 }
 
 :root {

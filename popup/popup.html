@@ -153,17 +153,40 @@
           </div>
           <div class="row g-2 pb-2">
             <div class="col-12">
+              <label class="form-label small mb-1">
+                In-Sample / Out-of-Sample Split
+                <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="right"
+                  title="How each window is split: the in-sample part is used to find the best settings, the out-of-sample part tests them on unseen data. A 60–90% in-sample split is the range most commonly used in practice."></i>
+              </label>
+              <div class="wfa-split-track">
+                <div class="wfa-split-frozen"></div>
+                <input type="range" id="wfaSplit" min="51" max="99" value="70">
+              </div>
+              <div class="d-flex justify-content-between small mt-1">
+                <span>In-sample <strong id="wfaIsPct">70%</strong></span>
+                <span>Out-of-sample <strong id="wfaOosPct">30%</strong></span>
+              </div>
+              <div class="small text-danger mt-1" id="wfaSplitAlert" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="row g-2 pb-2">
+            <div class="col-6">
               <label class="form-label small mb-1">Summary</label>
               <div class="card bg-light border-0" id="wfaSummary">
                 <div class="card-body py-2 px-3">
-                  <div class="row text-start" id="wfaWindowPreview">
-                    <div class="col">
-                      <div class="small text-secondary">Window Size</div>
-                      <div id="wfaStatWindowSize">—</div>
+                  <div id="wfaWindowPreview">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-secondary">In-Sample</span>
+                      <span id="wfaStatIs">—</span>
                     </div>
-                    <div class="col">
-                      <div class="small text-secondary">Total Range</div>
-                      <div id="wfaStatTotalRange">—</div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-secondary">Out-of-Sample</span>
+                      <span id="wfaStatOos">—</span>
+                    </div>
+                    <hr class="my-1">
+                    <div class="d-flex justify-content-between fw-semibold">
+                      <span>Window Size</span>
+                      <span id="wfaStatWindowSize">—</span>
                     </div>
                   </div>
                 </div>
