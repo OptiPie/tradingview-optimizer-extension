@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="wfa-reportdetail.css">
+</head>
+
+<body>
+  <div class="container-fluid">
+    <header class="d-flex flex-column justify-content-center align-items-center py-3 mb-1">
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="normalLogo">
+        <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+        <span class="fs-4"></span>
+      </a>
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="plusLogo">
+        <img src="/images/optipie_plus_app_logo.png" alt="OptiPie Plus logo" width="208" height="96">
+        <span class="fs-4"></span>
+      </a>
+    </header>
+
+    <div class="container-fluid py-3 wfa-report-detail">
+
+      <!-- Page 1: Walk-Forward summary (native content) -->
+      <div id="wfaSummary" class="container">
+        <h4 class="mb-3">Walk-Forward Summary</h4>
+        <div id="wfaSummaryContent" class="text-secondary">
+          <!-- TODO: aggregates (WFE / avg OOS / N-M profitable), per-window IS-vs-OOS, parameter stability -->
+          Summary content coming soon.
+        </div>
+      </div>
+
+      <!-- Pages 2..n: a single window's report — IS/OOS toggle + embedded reportdetail -->
+      <div id="wfaWindow" style="display: none;">
+        <div class="d-flex justify-content-start mb-2 wfa-sample-toggle">
+          <div class="btn-group btn-group-sm" role="group" aria-label="Sample toggle">
+            <input type="radio" class="btn-check" name="wfaSample" id="wfaSampleIs" autocomplete="off" checked>
+            <label class="btn btn-outline-secondary" for="wfaSampleIs">In-Sample</label>
+            <input type="radio" class="btn-check" name="wfaSample" id="wfaSampleOos" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="wfaSampleOos">Out-of-Sample</label>
+          </div>
+        </div>
+        <iframe id="wfaReportFrame" title="Window report" style="width: 100%; height: 80vh; border: 0;"></iframe>
+      </div>
+
+      <!-- Bottom-left pager: Summary + one page per window -->
+      <nav class="mt-4" aria-label="Walk-forward pages">
+        <ul class="pagination pagination-sm" id="wfaPager"></ul>
+      </nav>
+    </div>
+
+    <div class="container-fluid">
+      <footer class="d-flex flex-wrap justify-content-between align-items-center py-2 mb-2 mt-4 border-top">
+        <div class="col-md-4 d-flex align-items-center">
+          <span class="mb-md-0 text-muted">&copy; 2026 OptiPie</span>
+        </div>
+        <div class="col-md-4 d-flex justify-content-center">
+          <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer"
+            class="btn btn-warning btn-lg" id="plusUpgrade"><i class="bi bi-award"></i> Upgrade to Plus</a>
+        </div>
+        <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+          <li class=""><a href="https://optipie.app/#faq-" target="_blank" class="nav-link px-2 text-muted">FAQs</a>
+          </li>
+          <li class="ms-1"><a href="https://optipie.app/#contact-" target="_blank"
+              class="nav-link px-2 text-muted">Contact</a></li>
+        </ul>
+      </footer>
+    </div>
+  </div>
+  <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
+  <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="wfa-reportdetail.js"></script>
+</body>
+
+</html>

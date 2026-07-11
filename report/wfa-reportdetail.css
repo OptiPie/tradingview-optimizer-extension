@@ -1,0 +1,28 @@
+/* WFA report page layout — its own wrapper, NOT the standalone report's 7rem padding */
+.wfa-report-detail {
+    padding-left: 5rem;
+    padding-right: 5rem;
+}
+
+/* align the IS/OOS toggle with the embedded report's content — 2rem, which Bootstrap's spacing scale skips */
+.wfa-sample-toggle {
+    padding-left: 2rem;
+}
+
+/* --- header/footer chrome, duplicated from repordetail.css on purpose ---
+   (small copy > shared dependency for 2 pages — same call as the duplicated header/footer HTML) */
+#plusLogo {
+    display: none !important;
+}
+
+#plusUpgrade {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    background-color: #FD0;
+    letter-spacing: .03rem
+}
+
+#plusUpgrade i {
+    color: white;
+}

@@ -6,6 +6,12 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 });
 
 let strategyID = params.strategyID;
+
+// embedded mode: when shown inside the WFA report page's iframe, hide the standalone header/footer
+if (params.embedded) {
+  document.body.classList.add("embedded")
+}
+
 var reportDetailData = [], reportDetailDataCSV = []
 var $table = $('#table')
 let progressSpinnerInterval = null
@@ -78,6 +84,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
   var report = Object.values(item)[0]
+  console.log(report)
   var timePeriodValue = report.timePeriod
   var values = report.reportData
 

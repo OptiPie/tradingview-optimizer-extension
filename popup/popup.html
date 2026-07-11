@@ -171,7 +171,13 @@
           </div>
           <div class="row g-2 pb-2">
             <div class="col-6">
-              <label class="form-label small mb-1">Summary</label>
+              <label class="form-label small mb-1">Summary
+                <a href="https://optipie.app" target="_blank" class="text-primary text-decoration-none ms-1"
+                  data-bs-toggle="tooltip" data-bs-placement="right"
+                  title="How in-sample and out-of-sample days are calculated.">
+                  <i class="bi bi-info-circle-fill"></i>
+                </a>
+              </label>
               <div class="card bg-light border-0" id="wfaSummary">
                 <div class="card-body py-2 px-3">
                   <div id="wfaWindowPreview">
@@ -205,9 +211,10 @@
               </button>
             </div>
             <div class="col">
-              <div class="btn-group float-end" id="optimizeGroup" role="group" aria-label="Basic radio toggle button group">
-                <button type="button" class="btn btn-dark btn" id="optimize"><i
-                    class="bi bi-graph-up-arrow"></i><span id="optimizeLabel">Optimize</span></button>
+              <div class="btn-group float-end" id="optimizeGroup" role="group"
+                aria-label="Basic radio toggle button group">
+                <button type="button" class="btn btn-dark btn" id="optimize"><i class="bi bi-graph-up-arrow"></i><span
+                    id="optimizeLabel">Optimize</span></button>
                 <div class="btn-group" role="group">
                   <button type="button" class="btn btn-dark dropdown-toggle" id="optimizeDropdown"
                     data-bs-toggle="dropdown" aria-expanded="false">
@@ -216,9 +223,10 @@
                     <li>
                       <a class="dropdown-item d-flex align-items-center justify-content-between wfa-menu-gold" href="#"
                         id="wfaMenuItem">
-                        <span class="wfa-menu-label"><i class="me-2" id="wfaMenuIcon"></i><span id="wfaMenuText"></span></span>
-                        <i class="bi bi-info-circle text-muted ms-2" id="wfaMenuInfo" data-bs-toggle="tooltip" data-bs-placement="left"
-                          title=""></i>
+                        <span class="wfa-menu-label"><i class="me-2" id="wfaMenuIcon"></i><span
+                            id="wfaMenuText"></span></span>
+                        <i class="bi bi-info-circle text-muted ms-2" id="wfaMenuInfo" data-bs-toggle="tooltip"
+                          data-bs-placement="left" title=""></i>
                       </a>
                     </li>
                   </ul>
@@ -249,37 +257,85 @@
       </div>
       <div class="tab-pane fade" id="reports-tab-pane" role="tabpanel" aria-labelledby="reports-tab" tabindex="0">
         <div class="container-fluid">
-          <div class="toolbar">
-            <button id="refresh" class="btn btn-secondary">Refresh</button>
+          <div class="tab-content" id="reportsSubTabContent">
+            <div class="tab-pane fade show active" id="classic-reports-pane" role="tabpanel"
+              aria-labelledby="classic-reports-tab" tabindex="0">
+              <div class="toolbar d-flex align-items-center gap-2">
+                <button id="refresh" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></button>
+                <ul class="nav nav-tabs reports-subtab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-report-view="classic" type="button">Classic</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
+                  </li>
+                </ul>
+              </div>
+              <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
+                data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
+                data-icon-size="sm" data-search-align="right" data-unique-id="strategyID">
+                <thead>
+                  <tr>
+                    <th data-field="strategyID" data-visible="false">ID</th>
+                    <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name
+                    </th>
+                    <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
+                    <th data-field="symbol" data-sortable="true" data-sorter="dateSorter"
+                      data-cell-style="symbolColumnStyle">Symbol</th>
+                    <th data-field="timePeriod" data-sortable="false">Period</th>
+                    <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
+                    </th>
+                    <th data-field="maxProfit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit
+                    </th>
+                    <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
+                      data-events="openReportDetail">Report Detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <button id="report-detail-button" type="button" class="btn btn-primary btn-sm">
+                        Open
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tab-pane fade" id="wfa-reports-pane" role="tabpanel" aria-labelledby="wfa-reports-tab"
+              tabindex="0">
+              <div class="wfa-toolbar d-flex align-items-center gap-2">
+                <button id="wfaRefresh" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></button>
+                <ul class="nav nav-tabs reports-subtab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-report-view="classic" type="button">Classic</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
+                  </li>
+                </ul>
+              </div>
+              <table id="wfaTable" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
+                data-toolbar=".wfa-toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
+                data-icon-size="sm" data-search-align="right" data-unique-id="wfaID">
+                <thead>
+                  <tr>
+                    <th data-field="wfaID" data-visible="false">ID</th>
+                    <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name
+                    </th>
+                    <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
+                    <th data-field="symbol" data-sortable="true" data-cell-style="symbolColumnStyle">Symbol</th>
+                    <th data-field="timePeriod" data-sortable="false">Period</th>
+                    <th data-field="profitable" data-sortable="true">Profitable</th>
+                    <th data-field="wfe" data-sortable="true">WFE</th>
+                    <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
+                      data-events="openWfaDetail">Detail</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
-          <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
-            data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-            data-buttons-prefix="btn-sm btn" data-search-align="left" data-unique-id="strategyID">
-            <thead>
-              <tr>
-                <th data-field="strategyID" data-visible="false">ID</th>
-                <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name</th>
-                <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
-                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter"
-                  data-cell-style="symbolColumnStyle">Symbol</th>
-                <th data-field="timePeriod" data-sortable="false">Period</th>
-                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
-                </th>
-                <th data-field="maxProfit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
-                <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
-                  data-events="openReportDetail">Report Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <button id="report-detail-button" type="button" class="btn btn-primary btn-sm">
-                    Open
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
       <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">

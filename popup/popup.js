@@ -216,7 +216,27 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 // Create Reports and Profile Tabs
 createReportTable()
 
-// Refresh Report Data Manually 
+// report-view nav lives in both table toolbars; keep them in sync
+function switchReportView(view) {
+  const isWfa = view === "wfa"
+  const classicPane = document.getElementById("classic-reports-pane")
+  const wfaPane = document.getElementById("wfa-reports-pane")
+  classicPane.classList.toggle("show", !isWfa)
+  classicPane.classList.toggle("active", !isWfa)
+  wfaPane.classList.toggle("show", isWfa)
+  wfaPane.classList.toggle("active", isWfa)
+  document.querySelectorAll("[data-report-view]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.reportView === view)
+  })
+  // bootstrap-table renders with wrong widths while its pane is hidden; refresh on show
+  $(isWfa ? "#wfaTable" : "#table").bootstrapTable("resetView")
+}
+
+document.querySelectorAll("[data-report-view]").forEach((btn) => {
+  btn.addEventListener("click", () => switchReportView(btn.dataset.reportView))
+})
+
+// Refresh Report Data Manually
 addRefreshDataEventListener()
 
 //#region Report Tab & Table
@@ -264,6 +284,30 @@ async function createReportTable() {
 function reportDetailHtml(strategyID) {
   return '<button id="report-detail-button" strategy-id="' + strategyID + '" type="button" class="btn btn-primary btn-sm"><i class="bi bi-clipboard2-data-fill"> Open</i></button>\
   <button id="remove-report" type="button" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>'
+}
+
+function wfaDetailHtml(wfaID) {
+  return '<button id="wfa-detail-button" wfa-id="' + wfaID + '" type="button" class="btn btn-primary btn-sm"><i class="bi bi-clipboard2-data-fill"> Open</i></button>\
+  <button id="remove-wfa-report" type="button" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>'
+}
+
+// TODO: replace mock data with real wfa-* parent reads once WFA logic is wired
+function createWfaReportTable() {
+  const mockData = [
+    {
+      wfaID: 1, strategyName: "EMA Cross", date: "07/08/2026 14:32", symbol: "BTCUSDT",
+      timePeriod: "1h", windows: 5, avgOOS: "+5.2%", profitable: "4/5 (80%)", wfe: "0.64",
+      detail: wfaDetailHtml(1)
+    },
+    {
+      wfaID: 2, strategyName: "RSI Reversal", date: "07/07/2026 09:15", symbol: "ETHUSDT",
+      timePeriod: "4h", windows: 8, avgOOS: "-1.8%", profitable: "3/8 (38%)", wfe: "0.21",
+      detail: wfaDetailHtml(2)
+    }
+  ]
+  const $wfaTable = $('#wfaTable')
+  $wfaTable.bootstrapTable({ data: mockData })
+  $wfaTable.bootstrapTable('load', mockData)
 }
 
 // Add Custom Styles to Columns 
@@ -326,6 +370,25 @@ window.openReportDetail = {
     })
   }
 }
+
+window.openWfaDetail = {
+  // open the WFA report page (summary + per-window pages via iframe)
+  'click #wfa-detail-button': function (e, value, row, index) {
+    chrome.tabs.create({ url: 'report/wfa-reportdetail.html?wfaID=' + row.wfaID })
+  },
+  // Remove WFA report parent. TODO: cascade-delete the child report-data-* ids once logic is wired.
+  'click #remove-wfa-report': function (e, value, row, index) {
+    var $wfaTable = $('#wfaTable')
+    chrome.storage.local.remove(["wfa-" + row.wfaID])
+    $wfaTable.bootstrapTable('remove', {
+      field: 'wfaID',
+      values: [row.wfaID]
+    })
+  }
+}
+
+// init AFTER openWfaDetail exists — bootstrap-table resolves data-events at build time
+createWfaReportTable()
 
 //#endregion
 
@@ -869,9 +932,12 @@ function updateWfaSplit() {
     const oosRatio = oosPct / isPct
     const isLen = totalDays / (1 + windows * oosRatio)
     const oosLen = isLen * oosRatio
-    isDays.textContent = `~${Math.round(isLen)} days`
-    oosDays.textContent = `~${Math.round(oosLen)} days`
-    windowSize.textContent = `~${Math.round(isLen + oosLen)} days`
+    // round the parts first so the displayed sum always adds up (IS + OOS = Window Size)
+    const isRounded = Math.round(isLen)
+    const oosRounded = Math.round(oosLen)
+    isDays.textContent = `~${isRounded} days`
+    oosDays.textContent = `~${oosRounded} days`
+    windowSize.textContent = `~${isRounded + oosRounded} days`
   } else {
     isDays.textContent = "—"
     oosDays.textContent = "—"

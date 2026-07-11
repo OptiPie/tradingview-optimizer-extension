@@ -203,7 +203,7 @@ body {
 }
 
 .toolbar {
-    margin-right: 1rem;
+    margin-right: 0.5rem;
 }
 
 th[data-field="parameters"],
@@ -237,16 +237,37 @@ td[data-field="maxprofit"] {
     animation: rowFlash 1.2s ease-out;
 }
 
-table#table thead {
+table#table thead,
+table#wfaTable thead {
     font-size: 13px;
 }
 
-table#table tbody {
+table#table tbody,
+table#wfaTable tbody {
     font-size: 12px;
 }
 
 .container-fluid.footer {
     font-size: 14px;
+}
+
+/* shrink bootstrap-table's generated search box */
+.fixed-table-toolbar .search-input {
+    max-width: 10rem;
+}
+
+/* Reports sub-tabs — smaller/lighter than the main nav to read as subordinate */
+.reports-subtab .nav-link {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--bs-secondary);
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+.reports-subtab .nav-link.active {
+    font-weight: 500;
+    color: var(--bs-body-color);
 }
 
 /* Settings Dropdown */
