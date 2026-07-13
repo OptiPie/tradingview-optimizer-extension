@@ -26,16 +26,71 @@
 
       <!-- Page 1: Walk-Forward summary (native content) -->
       <div id="wfaSummary" class="container">
-        <h4 class="mb-3">Walk-Forward Summary</h4>
-        <div id="wfaSummaryContent" class="text-secondary">
-          <!-- TODO: aggregates (WFE / avg OOS / N-M profitable), per-window IS-vs-OOS, parameter stability -->
-          Summary content coming soon.
+        <div class="mb-4 text-center">
+          
+          <div class="row g-3 align-items-center">
+            <div class="col d-flex justify-content-center gap-2">
+              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-coin me-1"></i><span id="metaSymbol"></span></span>
+              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-clock me-1"></i><span id="metaTimeframe"></span></span>
+            </div>
+            <div class="col d-flex justify-content-center">
+              <span class="badge rounded-pill fw-semibold fs-6 text-bg-primary"><i class="bi bi-graph-up-arrow me-1"></i><span id="metaStrategy"></span></span>
+            </div>
+            <div class="col d-flex justify-content-center gap-2">
+              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-percent me-1"></i><span id="metaSplit"></span></span>
+              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-window-stack me-1"></i><span id="metaWindows"></span></span>
+            </div>
+          </div>
         </div>
+
+        <!-- KPI tiles: the robustness headline -->
+        <div class="row g-3 mb-4">
+          <div class="col">
+            <div class="wfa-kpi">
+              <div class="wfa-kpi-label">Avg Out-of-Sample</div>
+              <div class="wfa-kpi-value" id="kpiAvgOos">—</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="wfa-kpi">
+              <div class="wfa-kpi-label">Profitable Windows</div>
+              <div class="wfa-kpi-value" id="kpiProfitable">—</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="wfa-kpi">
+              <div class="wfa-kpi-label">Walk-Forward Efficiency</div>
+              <div class="wfa-kpi-value" id="kpiWfe">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-window breakdown — also surfaces parameter stability at a glance -->
+        <h6 class="mb-2">Per-Window Breakdown</h6>
+        <table class="table table-sm table-hover align-middle wfa-window-table">
+          <thead>
+            <tr>
+              <th>Window</th>
+              <th>Best Parameters</th>
+              <th class="text-end">In-Sample</th>
+              <th class="text-end">Out-of-Sample</th>
+            </tr>
+          </thead>
+          <tbody id="wfaWindowRows"></tbody>
+          <template id="wfaRowTemplate">
+            <tr>
+              <td data-cell="window"></td>
+              <td data-cell="params"></td>
+              <td class="text-end" data-cell="is"></td>
+              <td class="text-end" data-cell="oos"></td>
+            </tr>
+          </template>
+        </table>
       </div>
 
       <!-- Pages 2..n: a single window's report — IS/OOS toggle + embedded reportdetail -->
       <div id="wfaWindow" style="display: none;">
-        <div class="d-flex justify-content-start mb-2 wfa-sample-toggle">
+        <div class="d-flex justify-content-start wfa-sample-toggle">
           <div class="btn-group btn-group-sm" role="group" aria-label="Sample toggle">
             <input type="radio" class="btn-check" name="wfaSample" id="wfaSampleIs" autocomplete="off" checked>
             <label class="btn btn-outline-secondary" for="wfaSampleIs">In-Sample</label>
@@ -47,7 +102,7 @@
       </div>
 
       <!-- Bottom-left pager: Summary + one page per window -->
-      <nav class="mt-4" aria-label="Walk-forward pages">
+      <nav class="mt-2 ps-4" aria-label="Walk-forward pages">
         <ul class="pagination pagination-sm" id="wfaPager"></ul>
       </nav>
     </div>

@@ -9,6 +9,31 @@
     padding-left: 2rem;
 }
 
+/* Summary KPI tiles */
+.wfa-kpi {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    height: 100%;
+}
+
+.wfa-kpi-label {
+    font-size: 0.8rem;
+    color: var(--bs-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.wfa-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* per-window breakdown rows are clickable — jump to that window */
+.wfa-window-table tbody tr {
+    cursor: pointer;
+}
+
 /* --- header/footer chrome, duplicated from repordetail.css on purpose ---
    (small copy > shared dependency for 2 pages — same call as the duplicated header/footer HTML) */
 #plusLogo {
