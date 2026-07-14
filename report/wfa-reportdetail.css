@@ -51,3 +51,114 @@
 #plusUpgrade i {
     color: white;
 }
+
+/* --- Rolling-windows staircase: shared-axis bars, one row per window --- */
+.wfa-stair-grid {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    align-items: center;
+}
+
+/* shared month axis — sits in the timeline column only */
+.wfa-stair-axis {
+    position: relative;
+    grid-column: 2;
+    height: 20px;
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 6px;
+}
+
+.wfa-stair-tick {
+    position: absolute;
+    top: 3px;
+    transform: translateX(-50%);
+    font-size: 0.68rem;
+    color: var(--bs-secondary);
+    white-space: nowrap;
+}
+
+.wfa-stair-num {
+    grid-column: 1;
+    text-align: right;
+    padding-right: 8px;
+    font-size: 0.68rem;
+    color: var(--bs-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.wfa-stair-track {
+    grid-column: 2;
+    position: relative;
+    height: 34px;
+}
+
+.wfa-stair-bar {
+    position: absolute;
+    top: 3px;
+    height: 14px;
+    display: flex;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .06);
+    cursor: pointer;
+}
+
+.wfa-seg-is {
+    height: 100%;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-right: none;
+}
+
+.wfa-seg-oos {
+    height: 100%;
+    background: var(--bs-primary);
+}
+
+/* period dates under each bar: IS start (neutral) + OOS boundary/end (primary) */
+.wfa-stair-date {
+    position: absolute;
+    top: 19px;
+    font-size: 0.6rem;
+    color: #495057;
+    white-space: nowrap;
+}
+
+.wfa-stair-date-start {
+    transform: translateX(0);
+}
+
+.wfa-stair-date-bound {
+    transform: translateX(-50%);
+    color: rgba(13, 110, 253, .82);
+    font-weight: 500;
+}
+
+.wfa-stair-date-end {
+    transform: translateX(-100%);
+    color: rgba(13, 110, 253, .82);
+    font-weight: 500;
+}
+
+.wfa-stair-legend {
+    margin-top: 0.9rem;
+    font-size: 0.78rem;
+    color: var(--bs-secondary);
+}
+
+.wfa-sw {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.wfa-sw-is {
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+}
+
+.wfa-sw-oos {
+    background: var(--bs-primary);
+}

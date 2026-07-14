@@ -12,6 +12,8 @@ const wfaReport = {
   symbol: "BTCUSDT",
   timePeriod: "1h",
   config: { isPct: 70, oosPct: 30 },
+  // DUMMY: total analysis range — the real page will carry actual start/end dates.
+  dateRange: { start: "2025-01-01", end: "2026-01-01" },
   windows: [
     { inSample: "1781214860323", outSample: "1781037527038", winner: { params: "50, 10", isProfit: "+22%", oosProfit: "+6%" } },
     { inSample: "1781037527038", outSample: "1781037394175", winner: { params: "48, 12", isProfit: "+18%", oosProfit: "+4%" } },
@@ -169,8 +171,83 @@ function renderSummary() {
   })
 }
 
+// --- Rolling windows staircase (page 1) ---------------------------------------
+// Classic rolling walk-forward geometry (verified): IS = T / (1 + N*oosRatio),
+// OOS = IS*oosRatio; windows overlap so T = IS + N*OOS. All bars share ONE time axis
+// and each steps forward exactly one OOS length. Dates are DERIVED from the formula,
+// not from the child report ids.
+const DAY = 86400000
+function fmtDate(d) { return d.toLocaleDateString("en-US", { month: "short", day: "2-digit" }) }
+
+function makeStairDate(kind, leftPct, text) {
+  const el = document.createElement("span")
+  el.className = "wfa-stair-date wfa-stair-date-" + kind
+  el.style.left = leftPct + "%"
+  el.textContent = text
+  return el
+}
+
+function renderStaircase() {
+  const { windows, config, dateRange } = wfaReport
+  const start = new Date(dateRange.start)
+  const end = new Date(dateRange.end)
+  const T = (end - start) / DAY
+  const N = windows.length
+  const oosRatio = config.oosPct / config.isPct
+  const IS = T / (1 + N * oosRatio)
+  const OOS = IS * oosRatio
+  const pct = (days) => (days / T) * 100
+  const dayToDate = (n) => new Date(start.getTime() + n * DAY)
+
+  const grid = document.getElementById("wfaStairGrid")
+
+  // shared month axis (every 2nd month keeps the labels readable)
+  const axis = document.createElement("div")
+  axis.className = "wfa-stair-axis"
+  let m = new Date(start)
+  while (m <= end) {
+    const tick = document.createElement("div")
+    tick.className = "wfa-stair-tick"
+    tick.style.left = pct((m - start) / DAY) + "%"
+    tick.textContent = m.toLocaleDateString("en-US", { month: "short" })
+    axis.appendChild(tick)
+    m = new Date(m.getFullYear(), m.getMonth() + 2, 1)
+  }
+  grid.appendChild(axis)
+
+  const rowTemplate = document.getElementById("wfaStairRowTemplate")
+  windows.forEach((w, i) => {
+    const isStart = i * OOS
+    const bound = isStart + IS
+    const winEnd = bound + OOS
+
+    const frag = rowTemplate.content.cloneNode(true)
+    const track = frag.querySelector(".wfa-stair-track")
+    const bar = frag.querySelector(".wfa-stair-bar")
+    frag.querySelector(".wfa-stair-num").textContent = i + 1
+    bar.style.left = pct(isStart) + "%"
+    bar.style.width = pct(IS + OOS) + "%"
+    frag.querySelector(".wfa-seg-is").style.flex = IS
+    frag.querySelector(".wfa-seg-oos").style.flex = OOS
+    bar.title = `Window ${i + 1}`
+
+    // IS start (neutral) + OOS boundary (primary). A window's end is the next window's
+    // boundary, so only the LAST bar labels its own end.
+    track.appendChild(makeStairDate("start", pct(isStart), fmtDate(dayToDate(isStart))))
+    track.appendChild(makeStairDate("bound", pct(bound), fmtDate(dayToDate(bound))))
+    if (i === windows.length - 1) {
+      track.appendChild(makeStairDate("end", pct(winEnd), fmtDate(dayToDate(winEnd))))
+    }
+
+    // clicking a bar jumps to that window — parity with the breakdown rows
+    bar.addEventListener("click", () => goToPage(i))
+    grid.appendChild(frag)
+  })
+}
+
 // update non-functional UI components for free/plus users
 updateUserUI()
 buildPager()
 renderSummary()
+renderStaircase()
 goToPage("summary")

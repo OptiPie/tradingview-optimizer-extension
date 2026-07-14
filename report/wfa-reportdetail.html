@@ -65,6 +65,27 @@
           </div>
         </div>
 
+        <!-- Rolling-windows staircase — the time story: when each window trains vs validates -->
+        <h6 class="mb-2">Rolling Windows</h6>
+        <div class="wfa-staircase mb-4">
+          <div class="wfa-stair-grid" id="wfaStairGrid"></div>
+          <div class="wfa-stair-legend">
+            <span class="wfa-sw wfa-sw-is"></span> In-sample (training)
+            &nbsp;&middot;&nbsp;
+            <span class="wfa-sw wfa-sw-oos"></span> Out-of-sample (validation)
+            &mdash; each window steps forward one out-of-sample length.
+          </div>
+          <template id="wfaStairRowTemplate">
+            <div class="wfa-stair-num"></div>
+            <div class="wfa-stair-track">
+              <div class="wfa-stair-bar">
+                <div class="wfa-seg-is"></div>
+                <div class="wfa-seg-oos"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+
         <!-- Per-window breakdown — also surfaces parameter stability at a glance -->
         <h6 class="mb-2">Per-Window Breakdown</h6>
         <table class="table table-sm table-hover align-middle wfa-window-table">
