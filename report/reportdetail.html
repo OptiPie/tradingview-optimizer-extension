@@ -24,23 +24,34 @@
     </header>
 
     <div class="container-fluid py-3 report-detail">
+
+      <!-- report identity pills — mirrors the WFA pill language. Strategy pill sits in an auto-width
+           center column between equal side columns, so it lands dead-center on the page axis (under
+           the logo); Asset hugs its left, Timeframe its right. -->
+      <div class="container report-pills mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col d-flex justify-content-end">
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-coin me-1"></i><span
+                id="reportSymbol"></span></span>
+          </div>
+          <div class="col-auto">
+            <span class="badge rounded-pill fw-semibold fs-6 text-bg-primary"><i
+                class="bi bi-graph-up-arrow me-1"></i><span id="reportStrategy"></span></span>
+          </div>
+          <div class="col d-flex justify-content-start">
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-clock me-1"></i><span
+                id="timePeriod"></span></span>
+          </div>
+        </div>
+      </div>
+
       <div class="container" id="toolbar">
         <div class="progress-spinner" style="display: none;">
-              <div class="spinner-animation"></div>
-              <div class="progress-status">Optimizing...</div>
-            </div>
+          <div class="spinner-animation"></div>
+          <div class="progress-status">Optimizing...</div>
+        </div>
         <div class="row align-items-center">
-          <div class="col-2">
-            <span>
-              Period:
-            </span>
-          </div>
-          <div class="col-2">
-            <span id="timePeriod">
-              1 hour
-              <span>
-          </div>
-          <div class="col-8">
+          <div class="col-12">
             <button type="button" class="btn btn-primary btn float-end" id="download-report"><i
                 class="bi bi-cloud-download"></i>
               Download

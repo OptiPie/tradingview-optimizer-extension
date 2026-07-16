@@ -24,24 +24,27 @@
 
     <div class="container-fluid py-3 wfa-report-detail">
 
-      <!-- Page 1: Walk-Forward summary (native content) -->
-      <div id="wfaSummary" class="container">
-        <div class="mb-4 text-center">
-          
-          <div class="row g-3 align-items-center">
-            <div class="col d-flex justify-content-center gap-2">
-              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-coin me-1"></i><span id="metaSymbol"></span></span>
-              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-clock me-1"></i><span id="metaTimeframe"></span></span>
-            </div>
-            <div class="col d-flex justify-content-center">
-              <span class="badge rounded-pill fw-semibold fs-6 text-bg-primary"><i class="bi bi-graph-up-arrow me-1"></i><span id="metaStrategy"></span></span>
-            </div>
-            <div class="col d-flex justify-content-center gap-2">
-              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-percent me-1"></i><span id="metaSplit"></span></span>
-              <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-window-stack me-1"></i><span id="metaWindows"></span></span>
-            </div>
+      <!-- persistent optimization identity — stays visible across the summary AND per-window views.
+           Strategy pill sits in an auto-width center column between equal side columns, so it lands
+           dead-center on the page axis (under the logo); side pills hug inward. -->
+      <div class="container mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col d-flex justify-content-end gap-2">
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-coin me-1"></i><span id="metaSymbol"></span></span>
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-clock me-1"></i><span id="metaTimeframe"></span></span>
+          </div>
+          <div class="col-auto">
+            <span class="badge rounded-pill fw-semibold fs-6 text-bg-primary"><i class="bi bi-graph-up-arrow me-1"></i><span id="metaStrategy"></span></span>
+          </div>
+          <div class="col d-flex justify-content-start gap-2">
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-percent me-1"></i><span id="metaSplit"></span></span>
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-window-stack me-1"></i><span id="metaWindows"></span></span>
           </div>
         </div>
+      </div>
+
+      <!-- Page 1: Walk-Forward summary (native content) -->
+      <div id="wfaSummary" class="container">
 
         <!-- KPI tiles: the robustness headline -->
         <div class="row g-3 mb-4">

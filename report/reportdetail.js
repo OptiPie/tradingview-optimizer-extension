@@ -91,6 +91,9 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   var detailedParameters = Object.values(values)[0].detailedParameters
   var timePeriod = document.querySelector("#timePeriod")
   timePeriod.textContent = timePeriodValue
+  // identity pills (Asset · Strategy) — timeframe pill reuses #timePeriod above
+  document.getElementById("reportSymbol").textContent = report.symbol ?? ""
+  document.getElementById("reportStrategy").textContent = report.strategyName ?? ""
   let isDeprecatedReportData = false;
 
   // Show progress spinner immediately on page load
