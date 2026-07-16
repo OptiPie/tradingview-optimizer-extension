@@ -104,6 +104,13 @@ body {
     transform: translateY(0);
 }
 
+/* #parameters is an ancestor of the selectable dropdown; a lingering translateY(0) keeps a
+   stacking context on it, which traps the dropup's z-index behind the nav. Resolve to `none`
+   once shown (visually identical) so the dropdown competes at the top level again. */
+#parameters.with-transition.is-shown {
+    transform: none;
+}
+
 #settings{
     display: flex;
     justify-content: flex-end;

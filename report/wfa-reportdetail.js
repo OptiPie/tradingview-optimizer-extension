@@ -58,13 +58,21 @@ function goToPage(page) {
     const isActive = (page === "summary" && idx === 0) || (page === idx - 1)
     li.classList.toggle("active", isActive)
   })
+  // the pager is shared by both pages but they align differently: summary content sits
+  // in a centered .container, window content aligns to the iframe. Let the pager borrow
+  // whichever context is active instead of hunting a fixed padding.
+  const pagerNav = document.getElementById("wfaPager").parentElement
   if (page === "summary") {
     summaryEl.style.display = "block"
     windowEl.style.display = "none"
+    pagerNav.classList.add("container")
+    pagerNav.classList.remove("ps-4")
     return
   }
   summaryEl.style.display = "none"
   windowEl.style.display = "block"
+  pagerNav.classList.remove("container")
+  pagerNav.classList.add("ps-4")
   // every window opens on its in-sample view by default
   currentSample = "is"
   document.getElementById("wfaSampleIs").checked = true
