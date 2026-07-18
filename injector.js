@@ -166,13 +166,20 @@ function InjectScriptIntoDOM() {
   };
   (document.head || document.documentElement).appendChild(s);
 
-  // Retrieve the UserInputs from local storage and send them as message to script.js
+  // Retrieve the typed inputs payload set by popup.js and hand it to script.js.
+  //   classic: { type:"classic", classicOptInputs }  -> sent as-is; script.js reads .classicOptInputs
+  //   wfa:     { type:"wfa", wfaOptInputs:{...} }     -> STEP 3 run loop (per-window dates), not wired yet
   chrome.storage.local.get("userInputs", ({ userInputs }) => {
+    if (userInputs.type === "wfa") {
+      // TODO(step 3): iterate windows — derive each window's date range from wfaOptInputs and send
+      // { type:"wfa", classicOptInputs, dates } per run. Classic path below is unaffected.
+      return
+    }
     setTimeout(sendUserInputsMessage, 500, userInputs);
   });
 
-  function sendUserInputsMessage(userInputs) {
-    window.postMessage({ type: "UserInputsEvent", detail: userInputs }, "*");
+  function sendUserInputsMessage(payload) {
+    window.postMessage({ type: "UserInputsEvent", detail: payload }, "*");
   }
   return true
 }

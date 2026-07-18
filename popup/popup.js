@@ -110,12 +110,12 @@ function updateUserUI() {
 optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  var userInputs = new Object({
+  var classicOptInputs = new Object({
     parameters: [],
     timeFrames: []
   })
   // err is handled as value
-  var err = await CreateUserInputsMessage(userInputs)
+  var err = await CreateUserInputsMessage(classicOptInputs)
 
   if (err != null) {
     switch (err.message) {
@@ -148,11 +148,43 @@ optimize.addEventListener("click", async () => {
     return
   }
 
-  // Add settings to userInputs
-  const settings = await getSettings();
-  userInputs.settings = settings;
+  // Walk-forward runs a single timeframe (0 selected => current chart TF). Block multi-select.
+  if (_wfaActive && classicOptInputs.timeFrames.length > 1) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: "Walk-Forward Analysis supports a single timeframe"
+      }
+    });
+    return
+  }
 
-  chrome.storage.local.set({ "userInputs": userInputs });
+  // Add settings to the classic inputs (each WFA window reuses them per run)
+  const settings = await getSettings();
+  classicOptInputs.settings = settings;
+
+  // Wrap by mode so injector branches on `type` (no reflection guessing). WFA carries the windowing
+  // config (split/range/count); injector consumes it to derive each window's concrete dates.
+  let payload
+  if (_wfaActive) {
+    const isPct = parseInt(document.getElementById("wfaSplit").value)
+    payload = {
+      type: "wfa",
+      wfaOptInputs: {
+        classicOptInputs,
+        config: { isPct, oosPct: 100 - isPct },
+        dateRange: {
+          start: document.getElementById("wfaStartDate").value,
+          end: document.getElementById("wfaEndDate").value
+        },
+        windows: parseInt(document.getElementById("wfaWindows").value) || 0
+      }
+    }
+  } else {
+    payload = { type: "classic", classicOptInputs }
+  }
+
+  chrome.storage.local.set({ "userInputs": payload });
 
   chrome.scripting.executeScript({
     target: { tabId: tab.id },

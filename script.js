@@ -47,8 +47,10 @@ async function Process() {
         if (message.type === "UserInputsEvent") {
             window.removeEventListener("message", userInputsEventCallback);
 
-            for (let i = 0; i < message.detail.parameters.length; i++) {
-                let parameter = message.detail.parameters[i];
+            // inputs now arrive wrapped: { type, classicOptInputs, [dates] } — reach in once
+            const classicOptInputs = message.detail.classicOptInputs
+            for (let i = 0; i < classicOptInputs.parameters.length; i++) {
+                let parameter = classicOptInputs.parameters[i];
                 switch (parameter.type) {
                     case ParameterType.Numeric:
                         userNumericInputs.push(parameter)
@@ -62,11 +64,16 @@ async function Process() {
                 }
                 userInputs.push(parameter)
             }
-            userTimeFrames = message.detail.timeFrames
+            userTimeFrames = classicOptInputs.timeFrames
 
             // Extract settings and set optimization timeout
-            if (message.detail.settings?.isLongRunningOptimizations) {
+            if (classicOptInputs.settings?.isLongRunningOptimizations) {
                 optimizationTimeout = 60 * 1000; // 60 seconds
+            }
+
+            // WFA runs arrive with a concrete date window to apply before optimizing (injector step 3).
+            if (message.detail.type === "wfa") {
+                // TODO(step 3): set the TV chart date range to message.detail.dates before the run starts
             }
         }
     }
