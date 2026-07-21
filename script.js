@@ -47,7 +47,6 @@ async function Process() {
         if (message.type === "UserInputsEvent") {
             window.removeEventListener("message", userInputsEventCallback);
 
-            // inputs now arrive wrapped: { type, classicOptInputs, [dates] } — reach in once
             const classicOptInputs = message.detail.classicOptInputs
             for (let i = 0; i < classicOptInputs.parameters.length; i++) {
                 let parameter = classicOptInputs.parameters[i];

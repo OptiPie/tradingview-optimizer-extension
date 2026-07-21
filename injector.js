@@ -94,13 +94,15 @@ var reportDataEventCallback = (event) => {
 
           chrome.storage.local.set({ [reportKey]: existingReport });
 
-          //notify with the success
-          chrome.runtime.sendMessage({
-            notify: {
-              type: "success",
-              content: "Optimization Completed Successfully & Added to Reports"
-            }
-          });
+          //notify with the success (skip for wfa children)
+          if (report.type !== "wfa") {
+            chrome.runtime.sendMessage({
+              notify: {
+                type: "success",
+                content: "Optimization Completed Successfully & Added to Reports"
+              }
+            });
+          }
         } else {
           //notify with the warning
           chrome.runtime.sendMessage({
@@ -110,10 +112,12 @@ var reportDataEventCallback = (event) => {
             }
           });
         }
-        // Optimization is fully done → unlock 
-        chrome.runtime.sendMessage({
-          popupAction: { event: "unlockOptimizeButton" }
-        });
+        // Optimization is fully done → unlock (skip for wfa children)
+        if (report.type !== "wfa") {
+          chrome.runtime.sendMessage({
+            popupAction: { event: "unlockOptimizeButton" }
+          });
+        }
 
         // send reportUpdate with 'FINISHED' status
         chrome.runtime.sendMessage({
@@ -134,9 +138,86 @@ var reportDataEventCallback = (event) => {
   }
 }
 
+// WFA parent lifecycle — separate stream from the child reports. Persists status verbatim from script.js.
+var wfaDataEventCallback = (event) => {
+  var message = event.data;
+  if (message.type !== "WfaDataEvent") return;
+
+  const detail = message.detail;
+  const wfaKey = "wfa-" + detail.wfaID;
+
+  switch (detail.status) {
+    case "STARTED":
+      // Create the thin parent up front; windows[] get filled by subsequent IN_PROGRESS upserts.
+      chrome.storage.local.set({
+        [wfaKey]: {
+          wfaID: detail.wfaID,
+          created: detail.created,
+          strategyName: detail.strategyName,
+          symbol: detail.symbol,
+          timePeriod: detail.timePeriod,
+          config: detail.config,
+          dateRange: detail.dateRange,
+          windowCount: detail.windowCount,
+          windows: {}, // keyed by windowIndex — upsert, no sparse-array risk
+          status: detail.status,
+          lastUpdated: Date.now()
+        }
+      }, () => notifyWfaUpdated(detail.wfaID));
+      break;
+
+    case "IN_PROGRESS":
+      chrome.storage.local.get([wfaKey], items => {
+        let parent = items[wfaKey];
+        if (parent == null) return; // STARTED must land before any update
+
+        // Upsert the window entry, merging partial data (IS then OOS may arrive as separate updates)
+        const w = detail.window;
+        const prev = parent.windows[w.windowIndex] || { windowIndex: w.windowIndex };
+        parent.windows[w.windowIndex] = {
+          ...prev, ...w,
+          is:     { ...(prev.is || {}),     ...(w.is || {}) },
+          oos:    { ...(prev.oos || {}),    ...(w.oos || {}) },
+          winner: { ...(prev.winner || {}), ...(w.winner || {}) }
+        };
+        parent.status = detail.status;
+        parent.lastUpdated = Date.now();
+        chrome.storage.local.set({ [wfaKey]: parent }, () => notifyWfaUpdated(detail.wfaID));
+        // detail.isWindowFinal → per-window progress rides the live-update above (system toast TBD)
+      });
+      break;
+
+    case "FINISHED":
+      chrome.storage.local.get([wfaKey], items => {
+        let parent = items[wfaKey];
+        if (parent == null) return;
+        parent.status = detail.status;
+        parent.lastUpdated = Date.now();
+        chrome.storage.local.set({ [wfaKey]: parent }, () => {
+          // the SINGLE global completion + unlock + teardown listeners
+          chrome.runtime.sendMessage({
+            notify: { type: "success", content: "Walk-Forward Analysis Completed & Added to Reports" }
+          });
+          chrome.runtime.sendMessage({ popupAction: { event: "unlockOptimizeButton" } });
+          window.removeEventListener("message", reportDataEventCallback);
+          window.removeEventListener("message", wfaDataEventCallback);
+          window.removeEventListener("message", sleepEventCallback);
+          notifyWfaUpdated(detail.wfaID);
+        });
+      });
+      break;
+  }
+}
+
+// Live-update signal so the WFA reports list / an open WFA report page refresh as windows land
+function notifyWfaUpdated(wfaID) {
+  chrome.runtime.sendMessage({ popupAction: { event: "wfaReportUpdated", message: { wfaID } } });
+}
+
 // Add callbacks if script.js injected successfully
 if (isInjected) {
   window.addEventListener("message", reportDataEventCallback, false);
+  window.addEventListener("message", wfaDataEventCallback, false);
   window.addEventListener("message", sleepEventCallback, false);
   // Lock optimize button to prevent accidental multiple submissions
   chrome.runtime.sendMessage({
