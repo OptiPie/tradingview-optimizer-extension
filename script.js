@@ -7,8 +7,13 @@ var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
 var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not
-var maxProfit = -999999
+var bestResult = { profit: -999999, params: null } // best run so far; params retained for the WFA winner
 var optimizationTimeout = 15 * 1000; // default timeout in milliseconds
+
+// WFA run state — optType forks Process(); wfaContext enriches child reports while a window runs
+var optType = "classic"
+var wfaOptInputs = null
+var wfaContext = null // { wfaID, windowIndex, sampleType } during a WFA window, else null
 
 // reportDataMessage defined globally and initiated from start
 var reportDataMessage;
@@ -47,7 +52,9 @@ async function Process() {
         if (message.type === "UserInputsEvent") {
             window.removeEventListener("message", userInputsEventCallback);
 
-            const classicOptInputs = message.detail.classicOptInputs
+            const detail = message.detail
+            optType = detail.type
+            const classicOptInputs = optType === "wfa" ? detail.wfaOptInputs.classicOptInputs : detail.classicOptInputs
             for (let i = 0; i < classicOptInputs.parameters.length; i++) {
                 let parameter = classicOptInputs.parameters[i];
                 switch (parameter.type) {
@@ -70,9 +77,8 @@ async function Process() {
                 optimizationTimeout = 60 * 1000; // 60 seconds
             }
 
-            // WFA runs arrive with a concrete date window to apply before optimizing (injector step 3).
-            if (message.detail.type === "wfa") {
-                // TODO(step 3): set the TV chart date range to message.detail.dates before the run starts
+            if (optType === "wfa") {
+                wfaOptInputs = detail.wfaOptInputs
             }
         }
     }
@@ -115,77 +121,86 @@ async function Process() {
             ranges.push(roundedRange)
         }
     });
-    if (userTimeFrames == null || userTimeFrames.length <= 0) {
-        // no time frame selection or free user flow
-        reportDataMessage = prepareInitialReport()
-        await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-        updateReport({ status: "FINISHED", isFinal: true })
-        await PublishReport()
-    } else {
-        for (let i = 0; i < userTimeFrames.length; i++) {
-            // open time intervals dropdown and change it
-            await sleep(500)
+    switch (optType) {
+        case "wfa":
+            await RunWFA()
+            break;
 
-            let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
-            // check if user has favorite time frames selected
-            if (timeIntervalDropdown == null) {
-                timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
-            }
-            timeIntervalDropdown.click()
-
-            let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(1000)
-            document.querySelector(timeIntervalQuery).click()
-            await sleep(1000)
-            reportDataMessage = prepareInitialReport()
-            await sleep(500)
-            try {
+        default:
+            // TODO(tech-debt): extract the no-timeframe / timeframe branches into their own functions, like RunWFA
+            if (userTimeFrames == null || userTimeFrames.length <= 0) {
+                // no time frame selection or free user flow
+                reportDataMessage = prepareInitialReport()
                 await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-            } catch (err) {
-                console.log(err)
-                // catch the error, continue with the next time-frame
+                updateReport({ status: "FINISHED", isFinal: true })
+                await PublishReport()
+            } else {
+                for (let i = 0; i < userTimeFrames.length; i++) {
+                    // open time intervals dropdown and change it
+                    await sleep(500)
+
+                    let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
+                    // check if user has favorite time frames selected
+                    if (timeIntervalDropdown == null) {
+                        timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
+                    }
+                    timeIntervalDropdown.click()
+
+                    let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+                    await sleep(1000)
+                    document.querySelector(timeIntervalQuery).click()
+                    await sleep(1000)
+                    reportDataMessage = prepareInitialReport()
+                    await sleep(500)
+                    try {
+                        await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+                    } catch (err) {
+                        console.log(err)
+                        // catch the error, continue with the next time-frame
+                    }
+
+                    let isFinalOptimization = (i === userTimeFrames.length - 1)
+                    updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+                    await PublishReport()
+
+                    // reset global variables for new strategy optimization and for new timeframe
+                    optimizationHistory = new Map();
+                    bestResult = { profit: -999999, params: null }
+                }
             }
-
-            let isFinalOptimization = (i === userTimeFrames.length - 1)
-            updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
-            await PublishReport()
-
-            // reset global variables for new strategy optimization and for new timeframe
-            optimizationHistory = new Map();
-            maxProfit = -99999
-        }
     }
 
     // Optimize numeric inputs in the strategey for the currently chosen timeframe
-    async function OptimizeNumerics() {
+    // activeNumericInputs/activeRanges default to the globals; WFA-OOS passes a pinned single-combo set
+    async function OptimizeNumerics(activeNumericInputs = userNumericInputs, activeRanges = ranges) {
         shouldStop = false;
-        await SetUserIntervals()
+        await SetUserIntervals(activeNumericInputs)
 
         // Base call function
         const baseCall = async () => {
-            for (let j = 0; j < ranges[0]; j++) {
+            for (let j = 0; j < activeRanges[0]; j++) {
                 if (shouldStop) {
                     break;
                 }
-                await OptimizeParams(userNumericInputs[0].parameterIndex, userNumericInputs[0].stepSize);
+                await OptimizeParams(activeNumericInputs[0].parameterIndex, activeNumericInputs[0].stepSize);
             }
         };
 
         // Wrapper function for subsequent calls to build nested for loops
         const wrapSubsequentCalls = async (baseCall, index) => {
-            if (index >= ranges.length) {
+            if (index >= activeRanges.length) {
                 // start executing after wrapping everything in place
                 await baseCall()
                 return;
             }
 
             const currentCall = async () => {
-                for (let j = 0; j < ranges[index]; j++) {
+                for (let j = 0; j < activeRanges[index]; j++) {
                     if (shouldStop) {
                         break;
                     }
                     await baseCall();
-                    await ResetInnerOptimizeOuterParameter(ranges, j, index);
+                    await ResetInnerOptimizeOuterParameter(activeRanges, j, index, activeNumericInputs);
                 }
             };
 
@@ -202,14 +217,14 @@ async function Process() {
     }
 
     // Optimize checkbox inputs in the strategey for the currently chosen timeframe 
-    async function OptimizeCheckboxes(nextFunction) {
-        if (!isOptimizationCalled(userCheckboxInputs)) {
+    async function OptimizeCheckboxes(nextFunction, activeCheckboxInputs = userCheckboxInputs) {
+        if (!isOptimizationCalled(activeCheckboxInputs)) {
             if (nextFunction) {
                 await nextFunction();
             }
             return
         }
-        let checkBoxesLength = userCheckboxInputs.length
+        let checkBoxesLength = activeCheckboxInputs.length
 
         for (let i = 0; i < 2 ** checkBoxesLength; i++) {
             let binaryString = i.toString(2).padStart(checkBoxesLength, '0')
@@ -220,11 +235,11 @@ async function Process() {
                 // renew tv inputs
                 tvInputs = document.querySelectorAll(tvInputsQuery)
 
-                if (tvInputs[userCheckboxInputs[j].parameterIndex].checked && value == 0) {
-                    tvInputs[userCheckboxInputs[j].parameterIndex].click()
+                if (tvInputs[activeCheckboxInputs[j].parameterIndex].checked && value == 0) {
+                    tvInputs[activeCheckboxInputs[j].parameterIndex].click()
                 }
-                if (!tvInputs[userCheckboxInputs[j].parameterIndex].checked && value == 1) {
-                    tvInputs[userCheckboxInputs[j].parameterIndex].click()
+                if (!tvInputs[activeCheckboxInputs[j].parameterIndex].checked && value == 1) {
+                    tvInputs[activeCheckboxInputs[j].parameterIndex].click()
                 }
             }
 
@@ -240,8 +255,8 @@ async function Process() {
     }
 
     // Optimize selectable inputs in the strategey for the currently chosen timeframe 
-    async function OptimizeSelectables(nextFunction) {
-        if (!isOptimizationCalled(userSelectableInputs)) {
+    async function OptimizeSelectables(nextFunction, activeSelectableInputs = userSelectableInputs) {
+        if (!isOptimizationCalled(activeSelectableInputs)) {
             if (nextFunction) {
                 await nextFunction();
             }
@@ -249,7 +264,7 @@ async function Process() {
         }
 
         // cartesian product to build up all selectable combinations
-        let selectableInputCombinations = generateCombinationsFromInputs(userSelectableInputs)
+        let selectableInputCombinations = generateCombinationsFromInputs(activeSelectableInputs)
 
         for (let i = 0; i < selectableInputCombinations.length; i++) {
             let selectableInputCombination = selectableInputCombinations[i]
@@ -305,6 +320,53 @@ async function Process() {
             return false;
         }
         return true;
+    }
+
+    // WFA orchestrator — sequential rolling windows; each = full IS grid then OOS single-combo run.
+    // Per window dual-publish: enriched child ReportDataEvent + parent WfaDataEvent upsert.
+    async function RunWFA() {
+        const wfaID = prepareInitialWFAReport()
+        const windows = computeWindows(wfaOptInputs.config, wfaOptInputs.dateRange, wfaOptInputs.windows)
+
+        for (let i = 0; i < windows.length; i++) {
+            const win = windows[i]
+
+            // IS: full grid over the in-sample range → winner by IS profit
+            wfaContext = { wfaID, windowIndex: i, sampleType: "is" }
+            // TODO(step A): set TV backtest date range to win.is.start .. win.is.end
+            optimizationHistory = new Map()
+            bestResult = { profit: -999999, params: null }
+            reportDataMessage = prepareInitialReport()
+            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            updateReport({ status: "FINISHED", isFinal: false })
+            await PublishReport()
+            const isWinner = bestResult
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                is: { reportID: reportDataMessage.strategyID, start: win.is.start, end: win.is.end },
+                winner: { params: isWinner.params, isProfit: isWinner.profit }
+            })
+
+            // OOS: single IS-winner combo over the out-of-sample range
+            wfaContext = { wfaID, windowIndex: i, sampleType: "oos" }
+            // TODO(step A): set TV backtest date range to win.oos.start .. win.oos.end
+            // TODO(oos): pin = pinToWinner(isWinner.inputs); pass pinned buckets/ranges into Optimize* below
+            optimizationHistory = new Map()
+            bestResult = { profit: -999999, params: null }
+            reportDataMessage = prepareInitialReport()
+            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            updateReport({ status: "FINISHED", isFinal: false })
+            await PublishReport()
+            const oosWinner = bestResult
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                oos: { reportID: reportDataMessage.strategyID, start: win.oos.start, end: win.oos.end },
+                winner: { oosProfit: oosWinner.profit }
+            }, { isWindowFinal: true })
+        }
+
+        wfaContext = null
+        window.postMessage({ type: "WfaDataEvent", detail: { status: "FINISHED", wfaID } }, "*")
     }
 
 }
@@ -394,10 +456,18 @@ function prepareInitialReport() {
         "symbol": strategySymbol,
         "timePeriod": strategyTimePeriod,
         "parameters": userInputsToString,
-        "maxProfit": maxProfit, // NOT READY
+        "maxProfit": bestResult.profit, // NOT READY
         "reportData": [], // NOT READY
         "status": "STARTED",
-        "dateRange": dateRange // solely for analytics 
+        "dateRange": dateRange // solely for analytics
+    }
+
+    // enrich as a WFA child when a window is running (classic leaves wfaContext null)
+    if (wfaContext != null) {
+        reportDataMessage.type = "wfa"
+        reportDataMessage.wfaID = wfaContext.wfaID
+        reportDataMessage.windowIndex = wfaContext.windowIndex
+        reportDataMessage.sampleType = wfaContext.sampleType
     }
 
     // Send update that optimization has started
@@ -406,10 +476,73 @@ function prepareInitialReport() {
     return reportDataMessage
 }
 
+// computeWindows derives rolling IS/OOS date windows from the total range + split.
+// Rolling classic WFA: IS = T/(1 + N*oosRatio), OOS = IS*oosRatio, each window steps forward one OOS.
+function computeWindows(config, dateRange, N) {
+    const startMs = new Date(dateRange.start).getTime()
+    const endMs = new Date(dateRange.end).getTime()
+    const T = endMs - startMs
+    const oosRatio = config.oosPct / config.isPct
+    const IS = T / (1 + N * oosRatio)
+    const OOS = IS * oosRatio
+
+    const toISO = (ms) => new Date(ms).toISOString().slice(0, 10)
+    let windows = []
+    for (let i = 0; i < N; i++) {
+        let isStart = startMs + i * OOS
+        let isEnd = isStart + IS
+        let oosEnd = isEnd + OOS
+        windows.push({
+            windowIndex: i,
+            is: { start: toISO(isStart), end: toISO(isEnd) },
+            oos: { start: toISO(isEnd), end: toISO(oosEnd) }
+        })
+    }
+    return windows
+}
+
+// prepareInitialWFAReport mints the wfaID and posts the parent STARTED lifecycle event.
+function prepareInitialWFAReport() {
+    const wfaID = Date.now()
+
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
+    let title = document.querySelector("title")?.innerText
+    let symbol = title.split(' ')[0]
+
+    let timePeriod = ""
+    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 1) {
+        let selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+        timePeriod = (selectedPeriod ?? timePeriodGroup[1]).querySelector("div[class*=value]")?.innerHTML
+    }
+
+    window.postMessage({
+        type: "WfaDataEvent",
+        detail: {
+            status: "STARTED",
+            wfaID, created: wfaID,
+            strategyName, symbol, timePeriod,
+            config: wfaOptInputs.config,
+            dateRange: wfaOptInputs.dateRange,
+            windowCount: wfaOptInputs.windows
+        }
+    }, "*")
+
+    return wfaID
+}
+
+// postWFAWindow posts a parent IN_PROGRESS upsert for one window's IS or OOS slice.
+function postWFAWindow(wfaID, windowData, extra) {
+    window.postMessage({
+        type: "WfaDataEvent",
+        detail: { status: "IN_PROGRESS", wfaID, window: windowData, ...(extra || {}) }
+    }, "*")
+}
+
 // Set User Given Intervals Before Optimization Starts
-async function SetUserIntervals() {
-    for (let i = 0; i < userNumericInputs.length; i++) {
-        let userInput = userNumericInputs[i]
+async function SetUserIntervals(activeNumericInputs = userNumericInputs) {
+    for (let i = 0; i < activeNumericInputs.length; i++) {
+        let userInput = activeNumericInputs[i]
         let startValue = userInput.start - userInput.stepSize
 
         if (isFloat(startValue)) {
@@ -566,7 +699,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     updateReport({
         status: "IN_PROGRESS",
-        maxProfit,
+        maxProfit: bestResult.profit,
         reportData: optimizationResultsObject
     });
     PublishReport()
@@ -606,8 +739,9 @@ function saveOptimizationReport(optimizationResult, reportData) {
         //Update Max Profit
         replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
         profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
-        if (profit > maxProfit) {
-            maxProfit = profit
+        if (profit > bestResult.profit) {
+            // TODO(oos): attach inputs snapshot (exact bucket shape, mirror popup.js) for the OOS pinned run
+            bestResult = { profit, params: parameters }
         }
         return ("Optimization param added to map")
     } else if (optimizationHistory.has(parameters)) {
@@ -625,14 +759,14 @@ async function resetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
-async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
-    let previousTvParameterIndex = userNumericInputs[index - 1].parameterIndex
-    let currentTvParameterIndex = userNumericInputs[index].parameterIndex
+async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index, activeNumericInputs = userNumericInputs) {
+    let previousTvParameterIndex = activeNumericInputs[index - 1].parameterIndex
+    let currentTvParameterIndex = activeNumericInputs[index].parameterIndex
 
-    let resetValue = userNumericInputs[index - 1].start - userNumericInputs[index - 1].stepSize
+    let resetValue = activeNumericInputs[index - 1].start - activeNumericInputs[index - 1].stepSize
 
-    let previousStepSize = userNumericInputs[index - 1].stepSize
-    let currentStepSize = userNumericInputs[index].stepSize
+    let previousStepSize = activeNumericInputs[index - 1].stepSize
+    let currentStepSize = activeNumericInputs[index].stepSize
     //Reset and optimze inner
     await resetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration

@@ -247,15 +247,8 @@ function InjectScriptIntoDOM() {
   };
   (document.head || document.documentElement).appendChild(s);
 
-  // Retrieve the typed inputs payload set by popup.js and hand it to script.js.
-  //   classic: { type:"classic", classicOptInputs }  -> sent as-is; script.js reads .classicOptInputs
-  //   wfa:     { type:"wfa", wfaOptInputs:{...} }     -> STEP 3 run loop (per-window dates), not wired yet
+  // Forward the typed inputs to script.js verbatim (both classic and wfa); script.js owns windowing.
   chrome.storage.local.get("userInputs", ({ userInputs }) => {
-    if (userInputs.type === "wfa") {
-      // TODO(step 3): iterate windows — derive each window's date range from wfaOptInputs and send
-      // { type:"wfa", classicOptInputs, dates } per run. Classic path below is unaffected.
-      return
-    }
     setTimeout(sendUserInputsMessage, 500, userInputs);
   });
 
