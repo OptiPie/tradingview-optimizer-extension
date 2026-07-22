@@ -102,25 +102,7 @@ async function Process() {
         return a.parameterIndex - b.parameterIndex;
     });
     // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
-    var ranges = [];
-
-    // Create user input ranges with given step size for each parameter
-    userNumericInputs.forEach((element, index) => {
-        var range = 0
-        // fix index for free users
-        if (element.parameterIndex == -1) {
-            element.parameterIndex = index
-        }
-        if (index == 0) {
-            range = (element.end - element.start) / element.stepSize
-            var roundedRange = Math.round(range * 100) / 100
-            ranges.push(roundedRange)
-        } else {
-            range = ((element.end - element.start) / element.stepSize)
-            var roundedRange = (Math.round(range * 100) / 100) + 1
-            ranges.push(roundedRange)
-        }
-    });
+    var ranges = buildNumericRanges(userNumericInputs);
     switch (optType) {
         case "wfa":
             await RunWFA()
@@ -474,6 +456,28 @@ function prepareInitialReport() {
     window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
 
     return reportDataMessage
+}
+
+// buildNumericRanges → per-parameter loop counts from start/end/step.
+function buildNumericRanges(numericInputs) {
+    let ranges = []
+    numericInputs.forEach((element, index) => {
+        var range = 0
+        // fix index for free users
+        if (element.parameterIndex == -1) {
+            element.parameterIndex = index
+        }
+        if (index == 0) {
+            range = (element.end - element.start) / element.stepSize
+            var roundedRange = Math.round(range * 100) / 100
+            ranges.push(roundedRange)
+        } else {
+            range = ((element.end - element.start) / element.stepSize)
+            var roundedRange = (Math.round(range * 100) / 100) + 1
+            ranges.push(roundedRange)
+        }
+    })
+    return ranges
 }
 
 // computeWindows derives rolling IS/OOS date windows from the total range + split.
