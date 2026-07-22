@@ -14,6 +14,7 @@ var optimizationTimeout = 15 * 1000; // default timeout in milliseconds
 var optType = "classic"
 var wfaOptInputs = null
 var wfaContext = null // { wfaID, windowIndex, sampleType } during a WFA window, else null
+var currentSelectableValues = {} // parameterIndex -> option value being swept; feeds the OOS winner snapshot (innerText ≠ value)
 
 // reportDataMessage defined globally and initiated from start
 var reportDataMessage;
@@ -253,26 +254,8 @@ async function Process() {
             for (let j = 0; j < selectableInputCombination.length; j++) {
                 let option = selectableInputCombination[j].option
                 let parameterIndex = selectableInputCombination[j].parameterIndex
-                // renew tv inputs
-                tvInputs = document.querySelectorAll(tvInputsQuery)
-                // open up dropdown
-                tvInputs[parameterIndex].click()
-
-                await sleep(600)
-                let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
-                if (ddOptionsWrapper == null) continue
-                let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
-
-                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children.props.children
-                // click on dropdown
-                for (let i = 0; i < ddOptions.length; i++) {
-                    const ddOptionVal = ddOptions[i].props.item.value
-                    if (ddOptionVal === option) {
-                        document.getElementById(ddOptions[i].props.id).click()
-                        break
-                    }
-                }
-                await sleep(250)
+                currentSelectableValues[parameterIndex] = option // save the real value here for the OOS winner snapshot
+                await selectOptionByValue(parameterIndex, option)
             }
             if (nextFunction) {
                 await nextFunction();
@@ -315,7 +298,7 @@ async function Process() {
 
             // IS: full grid over the in-sample range → winner by IS profit
             wfaContext = { wfaID, windowIndex: i, sampleType: "is" }
-            // TODO(step A): set TV backtest date range to win.is.start .. win.is.end
+            await setBacktestDateRange(win.is.start, win.is.end)
             optimizationHistory = new Map()
             bestResult = { profit: -999999, params: null }
             reportDataMessage = prepareInitialReport()
@@ -331,12 +314,11 @@ async function Process() {
 
             // OOS: single IS-winner combo over the out-of-sample range
             wfaContext = { wfaID, windowIndex: i, sampleType: "oos" }
-            // TODO(step A): set TV backtest date range to win.oos.start .. win.oos.end
-            // TODO(oos): pin = pinToWinner(isWinner.inputs); pass pinned buckets/ranges into Optimize* below
+            await setBacktestDateRange(win.oos.start, win.oos.end)
             optimizationHistory = new Map()
             bestResult = { profit: -999999, params: null }
             reportDataMessage = prepareInitialReport()
-            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            await pinAndRunOOS(isWinner.inputs)
             updateReport({ status: "FINISHED", isFinal: false })
             await PublishReport()
             const oosWinner = bestResult
@@ -744,8 +726,7 @@ function saveOptimizationReport(optimizationResult, reportData) {
         replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
         profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
         if (profit > bestResult.profit) {
-            // TODO(oos): attach inputs snapshot (exact bucket shape, mirror popup.js) for the OOS pinned run
-            bestResult = { profit, params: parameters }
+            bestResult = { profit, params: parameters, inputs: snapshotWinningInputs() }
         }
         return ("Optimization param added to map")
     } else if (optimizationHistory.has(parameters)) {
@@ -777,6 +758,103 @@ async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index, a
     if (rangeIteration != ranges[index] - 1) {
         await OptimizeParams(currentTvParameterIndex, currentStepSize)
     }
+}
+
+// selectOptionByValue opens a selectable's dropdown and clicks the option whose value matches (TV reactProps).
+async function selectOptionByValue(parameterIndex, option) {
+    // renew tv inputs
+    tvInputs = document.querySelectorAll(tvInputsQuery)
+    // open up dropdown
+    tvInputs[parameterIndex].click()
+
+    await sleep(600)
+    let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
+    if (ddOptionsWrapper == null) return
+    let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
+
+    let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children.props.children
+    // click on dropdown
+    for (let i = 0; i < ddOptions.length; i++) {
+        const ddOptionVal = ddOptions[i].props.item.value
+        if (ddOptionVal === option) {
+            document.getElementById(ddOptions[i].props.id).click()
+            break
+        }
+    }
+    await sleep(250)
+}
+
+// snapshotWinningInputs captures the current (winning) combo as [{parameterIndex, type, value}] for the OOS pin.
+// numeric/checkbox read live off the DOM; selectable reads the tracked value (DOM innerText ≠ option value).
+function snapshotWinningInputs() {
+    return userInputs.map(input => {
+        let value
+        switch (input.type) {
+            case ParameterType.Checkbox:
+                value = tvInputs[input.parameterIndex].checked
+                break
+            case ParameterType.Selectable:
+                value = currentSelectableValues[input.parameterIndex]
+                break
+            default: // Numeric
+                value = tvInputs[input.parameterIndex].value
+        }
+        return { parameterIndex: input.parameterIndex, type: input.type, value }
+    })
+}
+
+// pinAndRunOOS applies the IS winner to every input, then fires ONE OptimizeParams to backtest + record the single OOS combo.
+async function pinAndRunOOS(winnerInputs) {
+    // a numeric drives the single backtest via its increment (popup guarantees >=1 numeric)
+    let trigger = winnerInputs.find(w => w.type === ParameterType.Numeric)
+
+    // set every non-trigger input to its winning value (no backtest yet)
+    for (let w of winnerInputs) {
+        if (w === trigger) continue
+        tvInputs = document.querySelectorAll(tvInputsQuery)
+        switch (w.type) {
+            case ParameterType.Selectable:
+                await selectOptionByValue(w.parameterIndex, w.value)
+                break
+            case ParameterType.Checkbox:
+                if (tvInputs[w.parameterIndex].checked !== w.value) {
+                    tvInputs[w.parameterIndex].click()
+                }
+                break
+            case ParameterType.Numeric:
+                ChangeTvInput(tvInputs[w.parameterIndex], w.value)
+                break
+        }
+        await sleep(250)
+    }
+
+    // position the trigger one step below its winner; OptimizeParams increments it back → the single backtest
+    let stepSize = userNumericInputs.find(n => n.parameterIndex === trigger.parameterIndex).stepSize
+    let triggerStart = Number(trigger.value) - Number(stepSize)
+    if (isFloat(triggerStart)) {
+        let precision = getFloatPrecision(stepSize)
+        triggerStart = fixPrecision(triggerStart, precision)
+    }
+    tvInputs = document.querySelectorAll(tvInputsQuery)
+    ChangeTvInput(tvInputs[trigger.parameterIndex], triggerStart)
+    await sleep(250)
+    await OptimizeParams(trigger.parameterIndex, stepSize)
+}
+
+// setBacktestDateRange applies a custom backtest date range (per WFA window). PRELIMINARY — selectors/guards to harden.
+async function setBacktestDateRange(start, end) {
+    document.querySelector('[data-qa-id="date-range-menu"]')?.click()
+    await sleep(500)
+    document.querySelector('[data-qa-id="custom-date-range-item"]')?.click()
+    await sleep(500)
+
+    let dates = document.querySelectorAll('[data-qa-id="date-picker-wrapper"]')
+    ChangeTvInput(dates[0].querySelector("input"), start)
+    ChangeTvInput(dates[1].querySelector("input"), end)
+    await sleep(250)
+
+    document.querySelector('[data-name*="custom-date-range-dialog" i] [data-qa-id*="submit-button" i]')?.click()
+    await sleep(1000) // let the backtest recompute settle before optimizing
 }
 
 // Change TvInput value in Tv Strategy Options Window
