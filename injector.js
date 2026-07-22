@@ -1,4 +1,11 @@
-var isInjected = InjectScriptIntoDOM()
+// Outcomes of the inject attempt — caller notifies per case
+var InjectResult = {
+  Injected: "Injected",
+  NoDialog: "NoDialog",
+  StrategyMismatch: "StrategyMismatch"
+}
+
+var injectResult = InjectScriptIntoDOM()
 
 var sleepEventCallback = (event) => {
   if (event.source !== window || event.data.type !== "SleepEventStart") {
@@ -215,7 +222,7 @@ function notifyWfaUpdated(wfaID) {
 }
 
 // Add callbacks if script.js injected successfully
-if (isInjected) {
+if (injectResult === InjectResult.Injected) {
   window.addEventListener("message", reportDataEventCallback, false);
   window.addEventListener("message", wfaDataEventCallback, false);
   window.addEventListener("message", sleepEventCallback, false);
@@ -225,11 +232,18 @@ if (isInjected) {
       event: "lockOptimizeButton"
     }
   });
-} else {
+} else if (injectResult === InjectResult.NoDialog) {
   chrome.runtime.sendMessage({
     notify: {
       type: "warning",
       content: "Error Optimization - Open Strategy Settings on Tradingview.com"
+    }
+  });
+} else if (injectResult === InjectResult.StrategyMismatch) {
+  chrome.runtime.sendMessage({
+    notify: {
+      type: "warning",
+      content: "Error Optimization - Strategy Tester doesn't match the open settings"
     }
   });
 }
@@ -238,8 +252,17 @@ if (isInjected) {
 function InjectScriptIntoDOM() {
   //Is TradingView Strategy Settings window opened validation
   if (document.querySelectorAll("div[data-name=indicator-properties-dialog]").length < 1) {
-    return false
+    return InjectResult.NoDialog
   }
+
+  // dialog and report tab strategies should match
+  let reportStrategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent?.trim()
+  let dialogStrategyName = document.querySelector("div[data-name=indicator-properties-dialog]")?.getAttribute("data-dialog-name")?.trim()
+  if (reportStrategyName !== dialogStrategyName) {
+    return InjectResult.StrategyMismatch
+  }
+
+
   var s = document.createElement('script');
   s.src = chrome.runtime.getURL('script.js');
   s.onload = function () {
@@ -255,7 +278,7 @@ function InjectScriptIntoDOM() {
   function sendUserInputsMessage(payload) {
     window.postMessage({ type: "UserInputsEvent", detail: payload }, "*");
   }
-  return true
+  return InjectResult.Injected
 }
 
 

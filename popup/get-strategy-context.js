@@ -1,5 +1,14 @@
 (function () {
-    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
+    let strategyName;
+    
+    let reportStrategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
+    let dialogStrategyName = document.querySelector("div[data-name=indicator-properties-dialog]")?.getAttribute("data-dialog-name")
+
+    if (dialogStrategyName) {
+        strategyName = dialogStrategyName
+    } else {
+        strategyName = reportStrategyName
+    }
     if (!strategyName) return
 
     let strategySymbol = document.querySelector("title")?.innerText?.split(' ')[0]
