@@ -233,6 +233,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           break;
 
         case reportUpdated:
+          if (popupAction.message.report.type === "wfa") break; // wfa children live-update via wfaReportUpdated
           let strategyId = popupAction.message.report.strategyID
           let maxProfit = popupAction.message.report.maxProfit
           UpdateStrategyReportRow(strategyId, maxProfit)
@@ -284,7 +285,7 @@ async function createReportTable() {
     }
 
     for (const [key, value] of Object.entries(items)) {
-      if (key.startsWith("report-data-")) {
+      if (key.startsWith("report-data-") && value.type !== "wfa") {
         var date = new Date(value.created)
         var formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
         var report = {
@@ -323,23 +324,50 @@ function wfaDetailHtml(wfaID) {
   <button id="remove-wfa-report" type="button" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>'
 }
 
-// TODO: replace mock data with real wfa-* parent reads once WFA logic is wired
+// aggregate helpers (mirror wfa-reportdetail.js so the list row matches the detail page)
+function parseProfit(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, "")) || 0 }
+function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length }
+function fmtSignedPct(v) { return (v >= 0 ? "+" : "") + v.toFixed(1) + "%" }
+
 function createWfaReportTable() {
-  const mockData = [
-    {
-      wfaID: 1, strategyName: "EMA Cross", date: "07/08/2026 14:32", symbol: "BTCUSDT",
-      timePeriod: "1h", windows: 5, avgOOS: "+5.2%", profitable: "4/5 (80%)", wfe: "0.64",
-      detail: wfaDetailHtml(1)
-    },
-    {
-      wfaID: 2, strategyName: "RSI Reversal", date: "07/07/2026 09:15", symbol: "ETHUSDT",
-      timePeriod: "4h", windows: 8, avgOOS: "-1.8%", profitable: "3/8 (38%)", wfe: "0.21",
-      detail: wfaDetailHtml(2)
+  chrome.storage.local.get(null, function (items) {
+    if (items == null) return
+    const wfaData = []
+
+    for (const [key, value] of Object.entries(items)) {
+      if (!key.startsWith("wfa-")) continue
+      
+      const date = new Date(value.created)
+      const formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
+      console.log(value)
+      // windows is a keyed object on the parent -> take values for the aggregates
+      const windows = Object.values(value.windows || {})
+      const total = windows.length
+      const isVals = windows.map(w => parseProfit(w.winner?.isProfit))
+      const oosVals = windows.map(w => parseProfit(w.winner?.oosProfit))
+      const avgIs = total ? avg(isVals) : 0
+      const avgOos = total ? avg(oosVals) : 0
+      const profitable = oosVals.filter(v => v > 0).length
+      const wfe = avgIs > 0 ? (avgOos / avgIs) * (value.config.isPct / value.config.oosPct) : null
+
+      wfaData.push({
+        wfaID: value.wfaID,
+        strategyName: value.strategyName,
+        date: formattedDate,
+        symbol: value.symbol,
+        timePeriod: value.timePeriod,
+        windows: value.windowCount,
+        avgOOS: total ? fmtSignedPct(avgOos) : "—",
+        profitable: total ? `${profitable}/${total} (${Math.round(profitable / total * 100)}%)` : "—",
+        wfe: wfe === null ? "—" : wfe.toFixed(2),
+        detail: wfaDetailHtml(value.wfaID)
+      })
     }
-  ]
-  const $wfaTable = $('#wfaTable')
-  $wfaTable.bootstrapTable({ data: mockData })
-  $wfaTable.bootstrapTable('load', mockData)
+
+    const $wfaTable = $('#wfaTable')
+    $wfaTable.bootstrapTable({ data: wfaData })
+    $wfaTable.bootstrapTable('load', wfaData)
+  })
 }
 
 // Add Custom Styles to Columns 

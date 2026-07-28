@@ -3,24 +3,12 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 });
 let wfaID = params.wfaID;
 
-// TODO: replace mock with real chrome.storage.local.get("wfa-" + wfaID)
-// DUMMY: inSample/outSample point at real existing report-data-* ids so the iframes render live.
-// IS/OOS are staggered so toggling on a window swaps between two different real reports.
-const wfaReport = {
-  wfaID: wfaID || "mock",
-  strategyName: "EMA Cross",
-  symbol: "BTCUSDT",
-  timePeriod: "1h",
-  config: { isPct: 70, oosPct: 30 },
-  // DUMMY: total analysis range — the real page will carry actual start/end dates.
-  dateRange: { start: "2025-01-01", end: "2026-01-01" },
-  windows: [
-    { inSample: "1781214860323", outSample: "1781037527038", winner: { params: "50, 10", isProfit: "+22%", oosProfit: "+6%" } },
-    { inSample: "1781037527038", outSample: "1781037394175", winner: { params: "48, 12", isProfit: "+18%", oosProfit: "+4%" } },
-    { inSample: "1781037394175", outSample: "1780856826531", winner: { params: "52, 8", isProfit: "+25%", oosProfit: "-2%" } },
-    { inSample: "1780856826531", outSample: "1781214860323", winner: { params: "50, 10", isProfit: "+20%", oosProfit: "+8%" } }
-  ]
-}
+// TODO - TO BE REMOVED
+chrome.storage.local.get("wfa-" + wfaID, function (item) {
+  console.log(item)
+})
+
+let wfaReport   // filled from storage in the init at the bottom
 
 let currentPage = "summary"   // "summary" or a 0-based window index
 let currentSample = "is"      // "is" | "oos"
@@ -82,7 +70,27 @@ function goToPage(page) {
 // point the iframe at the current window's IS or OOS child report
 function loadFrame() {
   const w = wfaReport.windows[currentPage]
-  const id = currentSample === "is" ? w.inSample : w.outSample
+  let id = w.is?.reportID
+  let range = w.is
+  if (currentSample === "oos") {
+    id = w.oos?.reportID
+    range = w.oos
+  }
+
+  // show which dates this IS/OOS view covers, next to the sample toggle
+  const rangeEl = document.getElementById("wfaSampleDateRange")
+  if (range && range.start) {
+    document.getElementById("wfaSampleStart").textContent = range.start
+    document.getElementById("wfaSampleEnd").textContent = range.end
+    rangeEl.style.display = ""
+  } else {
+    rangeEl.style.display = "none"
+  }
+
+  if (id == null) {
+    frameEl.removeAttribute("src") // this window's OOS didn't run
+    return
+  }
   frameEl.src = `reportdetail.html?strategyID=${id}&embedded=1`
 }
 
@@ -94,7 +102,8 @@ frameEl.addEventListener("load", () => {
   if (frameResizeObserver) frameResizeObserver.disconnect()
   const doc = frameEl.contentDocument
   if (!doc) return
-  const fit = () => { frameEl.style.height = doc.documentElement.scrollHeight + "px" }
+  // measure body (content), not documentElement (<html> stretches to the iframe viewport, so it never shrinks)
+  const fit = () => { frameEl.style.height = doc.body.scrollHeight + "px" }
   frameResizeObserver = new ResizeObserver(fit)
   frameResizeObserver.observe(doc.body)
   fit()
@@ -133,21 +142,38 @@ document.querySelectorAll('input[name="wfaSample"]').forEach((radio) => {
 })
 
 // --- Summary (page 1) ---------------------------------------------------------
-// "+22%" -> 22, "-2%" -> -2 ; robust to the leading + and the trailing %
-function parseProfit(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, "")) || 0 }
 function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length }
-function fmtSignedPct(v) { return (v >= 0 ? "+" : "") + v.toFixed(1) + "%" }
+// signed profit amount with currency: 5309 -> "+5,309 USD", -803 -> "-803 USD"
+function fmtSignedProfit(v) {
+  let sign = ""
+  if (v >= 0) {
+    sign = "+"
+  }
+  let currency = ""
+  if (wfaReport.currency) {
+    currency = " " + wfaReport.currency
+  }
+  return sign + Math.round(v).toLocaleString() + currency
+}
 
 function renderSummary() {
   const { windows, config } = wfaReport
   const total = windows.length
-  const isVals = windows.map(w => parseProfit(w.winner.isProfit))
-  const oosVals = windows.map(w => parseProfit(w.winner.oosProfit))
-  const avgIs = avg(isVals)
-  const avgOos = avg(oosVals)
-  const profitable = oosVals.filter(v => v > 0).length
+  // OOS aggregates only over windows that actually completed OOS (last window can be pending)
+  const oosDone = windows.filter(w => w.winner.oosProfit != null)
+  const avgIs = avg(windows.map(w => w.winner.isProfit))
+
+  let avgOos = 0
+  if (oosDone.length) {
+    avgOos = avg(oosDone.map(w => w.winner.oosProfit))
+  }
+  const profitable = oosDone.filter(w => w.winner.oosProfit > 0).length
+
   // Pardo WFE (length-normalized): (avgOOS / avgIS) x (isPct / oosPct); meaningless if avg IS <= 0
-  const wfe = avgIs > 0 ? (avgOos / avgIs) * (config.isPct / config.oosPct) : null
+  let wfe = null
+  if (avgIs > 0) {
+    wfe = (avgOos / avgIs) * (config.isPct / config.oosPct)
+  }
 
   // pills live in the HTML; JS only fills their text
   document.getElementById("metaSymbol").textContent = wfaReport.symbol
@@ -157,11 +183,31 @@ function renderSummary() {
   document.getElementById("metaWindows").textContent = `${total} windows`
 
   const avgOosEl = document.getElementById("kpiAvgOos")
-  avgOosEl.textContent = fmtSignedPct(avgOos)
-  avgOosEl.classList.add(avgOos >= 0 ? "text-success" : "text-danger")
-  document.getElementById("kpiProfitable").textContent =
-    `${profitable}/${total} (${Math.round(profitable / total * 100)}%)`
-  document.getElementById("kpiWfe").textContent = wfe === null ? "—" : wfe.toFixed(2)
+  if (oosDone.length) {
+    avgOosEl.textContent = fmtSignedProfit(avgOos)
+    if (avgOos >= 0) {
+      avgOosEl.classList.add("text-success")
+    } else {
+      avgOosEl.classList.add("text-danger")
+    }
+  } else {
+    avgOosEl.textContent = "—"
+  }
+
+  const profitableEl = document.getElementById("kpiProfitable")
+  if (oosDone.length) {
+    const pct = Math.round(profitable / oosDone.length * 100)
+    profitableEl.textContent = `${profitable}/${oosDone.length} (${pct}%)`
+  } else {
+    profitableEl.textContent = "—"
+  }
+
+  const wfeEl = document.getElementById("kpiWfe")
+  if (wfe === null) {
+    wfeEl.textContent = "—"
+  } else {
+    wfeEl.textContent = wfe.toFixed(2)
+  }
 
   const rows = document.getElementById("wfaWindowRows")
   const rowTemplate = document.getElementById("wfaRowTemplate")
@@ -169,10 +215,20 @@ function renderSummary() {
     const tr = rowTemplate.content.firstElementChild.cloneNode(true)
     tr.querySelector('[data-cell="window"]').textContent = i + 1
     tr.querySelector('[data-cell="params"]').textContent = w.winner.params
-    tr.querySelector('[data-cell="is"]').textContent = w.winner.isProfit
+    tr.querySelector('[data-cell="is"]').textContent = fmtSignedProfit(w.winner.isProfit)
+
     const oos = tr.querySelector('[data-cell="oos"]')
-    oos.textContent = w.winner.oosProfit
-    oos.classList.add(parseProfit(w.winner.oosProfit) >= 0 ? "text-success" : "text-danger")
+    if (w.winner.oosProfit != null) {
+      oos.textContent = fmtSignedProfit(w.winner.oosProfit)
+      if (w.winner.oosProfit >= 0) {
+        oos.classList.add("text-success")
+      } else {
+        oos.classList.add("text-danger")
+      }
+    } else {
+      oos.textContent = "—" // OOS not run for this window
+    }
+
     // clicking a breakdown row jumps straight to that window (same as the pager)
     tr.addEventListener("click", () => goToPage(i))
     rows.appendChild(tr)
@@ -255,7 +311,14 @@ function renderStaircase() {
 
 // update non-functional UI components for free/plus users
 updateUserUI()
-buildPager()
-renderSummary()
-renderStaircase()
-goToPage("summary")
+
+chrome.storage.local.get("wfa-" + wfaID, (items) => {
+  wfaReport = items["wfa-" + wfaID]
+  if (wfaReport == null) return // TODO: not-found state
+  // windows stored keyed (for injector upsert); the UI iterates them ordered
+  wfaReport.windows = Object.values(wfaReport.windows || {}).sort((a, b) => a.windowIndex - b.windowIndex)
+  buildPager()
+  renderSummary()
+  renderStaircase()
+  goToPage("summary")
+})

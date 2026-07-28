@@ -502,12 +502,15 @@ function prepareInitialWFAReport() {
         timePeriod = (selectedPeriod ?? timePeriodGroup[1]).querySelector("div[class*=value]")?.innerHTML
     }
 
+    // account/instrument currency from the net-profit cell — constant across the whole run
+    let currency = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")[0]?.querySelector("[class*='currency' i]")?.innerText
+
     window.postMessage({
         type: "WfaDataEvent",
         detail: {
             status: "STARTED",
             wfaID, created: wfaID,
-            strategyName, symbol, timePeriod,
+            strategyName, symbol, timePeriod, currency,
             config: wfaOptInputs.config,
             dateRange: wfaOptInputs.dateRange,
             windowCount: wfaOptInputs.windows

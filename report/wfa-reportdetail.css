@@ -9,6 +9,12 @@
     padding-left: 2rem;
 }
 
+/* date-range arrow: a touch softer than the dates, with fattened stroke */
+.wfa-date-arrow {
+    color: rgba(var(--bs-dark-rgb), 0.85);
+    -webkit-text-stroke-width: 0.6px;
+}
+
 /* Summary KPI tiles */
 .wfa-kpi {
     border: 1px solid var(--bs-border-color);

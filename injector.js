@@ -163,6 +163,7 @@ var wfaDataEventCallback = (event) => {
           strategyName: detail.strategyName,
           symbol: detail.symbol,
           timePeriod: detail.timePeriod,
+          currency: detail.currency,
           config: detail.config,
           dateRange: detail.dateRange,
           windowCount: detail.windowCount,

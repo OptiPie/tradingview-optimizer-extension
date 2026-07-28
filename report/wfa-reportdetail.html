@@ -50,7 +50,7 @@
         <div class="row g-3 mb-4">
           <div class="col">
             <div class="wfa-kpi">
-              <div class="wfa-kpi-label">Avg Out-of-Sample</div>
+              <div class="wfa-kpi-label">Avg Out-of-Sample Profit</div>
               <div class="wfa-kpi-value" id="kpiAvgOos">—</div>
             </div>
           </div>
@@ -96,8 +96,8 @@
             <tr>
               <th>Window</th>
               <th>Best Parameters</th>
-              <th class="text-end">In-Sample</th>
-              <th class="text-end">Out-of-Sample</th>
+              <th class="text-end">In-Sample Profit</th>
+              <th class="text-end">Out-of-Sample Profit</th>
             </tr>
           </thead>
           <tbody id="wfaWindowRows"></tbody>
@@ -114,13 +114,14 @@
 
       <!-- Pages 2..n: a single window's report — IS/OOS toggle + embedded reportdetail -->
       <div id="wfaWindow" style="display: none;">
-        <div class="d-flex justify-content-start wfa-sample-toggle">
+        <div class="d-flex justify-content-start align-items-center gap-2 wfa-sample-toggle">
           <div class="btn-group btn-group-sm" role="group" aria-label="Sample toggle">
             <input type="radio" class="btn-check" name="wfaSample" id="wfaSampleIs" autocomplete="off" checked>
             <label class="btn btn-outline-secondary" for="wfaSampleIs">In-Sample</label>
             <input type="radio" class="btn-check" name="wfaSample" id="wfaSampleOos" autocomplete="off">
             <label class="btn btn-outline-secondary" for="wfaSampleOos">Out-of-Sample</label>
           </div>
+          <span id="wfaSampleDateRange" class="badge rounded-pill fw-normal fs-6 px-3 text-bg-light border"><i class="bi bi-calendar-week me-2"></i><span id="wfaSampleStart"></span><i class="bi bi-arrow-right mx-2 wfa-date-arrow"></i><span id="wfaSampleEnd"></span></span>
         </div>
         <iframe id="wfaReportFrame" title="Window report" style="width: 100%; height: 80vh; border: 0;"></iframe>
       </div>
