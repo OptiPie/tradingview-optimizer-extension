@@ -156,22 +156,21 @@ var wfaDataEventCallback = (event) => {
   switch (detail.status) {
     case "STARTED":
       // Create the thin parent up front; windows[] get filled by subsequent IN_PROGRESS upserts.
-      chrome.storage.local.set({
-        [wfaKey]: {
-          wfaID: detail.wfaID,
-          created: detail.created,
-          strategyName: detail.strategyName,
-          symbol: detail.symbol,
-          timePeriod: detail.timePeriod,
-          currency: detail.currency,
-          config: detail.config,
-          dateRange: detail.dateRange,
-          windowCount: detail.windowCount,
-          windows: {}, // keyed by windowIndex — upsert, no sparse-array risk
-          status: detail.status,
-          lastUpdated: Date.now()
-        }
-      }, () => notifyWfaUpdated(detail.wfaID));
+      const parent = {
+        wfaID: detail.wfaID,
+        created: detail.created,
+        strategyName: detail.strategyName,
+        symbol: detail.symbol,
+        timePeriod: detail.timePeriod,
+        currency: detail.currency,
+        config: detail.config,
+        dateRange: detail.dateRange,
+        windowCount: detail.windowCount,
+        windows: {}, // keyed by windowIndex — upsert, no sparse-array risk
+        status: detail.status,
+        lastUpdated: Date.now()
+      };
+      chrome.storage.local.set({ [wfaKey]: parent }, () => notifyWfaUpdated(parent));
       break;
 
     case "IN_PROGRESS":
@@ -190,7 +189,7 @@ var wfaDataEventCallback = (event) => {
         };
         parent.status = detail.status;
         parent.lastUpdated = Date.now();
-        chrome.storage.local.set({ [wfaKey]: parent }, () => notifyWfaUpdated(detail.wfaID));
+        chrome.storage.local.set({ [wfaKey]: parent }, () => notifyWfaUpdated(parent));
         // detail.isWindowFinal → per-window progress rides the live-update above (system toast TBD)
       });
       break;
@@ -210,7 +209,7 @@ var wfaDataEventCallback = (event) => {
           window.removeEventListener("message", reportDataEventCallback);
           window.removeEventListener("message", wfaDataEventCallback);
           window.removeEventListener("message", sleepEventCallback);
-          notifyWfaUpdated(detail.wfaID);
+          notifyWfaUpdated(parent);
         });
       });
       break;
@@ -218,8 +217,8 @@ var wfaDataEventCallback = (event) => {
 }
 
 // Live-update signal so the WFA reports list / an open WFA report page refresh as windows land
-function notifyWfaUpdated(wfaID) {
-  chrome.runtime.sendMessage({ popupAction: { event: "wfaReportUpdated", message: { wfaID } } });
+function notifyWfaUpdated(parent) {
+  chrome.runtime.sendMessage({ popupAction: { event: "wfaReportUpdated", message: { report: parent } } });
 }
 
 // Add callbacks if script.js injected successfully

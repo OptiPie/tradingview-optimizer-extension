@@ -9,10 +9,19 @@
     padding-left: 2rem;
 }
 
-/* date-range arrow: a touch softer than the dates, with fattened stroke */
-.wfa-date-arrow {
-    color: rgba(var(--bs-dark-rgb), 0.85);
-    -webkit-text-stroke-width: 0.6px;
+/* date pill calendar icon: subtle, lets the dates read as the primary content */
+#wfaSampleDateRange i {
+    color: var(--bs-secondary);
+}
+
+/* one-shot flash cue, mirrors the classic report's new-row highlight */
+@keyframes wfaFlash {
+    from { background-color: #82caff; }
+    to   { background-color: transparent; }
+}
+
+.wfa-flash {
+    animation: wfaFlash 2s ease forwards;
 }
 
 /* Summary KPI tiles */
@@ -139,6 +148,17 @@
 .wfa-seg-oos {
     height: 100%;
     background: var(--bs-primary);
+}
+
+/* a newly-added window's bar draws onto the timeline instead of snapping in */
+@keyframes wfaStairAppear {
+    from { opacity: 0; transform: scaleX(0.5); }
+    to   { opacity: 1; transform: scaleX(1); }
+}
+
+.wfa-stair-appear {
+    transform-origin: left center;
+    animation: wfaStairAppear 0.45s ease-out;
 }
 
 /* period dates under each bar: IS start (neutral) + OOS boundary/end (primary) */

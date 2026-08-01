@@ -20,8 +20,17 @@ const frameEl = document.getElementById("wfaReportFrame")
 // pager: Summary + one numbered page per window
 function buildPager() {
   const pager = document.getElementById("wfaPager")
+  pager.innerHTML = "" // clear before rebuild — live updates re-run this as windows land
   pager.appendChild(makePagerItem("Summary", "summary"))
   wfaReport.windows.forEach((_, i) => pager.appendChild(makePagerItem(String(i + 1), i)))
+}
+
+// pager active state: item 0 = summary, items 1..n = windows
+function highlightPager(page) {
+  document.querySelectorAll("#wfaPager .page-item").forEach((li, idx) => {
+    const isActive = (page === "summary" && idx === 0) || (page === idx - 1)
+    li.classList.toggle("active", isActive)
+  })
 }
 
 function makePagerItem(label, page) {
@@ -41,11 +50,7 @@ function makePagerItem(label, page) {
 
 function goToPage(page) {
   currentPage = page
-  // active state: pager item 0 = summary, items 1..n = windows
-  document.querySelectorAll("#wfaPager .page-item").forEach((li, idx) => {
-    const isActive = (page === "summary" && idx === 0) || (page === idx - 1)
-    li.classList.toggle("active", isActive)
-  })
+  highlightPager(page)
   // the pager is shared by both pages but they align differently: summary content sits
   // in a centered .container, window content aligns to the iframe. Let the pager borrow
   // whichever context is active instead of hunting a fixed padding.
@@ -134,6 +139,12 @@ function updateUserUI() {
   });
 }
 
+// one-shot flash cue, self-expiring so a reused element can flash again
+function flash(el) {
+  el.classList.add("wfa-flash")
+  el.addEventListener("animationend", () => el.classList.remove("wfa-flash"), { once: true })
+}
+
 document.querySelectorAll('input[name="wfaSample"]').forEach((radio) => {
   radio.addEventListener("change", () => {
     currentSample = radio.id === "wfaSampleOos" ? "oos" : "is"
@@ -159,9 +170,15 @@ function fmtSignedProfit(v) {
 function renderSummary() {
   const { windows, config } = wfaReport
   const total = windows.length
-  // OOS aggregates only over windows that actually completed OOS (last window can be pending)
-  const oosDone = windows.filter(w => w.winner.oosProfit != null)
-  const avgIs = avg(windows.map(w => w.winner.isProfit))
+  // aggregates count only windows whose winner has landed — an in-flight window
+  // has a reportID but no winner yet (announced up front so its report can stream)
+  const isDone = windows.filter(w => w.winner?.isProfit != null)
+  const oosDone = windows.filter(w => w.winner?.oosProfit != null)
+
+  let avgIs = 0
+  if (isDone.length) {
+    avgIs = avg(isDone.map(w => w.winner.isProfit))
+  }
 
   let avgOos = 0
   if (oosDone.length) {
@@ -183,6 +200,7 @@ function renderSummary() {
   document.getElementById("metaWindows").textContent = `${total} windows`
 
   const avgOosEl = document.getElementById("kpiAvgOos")
+  avgOosEl.classList.remove("text-success", "text-danger") // persistent el: clear before re-coloring on refresh
   if (oosDone.length) {
     avgOosEl.textContent = fmtSignedProfit(avgOos)
     if (avgOos >= 0) {
@@ -210,17 +228,31 @@ function renderSummary() {
   }
 
   const rows = document.getElementById("wfaWindowRows")
+  rows.innerHTML = "" // clear before rebuild — refresh re-runs this as windows land
   const rowTemplate = document.getElementById("wfaRowTemplate")
   windows.forEach((w, i) => {
     const tr = rowTemplate.content.firstElementChild.cloneNode(true)
+    const winner = w.winner || {} // in-flight window: reportID present, winner not yet
     tr.querySelector('[data-cell="window"]').textContent = i + 1
-    tr.querySelector('[data-cell="params"]').textContent = w.winner.params
-    tr.querySelector('[data-cell="is"]').textContent = fmtSignedProfit(w.winner.isProfit)
+
+    const params = tr.querySelector('[data-cell="params"]')
+    if (winner.params != null) {
+      params.textContent = winner.params
+    } else {
+      params.textContent = "—"
+    }
+
+    const is = tr.querySelector('[data-cell="is"]')
+    if (winner.isProfit != null) {
+      is.textContent = fmtSignedProfit(winner.isProfit)
+    } else {
+      is.textContent = "—" // IS still running
+    }
 
     const oos = tr.querySelector('[data-cell="oos"]')
-    if (w.winner.oosProfit != null) {
-      oos.textContent = fmtSignedProfit(w.winner.oosProfit)
-      if (w.winner.oosProfit >= 0) {
+    if (winner.oosProfit != null) {
+      oos.textContent = fmtSignedProfit(winner.oosProfit)
+      if (winner.oosProfit >= 0) {
         oos.classList.add("text-success")
       } else {
         oos.classList.add("text-danger")
@@ -264,6 +296,7 @@ function renderStaircase() {
   const dayToDate = (n) => new Date(start.getTime() + n * DAY)
 
   const grid = document.getElementById("wfaStairGrid")
+  grid.innerHTML = "" // clear before rebuild — refresh re-runs this as windows land
 
   // shared month axis (every 2nd month keeps the labels readable)
   const axis = document.createElement("div")
@@ -312,13 +345,63 @@ function renderStaircase() {
 // update non-functional UI components for free/plus users
 updateUserUI()
 
-chrome.storage.local.get("wfa-" + wfaID, (items) => {
-  wfaReport = items["wfa-" + wfaID]
-  if (wfaReport == null) return // TODO: not-found state
+function applyReport(report) {
+  wfaReport = report
   // windows stored keyed (for injector upsert); the UI iterates them ordered
   wfaReport.windows = Object.values(wfaReport.windows || {}).sort((a, b) => a.windowIndex - b.windowIndex)
   buildPager()
   renderSummary()
   renderStaircase()
+}
+
+chrome.storage.local.get("wfa-" + wfaID, (items) => {
+  const report = items["wfa-" + wfaID]
+  if (report == null) return // TODO: not-found state
+  applyReport(report)
   goToPage("summary")
+})
+
+// breakdown row fingerprint — changes when a window appears or its winner lands
+function rowSignature(w) {
+  const win = w.winner || {}
+  return `${win.params ?? ""}|${win.isProfit ?? ""}|${win.oosProfit ?? ""}`
+}
+
+// live updates: injector re-broadcasts the whole parent on every window ping
+chrome.runtime.onMessage.addListener((message) => {
+  const popupAction = message.popupAction
+  if (popupAction == null || popupAction.event !== "wfaReportUpdated") return
+  if (String(popupAction.message.report.wfaID) !== wfaID) return
+
+  // per-window row signatures BEFORE the update, to flash rows that appear or change
+  const prevSig = {}
+  if (wfaReport?.windows) {
+    wfaReport.windows.forEach(w => { prevSig[w.windowIndex] = rowSignature(w) })
+  }
+  // was OOS missing for the window we're viewing, before this update? (drives the toggle flash)
+  let hadOosBefore = true
+  if (currentPage !== "summary") {
+    hadOosBefore = wfaReport.windows[currentPage]?.oos?.reportID != null
+  }
+
+  applyReport(popupAction.message.report) // re-render summary + pager
+  highlightPager(currentPage)             // rebuilt pager lost its active state
+
+  // flash breakdown rows that changed; animate the bar of a window that just appeared
+  const rows = document.getElementById("wfaWindowRows")
+  const bars = document.querySelectorAll("#wfaStairGrid .wfa-stair-bar")
+  wfaReport.windows.forEach((w, i) => {
+    if (rowSignature(w) !== prevSig[w.windowIndex]) {
+      flash(rows.children[i])
+    }
+    if (prevSig[w.windowIndex] === undefined) {
+      bars[i]?.classList.add("wfa-stair-appear")
+    }
+  })
+
+  // OOS just started for the window you're viewing on its IS tab → flash the toggle
+  if (currentPage !== "summary" && currentSample === "is" && !hadOosBefore
+      && wfaReport.windows[currentPage]?.oos?.reportID != null) {
+    flash(document.querySelector('label[for="wfaSampleOos"]'))
+  }
 })

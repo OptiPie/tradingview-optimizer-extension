@@ -302,13 +302,17 @@ async function Process() {
             optimizationHistory = new Map()
             bestResult = { profit: -999999, params: null }
             reportDataMessage = prepareInitialReport()
+            // announce the child up front so the WFA page can render the IS report while it streams
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                is: { reportID: reportDataMessage.strategyID, start: win.is.start, end: win.is.end }
+            })
             await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
             updateReport({ status: "FINISHED", isFinal: false })
             await PublishReport()
             const isWinner = bestResult
             postWFAWindow(wfaID, {
                 windowIndex: i,
-                is: { reportID: reportDataMessage.strategyID, start: win.is.start, end: win.is.end },
                 winner: { params: isWinner.params, isProfit: isWinner.profit }
             })
 
@@ -318,13 +322,17 @@ async function Process() {
             optimizationHistory = new Map()
             bestResult = { profit: -999999, params: null }
             reportDataMessage = prepareInitialReport()
+            // announce the OOS child up front too, same reason
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                oos: { reportID: reportDataMessage.strategyID, start: win.oos.start, end: win.oos.end }
+            })
             await pinAndRunOOS(isWinner.inputs)
             updateReport({ status: "FINISHED", isFinal: false })
             await PublishReport()
             const oosWinner = bestResult
             postWFAWindow(wfaID, {
                 windowIndex: i,
-                oos: { reportID: reportDataMessage.strategyID, start: win.oos.start, end: win.oos.end },
                 winner: { oosProfit: oosWinner.profit }
             }, { isWindowFinal: true })
         }
@@ -435,7 +443,7 @@ function prepareInitialReport() {
     }
 
     // Send update that optimization has started
-    window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
+    PublishReport();
 
     return reportDataMessage
 }
