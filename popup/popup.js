@@ -1244,7 +1244,14 @@ async function restoreStrategyInputs() {
   const result = await chrome.storage.local.get(siKey)
   let entry = result[siKey]
 
-  if (!entry?.parameters) {
+  if (entry?.parameters) {
+    // opening a strategy that has its own config makes it the "last active" one, so an unknown
+    // strategy opened next seeds from THIS — not a stale earlier edit
+    chrome.storage.local.set({
+      [LAST_USED_INPUTS_KEY]: { parameters: entry.parameters, wfa: entry.wfa, strategyKey: _currentStrategyKey },
+    })
+  } else {
+    // no own config → fall back to last-active (do NOT rewrite LAST_USED here: unknown strategy)
     const settings = await getSettings()
     if (!settings.applyLastUsedAsDefault) return
     const lastUsedResult = await chrome.storage.local.get(LAST_USED_INPUTS_KEY)
