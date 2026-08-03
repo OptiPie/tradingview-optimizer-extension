@@ -19,8 +19,7 @@ const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
 // storage key for last used inputs fallback
 const LAST_USED_INPUTS_KEY = 'lastUsedInputs'
 // flag to track wfa mode
-// TODO: revert to false once WFA dev work is done
-let _wfaActive = true
+let _wfaActive = false // (default: classic)
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -271,7 +270,17 @@ function switchReportView(view) {
 }
 
 document.querySelectorAll("[data-report-view]").forEach((btn) => {
-  btn.addEventListener("click", () => switchReportView(btn.dataset.reportView))
+  btn.addEventListener("click", () => {
+    switchReportView(btn.dataset.reportView)
+    chrome.storage.local.set({ reportType: btn.dataset.reportView })
+  })
+})
+
+// restore the last-viewed report tab (default: classic)
+chrome.storage.local.get("reportType", ({ reportType }) => {
+  if (reportType) {
+    switchReportView(reportType)
+  }
 })
 
 // Refresh Report Data Manually
@@ -902,15 +911,17 @@ logoutButtons.forEach(logoutButton => {
 //#endregion
 
 //#region  Walk-Forward Analysis UI
-// TODO: remove this dev-only forced display once WFA work is done
-if (_wfaActive) {
-  showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
-  document.getElementById("optimizeGroup").classList.add("btn-group-gold")
-  document.getElementById("optimizeLabel").textContent = "Analyze"
-}
-
-// JS is the single source of truth for the mode-switch line (label, icon, tooltip)
-updateWfaMenuItem()
+// initial optimization mode = last-used choice (default: classic)
+chrome.storage.local.get("optimizationType", ({ optimizationType }) => {
+  _wfaActive = optimizationType === "wfa"
+  if (_wfaActive) {
+    showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
+    document.getElementById("optimizeGroup").classList.add("btn-group-gold")
+    document.getElementById("optimizeLabel").textContent = "Analyze"
+  }
+  // JS is the single source of truth for the mode-switch line (label, icon, tooltip)
+  updateWfaMenuItem()
+})
 
 // keep the mode-switch dropdown line in sync with the current mode
 function updateWfaMenuItem() {
@@ -942,6 +953,11 @@ function updateWfaMenuItem() {
 document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
   e.preventDefault()
   _wfaActive = !_wfaActive
+  let optimizationType = "classic"
+  if (_wfaActive) {
+    optimizationType = "wfa"
+  }
+  chrome.storage.local.set({ optimizationType })
   const wfaNextGroup = document.getElementById("wfaNextGroup")
   const optimizeGroup = document.getElementById("optimizeGroup")
   const optimizeLabel = document.getElementById("optimizeLabel")
@@ -972,6 +988,12 @@ document.getElementById("wfaWindows").addEventListener("input", updateWfaPreview
 document.getElementById("wfaStartDate").addEventListener("change", updateWfaPreview)
 document.getElementById("wfaEndDate").addEventListener("change", updateWfaPreview)
 document.getElementById("wfaSplit").addEventListener("input", updateWfaSplit)
+
+// persist WFA config per strategy on settle (change, not input, to avoid write spam)
+document.getElementById("wfaSplit").addEventListener("change", saveStrategyInputs)
+document.getElementById("wfaStartDate").addEventListener("change", saveStrategyInputs)
+document.getElementById("wfaEndDate").addEventListener("change", saveStrategyInputs)
+document.getElementById("wfaWindows").addEventListener("change", saveStrategyInputs)
 
 function showWfaPage(show) {
   const parameters = document.getElementById("parameters")
@@ -1201,9 +1223,16 @@ async function saveStrategyInputs() {
     })
   }
 
+  const wfa = {
+    split: document.getElementById("wfaSplit").value,
+    startDate: document.getElementById("wfaStartDate").value,
+    endDate: document.getElementById("wfaEndDate").value,
+    windows: document.getElementById("wfaWindows").value,
+  }
+
   chrome.storage.local.set({
-    [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, savedAt: Date.now() },
-    [LAST_USED_INPUTS_KEY]: { parameters, strategyKey: _currentStrategyKey },
+    [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, wfa, savedAt: Date.now() },
+    [LAST_USED_INPUTS_KEY]: { parameters, wfa, strategyKey: _currentStrategyKey },
   })
 }
 
@@ -1253,6 +1282,16 @@ async function restoreStrategyInputs() {
     if (endInputs[i]) endInputs[i].value = param.end || ''
     if (stepInputs[i]) stepInputs[i].value = param.step || ''
   })
+
+  // WFA config (only on entries saved with it — old entries skip)
+  if (entry.wfa) {
+    document.getElementById("wfaSplit").value = entry.wfa.split || ''
+    document.getElementById("wfaStartDate").value = entry.wfa.startDate || ''
+    document.getElementById("wfaEndDate").value = entry.wfa.endDate || ''
+    document.getElementById("wfaWindows").value = entry.wfa.windows || ''
+    updateWfaSplit()
+    updateWfaPreview()
+  }
 
   setTimeout(() => calculateIterations(), 500)
 }
