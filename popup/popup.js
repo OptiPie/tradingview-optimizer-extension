@@ -4,6 +4,7 @@ const unlockOptimizeButton = 'unlockOptimizeButton'
 const getTvParameters = 'getTvParameters'
 const getStrategyContext = 'getStrategyContext'
 const reportUpdated = 'reportUpdated'
+const wfaReportUpdated = 'wfaReportUpdated'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
@@ -238,6 +239,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           let maxProfit = popupAction.message.report.maxProfit
           UpdateStrategyReportRow(strategyId, maxProfit)
           break;
+
+        case wfaReportUpdated:
+          UpdateWfaReportRow(popupAction.message.report)
+          break;
       }
     }
   })();
@@ -329,6 +334,46 @@ function parseProfit(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, ""))
 function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length }
 function fmtSignedPct(v) { return (v >= 0 ? "+" : "") + v.toFixed(1) + "%" }
 
+// WFE (Pardo length-normalized). Own func = one home for the formula — mirrors the same calc
+// on the WFA detail page; if it ever changes, update both.
+function computeWfe(avgIs, avgOos, config) {
+  return (avgOos / avgIs) * (config.isPct / config.oosPct)
+}
+
+// Profitable OOS windows as "X/Y (Z%)" over completed windows. Own func for the same reason.
+function computeProfitable(oosDone) {
+  const winners = oosDone.filter(w => parseProfit(w.winner.oosProfit) > 0).length
+  return `${winners}/${oosDone.length} (${Math.round(winners / oosDone.length * 100)}%)`
+}
+
+// aggregate cells over COMPLETED windows only → "—" until a window's first IS+OOS finale lands
+function wfaAggregates(value) {
+  const windows = Object.values(value.windows || {})
+  const isDone = windows.filter(w => w.winner?.isProfit != null)
+  const oosDone = windows.filter(w => w.winner?.oosProfit != null)
+
+  let avgIs = 0
+  if (isDone.length) {
+    avgIs = avg(isDone.map(w => parseProfit(w.winner.isProfit)))
+  }
+  let avgOos = 0
+  if (oosDone.length) {
+    avgOos = avg(oosDone.map(w => parseProfit(w.winner.oosProfit)))
+  }
+
+  let avgOOS = "—"
+  let profitable = "—"
+  let wfe = "—"
+  if (oosDone.length) {
+    avgOOS = fmtSignedPct(avgOos)
+    profitable = computeProfitable(oosDone)
+    if (avgIs > 0) {
+      wfe = computeWfe(avgIs, avgOos, value.config).toFixed(2)
+    }
+  }
+  return { avgOOS, profitable, wfe }
+}
+
 function createWfaReportTable() {
   chrome.storage.local.get(null, function (items) {
     if (items == null) return
@@ -336,19 +381,10 @@ function createWfaReportTable() {
 
     for (const [key, value] of Object.entries(items)) {
       if (!key.startsWith("wfa-")) continue
-      
+
       const date = new Date(value.created)
       const formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
-      console.log(value)
-      // windows is a keyed object on the parent -> take values for the aggregates
-      const windows = Object.values(value.windows || {})
-      const total = windows.length
-      const isVals = windows.map(w => parseProfit(w.winner?.isProfit))
-      const oosVals = windows.map(w => parseProfit(w.winner?.oosProfit))
-      const avgIs = total ? avg(isVals) : 0
-      const avgOos = total ? avg(oosVals) : 0
-      const profitable = oosVals.filter(v => v > 0).length
-      const wfe = avgIs > 0 ? (avgOos / avgIs) * (value.config.isPct / value.config.oosPct) : null
+      const agg = wfaAggregates(value)
 
       wfaData.push({
         wfaID: value.wfaID,
@@ -357,9 +393,9 @@ function createWfaReportTable() {
         symbol: value.symbol,
         timePeriod: value.timePeriod,
         windows: value.windowCount,
-        avgOOS: total ? fmtSignedPct(avgOos) : "—",
-        profitable: total ? `${profitable}/${total} (${Math.round(profitable / total * 100)}%)` : "—",
-        wfe: wfe === null ? "—" : wfe.toFixed(2),
+        avgOOS: agg.avgOOS,
+        profitable: agg.profitable,
+        wfe: agg.wfe,
         detail: wfaDetailHtml(value.wfaID)
       })
     }
@@ -1504,6 +1540,28 @@ function UpdateStrategyReportRow(strategyId, maxProfit) {
     }
   })
   row = document.querySelector(`[data-uniqueid*='${strategyId}']`)
+  flashUpdatedRow(row)
+}
+
+// WFA sibling of UpdateStrategyReportRow — refresh one parent's row (aggregates) as its windows land
+function UpdateWfaReportRow(parent) {
+  let row = document.querySelector(`#wfa-reports-pane [data-uniqueid*='${parent.wfaID}']`)
+  if (row == null) {
+    // first ping before the row exists → build the table from scratch
+    createWfaReportTable()
+    return
+  }
+
+  const agg = wfaAggregates(parent)
+  let $wfaTable = $('#wfaTable')
+  $wfaTable.bootstrapTable('updateByUniqueId', {
+    id: parent.wfaID,
+    row: {
+      "profitable": agg.profitable,
+      "wfe": agg.wfe
+    }
+  })
+  row = document.querySelector(`#wfa-reports-pane [data-uniqueid*='${parent.wfaID}']`)
   flashUpdatedRow(row)
 }
 

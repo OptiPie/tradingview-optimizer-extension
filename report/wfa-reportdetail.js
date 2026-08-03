@@ -167,6 +167,17 @@ function fmtSignedProfit(v) {
   return sign + Math.round(v).toLocaleString() + currency
 }
 
+// mirror of popup.js computeWfe — update both if the formula changes
+function computeWfe(avgIs, avgOos, config) {
+  return (avgOos / avgIs) * (config.isPct / config.oosPct)
+}
+
+// mirror of popup.js computeProfitable
+function computeProfitable(oosDone) {
+  const winners = oosDone.filter(w => w.winner.oosProfit > 0).length
+  return `${winners}/${oosDone.length} (${Math.round(winners / oosDone.length * 100)}%)`
+}
+
 function renderSummary() {
   const { windows, config } = wfaReport
   const total = windows.length
@@ -184,12 +195,10 @@ function renderSummary() {
   if (oosDone.length) {
     avgOos = avg(oosDone.map(w => w.winner.oosProfit))
   }
-  const profitable = oosDone.filter(w => w.winner.oosProfit > 0).length
-
-  // Pardo WFE (length-normalized): (avgOOS / avgIS) x (isPct / oosPct); meaningless if avg IS <= 0
+  // Pardo WFE (length-normalized): meaningless if avg IS <= 0
   let wfe = null
   if (avgIs > 0) {
-    wfe = (avgOos / avgIs) * (config.isPct / config.oosPct)
+    wfe = computeWfe(avgIs, avgOos, config)
   }
 
   // pills live in the HTML; JS only fills their text
@@ -214,8 +223,7 @@ function renderSummary() {
 
   const profitableEl = document.getElementById("kpiProfitable")
   if (oosDone.length) {
-    const pct = Math.round(profitable / oosDone.length * 100)
-    profitableEl.textContent = `${profitable}/${oosDone.length} (${pct}%)`
+    profitableEl.textContent = computeProfitable(oosDone)
   } else {
     profitableEl.textContent = "—"
   }
