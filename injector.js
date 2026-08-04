@@ -163,6 +163,7 @@ var wfaDataEventCallback = (event) => {
         symbol: detail.symbol,
         timePeriod: detail.timePeriod,
         currency: detail.currency,
+        parameters: detail.parameters,
         config: detail.config,
         dateRange: detail.dateRange,
         windowCount: detail.windowCount,

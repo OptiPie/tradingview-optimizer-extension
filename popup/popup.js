@@ -401,6 +401,7 @@ function createWfaReportTable() {
         date: formattedDate,
         symbol: value.symbol,
         timePeriod: value.timePeriod,
+        parameters: value.parameters || "",
         windows: value.windowCount,
         avgOOS: agg.avgOOS,
         profitable: agg.profitable,
