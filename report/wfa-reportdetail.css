@@ -44,6 +44,18 @@
     font-weight: 600;
 }
 
+/* info icon next to a KPI label — muted until hover */
+.wfa-kpi-info {
+    margin-left: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    cursor: pointer;
+}
+
+.wfa-kpi-info:hover {
+    color: var(--bs-body-color);
+}
+
 /* per-window breakdown rows are clickable — jump to that window */
 .wfa-window-table tbody tr {
     cursor: pointer;

@@ -369,6 +369,9 @@ chrome.storage.local.get("wfa-" + wfaID, (items) => {
   goToPage("summary")
 })
 
+// enable the KPI info popovers (static markup, init once)
+document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => new bootstrap.Popover(el))
+
 // breakdown row fingerprint — changes when a window appears or its winner lands
 function rowSignature(w) {
   const win = w.winner || {}

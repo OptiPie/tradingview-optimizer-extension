@@ -63,7 +63,10 @@
           </div>
           <div class="col">
             <div class="wfa-kpi">
-              <div class="wfa-kpi-label">Walk-Forward Efficiency</div>
+              <div class="wfa-kpi-label">Walk-Forward Efficiency<i class="bi bi-info-circle wfa-kpi-info" role="button" tabindex="0"
+                  data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-html="true"
+                  data-bs-title="Walk-Forward Efficiency"
+                  data-bs-content="Walk-Forward Efficiency scores your analysis by comparing the average out-of-sample result against the in-sample result, normalized for their different timeframe lengths.<br><br><b>= 1.0</b> — out-of-sample held up just as well.<br><b>&lt; 1.0</b> — it faded once it left the training data. Usually overfitting.<br><b>&gt; 1.0</b> — it did even better out-of-sample.<br><br>Blank when in-sample never turned a profit (nothing to measure against), or the run's still going."></i></div>
               <div class="wfa-kpi-value" id="kpiWfe">—</div>
             </div>
           </div>
