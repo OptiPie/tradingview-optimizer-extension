@@ -146,74 +146,76 @@ var reportDataEventCallback = (event) => {
 }
 
 // WFA parent lifecycle — separate stream from the child reports. Persists status verbatim from script.js.
+// wfaLock serializes the writes: each message chains behind the previous, so FINISHED can't run until the last IN_PROGRESS write has released.
+var wfaLock = Promise.resolve();
 var wfaDataEventCallback = (event) => {
   var message = event.data;
   if (message.type !== "WfaDataEvent") return;
+  wfaLock = wfaLock.then(() => persistWfa(message.detail)).catch(e => console.log(e));
+}
 
-  const detail = message.detail;
+// persists one WFA parent update (STARTED creates, IN_PROGRESS upserts a window, FINISHED closes out)
+async function persistWfa(detail) {
   const wfaKey = "wfa-" + detail.wfaID;
 
-  switch (detail.status) {
-    case "STARTED":
-      // Create the thin parent up front; windows[] get filled by subsequent IN_PROGRESS upserts.
-      const parent = {
-        wfaID: detail.wfaID,
-        created: detail.created,
-        strategyName: detail.strategyName,
-        symbol: detail.symbol,
-        timePeriod: detail.timePeriod,
-        currency: detail.currency,
-        parameters: detail.parameters,
-        config: detail.config,
-        dateRange: detail.dateRange,
-        windowCount: detail.windowCount,
-        windows: {}, // keyed by windowIndex — upsert, no sparse-array risk
-        status: detail.status,
-        lastUpdated: Date.now()
-      };
-      chrome.storage.local.set({ [wfaKey]: parent }, () => notifyWfaUpdated(parent));
-      break;
+  if (detail.status === "STARTED") {
+    // Create the thin parent up front; windows[] get filled by subsequent IN_PROGRESS upserts.
+    const parent = {
+      wfaID: detail.wfaID,
+      created: detail.created,
+      strategyName: detail.strategyName,
+      symbol: detail.symbol,
+      timePeriod: detail.timePeriod,
+      currency: detail.currency,
+      parameters: detail.parameters,
+      config: detail.config,
+      dateRange: detail.dateRange,
+      windowCount: detail.windowCount,
+      windows: {}, // keyed by windowIndex — upsert, no sparse-array risk
+      status: detail.status,
+      lastUpdated: Date.now()
+    };
+    await chrome.storage.local.set({ [wfaKey]: parent });
+    notifyWfaUpdated(parent);
+    return;
+  }
 
-    case "IN_PROGRESS":
-      chrome.storage.local.get([wfaKey], items => {
-        let parent = items[wfaKey];
-        if (parent == null) return; // STARTED must land before any update
+  const items = await chrome.storage.local.get([wfaKey]);
+  let parent = items[wfaKey];
+  if (parent == null) return; // STARTED must land before any update
 
-        // Upsert the window entry, merging partial data (IS then OOS may arrive as separate updates)
-        const w = detail.window;
-        const prev = parent.windows[w.windowIndex] || { windowIndex: w.windowIndex };
-        parent.windows[w.windowIndex] = {
-          ...prev, ...w,
-          is:     { ...(prev.is || {}),     ...(w.is || {}) },
-          oos:    { ...(prev.oos || {}),    ...(w.oos || {}) },
-          winner: { ...(prev.winner || {}), ...(w.winner || {}) }
-        };
-        parent.status = detail.status;
-        parent.lastUpdated = Date.now();
-        chrome.storage.local.set({ [wfaKey]: parent }, () => notifyWfaUpdated(parent));
-        // detail.isWindowFinal → per-window progress rides the live-update above (system toast TBD)
-      });
-      break;
+  if (detail.status === "IN_PROGRESS") {
+    // Upsert the window entry, merging partial data (IS then OOS may arrive as separate updates)
+    const w = detail.window;
+    const prev = parent.windows[w.windowIndex] || { windowIndex: w.windowIndex };
+    parent.windows[w.windowIndex] = {
+      ...prev, ...w,
+      is:     { ...(prev.is || {}),     ...(w.is || {}) },
+      oos:    { ...(prev.oos || {}),    ...(w.oos || {}) },
+      winner: { ...(prev.winner || {}), ...(w.winner || {}) }
+    };
+    parent.status = detail.status;
+    parent.lastUpdated = Date.now();
+    await chrome.storage.local.set({ [wfaKey]: parent });
+    notifyWfaUpdated(parent);
+    // detail.isWindowFinal → per-window progress rides the live-update above (system toast TBD)
+    return;
+  }
 
-    case "FINISHED":
-      chrome.storage.local.get([wfaKey], items => {
-        let parent = items[wfaKey];
-        if (parent == null) return;
-        parent.status = detail.status;
-        parent.lastUpdated = Date.now();
-        chrome.storage.local.set({ [wfaKey]: parent }, () => {
-          // the SINGLE global completion + unlock + teardown listeners
-          chrome.runtime.sendMessage({
-            notify: { type: "success", content: "Walk-Forward Analysis Completed & Added to Reports" }
-          });
-          chrome.runtime.sendMessage({ popupAction: { event: "unlockOptimizeButton" } });
-          window.removeEventListener("message", reportDataEventCallback);
-          window.removeEventListener("message", wfaDataEventCallback);
-          window.removeEventListener("message", sleepEventCallback);
-          notifyWfaUpdated(parent);
-        });
-      });
-      break;
+  if (detail.status === "FINISHED") {
+    parent.status = detail.status;
+    parent.lastUpdated = Date.now();
+    await chrome.storage.local.set({ [wfaKey]: parent });
+    // the SINGLE global completion + unlock + teardown listeners
+    chrome.runtime.sendMessage({
+      notify: { type: "success", content: "Walk-Forward Analysis Completed & Added to Reports" }
+    });
+    chrome.runtime.sendMessage({ popupAction: { event: "unlockOptimizeButton" } });
+    window.removeEventListener("message", reportDataEventCallback);
+    window.removeEventListener("message", wfaDataEventCallback);
+    window.removeEventListener("message", sleepEventCallback);
+    notifyWfaUpdated(parent);
+    return;
   }
 }
 

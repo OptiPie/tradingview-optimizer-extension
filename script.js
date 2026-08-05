@@ -19,6 +19,9 @@ var currentSelectableValues = {} // parameterIndex -> option value being swept; 
 // reportDataMessage defined globally and initiated from start
 var reportDataMessage;
 
+// prototype value setter, cached once — bypasses React's per-instance value override on date inputs
+var nativeInputSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+
 //parameter types
 var ParameterType = {
     Selectable: "Selectable",
@@ -331,6 +334,7 @@ async function Process() {
             updateReport({ status: "FINISHED", isFinal: false })
             await PublishReport()
             const oosWinner = bestResult
+            console.log(oosWinner)
             postWFAWindow(wfaID, {
                 windowIndex: i,
                 winner: { oosProfit: oosWinner.profit }
@@ -349,27 +353,8 @@ async function PublishReport() {
     window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
 }
 
-// prepareInitialReport populates initial report before starting a fresh optimization
-function prepareInitialReport() {
-    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
-    let strategyTimePeriod = ""
-
-    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
-    if (timePeriodGroup.length > 1) {
-        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
-
-        // Check if favorite time periods exist  
-        if (selectedPeriod != null) {
-            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
-        } else {
-            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
-        }
-    }
-
-    let title = document.querySelector("title")?.innerText
-    let strategySymbol = title.split(' ')[0]
-
+// formats the swept parameter spec as HTML
+function buildParametersString() {
     let userInputsToString = ""
 
     userInputs.forEach((element, index) => {
@@ -384,8 +369,8 @@ function prepareInitialReport() {
             }
 
             if (needsTooltip) {
-                userInputsToString += `<strong 
-                    data-bs-toggle="tooltip" 
+                userInputsToString += `<strong
+                    data-bs-toggle="tooltip"
                     title="${fullName}"
                     >${displayName}</strong>: `;
             } else {
@@ -418,10 +403,36 @@ function prepareInitialReport() {
 
     })
 
+    return userInputsToString
+}
+
+// prepareInitialReport populates initial report before starting a fresh optimization
+function prepareInitialReport() {
+    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
+    let strategyTimePeriod = ""
+
+    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 1) {
+        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+
+        // Check if favorite time periods exist  
+        if (selectedPeriod != null) {
+            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
+        } else {
+            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+        }
+    }
+
+    let title = document.querySelector("title")?.innerText
+    let strategySymbol = title.split(' ')[0]
+
+    let userInputsToString = buildParametersString()
+
     let dateRange = document.querySelector(`div[class*='backtesting' i] div[class*='dateRange' i] 
         span[class*='container' i]`)?.innerText
 
-    let reportDataMessage = {
+    reportDataMessage = {
         "strategyID": Date.now(),
         "created": Date.now(),
         "strategyName": strategyName,
@@ -519,6 +530,7 @@ function prepareInitialWFAReport() {
             status: "STARTED",
             wfaID, created: wfaID,
             strategyName, symbol, timePeriod, currency,
+            parameters: buildParametersString(),
             config: wfaOptInputs.config,
             dateRange: wfaOptInputs.dateRange,
             windowCount: wfaOptInputs.windows
@@ -859,13 +871,43 @@ async function setBacktestDateRange(start, end) {
     document.querySelector('[data-qa-id="custom-date-range-item"]')?.click()
     await sleep(500)
 
-    let dates = document.querySelectorAll('[data-qa-id="date-picker-wrapper"]')
-    ChangeTvInput(dates[0].querySelector("input"), start)
-    ChangeTvInput(dates[1].querySelector("input"), end)
+    const dates = document.querySelectorAll('[data-qa-id="date-picker-wrapper"]')
+    const startInput = dates[0].querySelector("input")
+    const endInput = dates[1].querySelector("input")
+
+    // write start, then a real focus transition to end so React commits start before end is written
+    setDateInput(startInput, start)
+    moveDateFocus(startInput, endInput)
+    setDateInput(endInput, end)
     await sleep(250)
 
-    document.querySelector('[data-name*="custom-date-range-dialog" i] [data-qa-id*="submit-button" i]')?.click()
+    // when the range already matches, Select is disabled and can't commit — dismiss via the close (X) instead
+    const submitBtn = document.querySelector('[data-name*="custom-date-range-dialog" i] [data-qa-id*="submit-button" i]')
+    const submitEnabled = submitBtn != null && submitBtn.disabled !== true && submitBtn.getAttribute("aria-disabled") !== "true"
+    if (submitEnabled) {
+        submitBtn.click()
+    } else {
+        document.querySelector('[data-name*="custom-date-range-dialog" i] button[data-qa-id="close" i]')?.click()
+    }
+
     await sleep(1000) // let the backtest recompute settle before optimizing
+}
+
+// writes a date field through the prototype value setter so React's tracker registers it
+function setDateInput(input, value) {
+    input.focus()
+    nativeInputSet.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+// moves focus between date fields via bubbling focusout/focusin — the events React commits onBlur/onFocus through
+function moveDateFocus(from, to) {
+    from.dispatchEvent(new Event('change', { bubbles: true }))
+    from.dispatchEvent(new FocusEvent('blur', { bubbles: false, relatedTarget: to }))
+    from.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: to }))
+    to.focus()
+    to.dispatchEvent(new FocusEvent('focusin', { bubbles: true, relatedTarget: from }))
+    to.dispatchEvent(new FocusEvent('focus', { bubbles: false, relatedTarget: from }))
 }
 
 // Change TvInput value in Tv Strategy Options Window
