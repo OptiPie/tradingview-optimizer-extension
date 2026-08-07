@@ -179,8 +179,7 @@ function computeProfitable(oosDone) {
 }
 
 function renderSummary() {
-  const { windows, config } = wfaReport
-  const total = windows.length
+  const { windows, config, windowCount } = wfaReport
   // aggregates count only windows whose winner has landed — an in-flight window
   // has a reportID but no winner yet (announced up front so its report can stream)
   const isDone = windows.filter(w => w.winner?.isProfit != null)
@@ -206,7 +205,7 @@ function renderSummary() {
   document.getElementById("metaTimeframe").textContent = wfaReport.timePeriod
   document.getElementById("metaStrategy").textContent = wfaReport.strategyName
   document.getElementById("metaSplit").textContent = `${config.isPct} / ${config.oosPct} split`
-  document.getElementById("metaWindows").textContent = `${total} windows`
+  document.getElementById("metaWindows").textContent = `${windowCount} windows`
 
   const avgOosEl = document.getElementById("kpiAvgOos")
   avgOosEl.classList.remove("text-success", "text-danger") // persistent el: clear before re-coloring on refresh
@@ -357,6 +356,12 @@ function applyReport(report) {
   wfaReport = report
   // windows stored keyed (for injector upsert); the UI iterates them ordered
   wfaReport.windows = Object.values(wfaReport.windows || {}).sort((a, b) => a.windowIndex - b.windowIndex)
+  // null the -999999 "no result" sentinel so OOS reads as not-run (cell "—", skipped in avgOos/WFE/profitable denominator)
+  wfaReport.windows.forEach(w => {
+    if (w.winner && w.winner.oosProfit === -999999) {
+      w.winner.oosProfit = null
+    }
+  })
   buildPager()
   renderSummary()
   renderStaircase()
