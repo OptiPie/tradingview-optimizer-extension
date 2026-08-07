@@ -314,9 +314,13 @@ async function Process() {
             updateReport({ status: "FINISHED", isFinal: false })
             await PublishReport()
             const isWinner = bestResult
+            let isProfit = isWinner.profit
+            if (isProfit === -999999) {
+                isProfit = null
+            }
             postWFAWindow(wfaID, {
                 windowIndex: i,
-                winner: { params: isWinner.params, isProfit: isWinner.profit }
+                winner: { params: isWinner.params, isProfit: isProfit }
             })
 
             // OOS: single IS-winner combo over the out-of-sample range
@@ -334,10 +338,13 @@ async function Process() {
             updateReport({ status: "FINISHED", isFinal: false })
             await PublishReport()
             const oosWinner = bestResult
-            console.log(oosWinner)
+            let oosProfit = oosWinner.profit
+            if (oosProfit === -999999) {
+                oosProfit = null
+            }
             postWFAWindow(wfaID, {
                 windowIndex: i,
-                winner: { oosProfit: oosWinner.profit }
+                winner: { oosProfit: oosProfit }
             }, { isWindowFinal: true })
         }
 
