@@ -20,6 +20,11 @@ const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
 const LAST_USED_INPUTS_KEY = 'lastUsedInputs'
 // flag to track wfa mode
 let _wfaActive = false // (default: classic)
+// per-window calendar-day floors — prevent empty/weekend-gap windows
+const WFA_MIN_IS_DAYS = 14
+const WFA_MIN_OOS_DAYS = 5
+// set by updateWfaSplit when the current config produces a window below the floors; read by the launch guard
+let _wfaBelowFloor = false
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -154,6 +159,39 @@ optimize.addEventListener("click", async () => {
       notify: {
         type: "warning",
         content: "Walk-Forward Analysis supports a single timeframe"
+      }
+    });
+    return
+  }
+
+  // Walk-forward needs an explicit analysis range — block launch if either date is empty.
+  if (_wfaActive && (!document.getElementById("wfaStartDate").value || !document.getElementById("wfaEndDate").value)) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: "Walk-Forward Analysis requires a start and end date"
+      }
+    });
+    return
+  }
+
+  // End must come after start — reject an inverted or zero-length range.
+  if (_wfaActive && new Date(document.getElementById("wfaStartDate").value) >= new Date(document.getElementById("wfaEndDate").value)) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: "Walk-Forward Analysis end date must be after the start date"
+      }
+    });
+    return
+  }
+
+  // Per-window day floors — block a config whose windows fall below the minimums (flag set by updateWfaSplit).
+  if (_wfaActive && _wfaBelowFloor) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: `Each window needs at least ${WFA_MIN_IS_DAYS} days in-sample and ${WFA_MIN_OOS_DAYS} days out-of-sample`
       }
     });
     return
@@ -358,6 +396,12 @@ function computeProfitable(oosDone) {
 // aggregate cells over COMPLETED windows only → "—" until a window's first IS+OOS finale lands
 function wfaAggregates(value) {
   const windows = Object.values(value.windows || {})
+  // null the -999999 "no result" sentinel so OOS reads as not-run (skipped in avgOos/WFE/profitable denominator)
+  windows.forEach(w => {
+    if (w.winner && w.winner.oosProfit === -999999) {
+      w.winner.oosProfit = null
+    }
+  })
   const isDone = windows.filter(w => w.winner?.isProfit != null)
   const oosDone = windows.filter(w => w.winner?.oosProfit != null)
 
@@ -1045,6 +1089,8 @@ function updateWfaSplit() {
   const windowSize = document.getElementById("wfaStatWindowSize")
   const totalDays = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
 
+  const alert = document.getElementById("wfaSplitAlert")
+
   if (start && end && windows >= 2 && totalDays > 0) {
     // classic rolling walk-forward: IS windows overlap, stepping forward by one OOS length.
     // total = IS_length + windows * OOS_length, with OOS_length = IS_length * (oosPct / isPct)
@@ -1057,23 +1103,22 @@ function updateWfaSplit() {
     isDays.textContent = `~${isRounded} days`
     oosDays.textContent = `~${oosRounded} days`
     windowSize.textContent = `~${isRounded + oosRounded} days`
+
+    // flag windows below the per-window day floors, and gate the launch on it
+    _wfaBelowFloor = isRounded < WFA_MIN_IS_DAYS || oosRounded < WFA_MIN_OOS_DAYS
+    if (_wfaBelowFloor) {
+      slider.classList.add("wfa-split-alert")
+      alert.textContent = `Each window needs at least ${WFA_MIN_IS_DAYS} days in-sample and ${WFA_MIN_OOS_DAYS} days out-of-sample. Widen the date range or reduce the window count.`
+      alert.style.display = "block"
+    } else {
+      slider.classList.remove("wfa-split-alert")
+      alert.style.display = "none"
+    }
   } else {
     isDays.textContent = "—"
     oosDays.textContent = "—"
     windowSize.textContent = "—"
-  }
-
-  // recommended in-sample band is 60–90%; flag anything outside it
-  const alert = document.getElementById("wfaSplitAlert")
-  if (isPct < 60) {
-    slider.classList.add("wfa-split-alert")
-    alert.textContent = "This split is below the recommended 60–90% in-sample range."
-    alert.style.display = "block"
-  } else if (isPct > 90) {
-    slider.classList.add("wfa-split-alert")
-    alert.textContent = "This split is above the recommended 60–90% in-sample range."
-    alert.style.display = "block"
-  } else {
+    _wfaBelowFloor = false
     slider.classList.remove("wfa-split-alert")
     alert.style.display = "none"
   }
