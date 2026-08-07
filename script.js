@@ -630,8 +630,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         let backtestUpdateButton = document.querySelector("div[data-qa-id*='backtesting-updated' i] button")
         if (backtestUpdateButton != null) {
             backtestUpdateButton.click()
-            isBacktestUpdated = true
         }
+        // at this stage it's ensured that report tab is up-to-date
+        isBacktestUpdated = true
     }
 
     let observer;

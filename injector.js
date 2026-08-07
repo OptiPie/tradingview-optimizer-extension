@@ -23,125 +23,104 @@ var sleepEventCallback = (event) => {
 }
 
 // Handle Optimization Report coming from script.js
+// reportDataLock serializes the child-report writes: each message chains behind the previous, so a chunk's
+// read-modify-write can't interleave with the next (same fix as wfaLock — the single-combo OOS exposed it).
+var reportDataLock = Promise.resolve();
 var reportDataEventCallback = (event) => {
   var message = event.data;
   if (message.type !== "ReportDataEvent") return;
+  reportDataLock = reportDataLock.then(() => persistReportData(message.detail)).catch(e => console.log(e));
+}
 
-  const report = message.detail;
+// persists one report update (STARTED announces, IN_PROGRESS merges a chunk, FINISHED closes out)
+async function persistReportData(report) {
   const reportKey = "report-data-" + report.strategyID;
   const status = report.status;
   const isFinal = report.isFinal
   const newRow = report.reportData;
 
-  switch (status) {
-    case "STARTED":
-      chrome.runtime.sendMessage({
-        popupAction: {
-          event: "reportStarted",
-          message: {
-            report: report
-          }
-        }
-      });
-      break;
+  if (status === "STARTED") {
+    chrome.runtime.sendMessage({
+      popupAction: { event: "reportStarted", message: { report: report } }
+    });
+    return;
+  }
 
-    case "IN_PROGRESS":
-      // Merge each chunk into the existing reportData object, or initialize if missing/empty
-      if (newRow && Object.keys(newRow).length > 0) {
-        chrome.storage.local.get([reportKey], items => {
-          let existingReport = items[reportKey];
+  if (status === "IN_PROGRESS") {
+    // Merge each chunk into the existing reportData object, or initialize if missing/empty
+    if (!(newRow && Object.keys(newRow).length > 0)) return;
+    const items = await chrome.storage.local.get([reportKey]);
+    let existingReport = items[reportKey];
 
-          if (existingReport) {
-            let existingData = existingReport.reportData;
-            // If existingData is a non‐empty object, merge newRow into it
-            if (existingData && Object.keys(existingData).length > 0) {
-              existingReport.reportData = {
-                ...existingData,
-                ...newRow
-              };
-              existingReport.maxProfit = report.maxProfit
-            } else {
-              // If empty or undefined, just take newRow as the base
-              existingReport.reportData = { ...newRow };
-              existingReport.maxProfit = report.maxProfit
-            }
-          } else {
-            // No report yet → initialize with the full incoming report object
-            existingReport = report;
-          }
+    if (existingReport) {
+      let existingData = existingReport.reportData;
+      // If existingData is a non‐empty object, merge newRow into it
+      if (existingData && Object.keys(existingData).length > 0) {
+        existingReport.reportData = { ...existingData, ...newRow };
+        existingReport.maxProfit = report.maxProfit
+      } else {
+        // If empty or undefined, just take newRow as the base
+        existingReport.reportData = { ...newRow };
+        existingReport.maxProfit = report.maxProfit
+      }
+    } else {
+      // No report yet → initialize with the full incoming report object
+      existingReport = report;
+    }
 
-          // Update lastUpdated timestamp
-          const now = Date.now();
-          existingReport.lastUpdated = now;
-          report.lastUpdated = now;
+    const now = Date.now();
+    existingReport.lastUpdated = now;
+    report.lastUpdated = now;
 
-          chrome.storage.local.set({ [reportKey]: existingReport });
+    await chrome.storage.local.set({ [reportKey]: existingReport });
 
-          chrome.runtime.sendMessage({
-            popupAction: {
-              event: "reportUpdated",
-              message: {
-                report: report
-              }
-            }
-          });
+    chrome.runtime.sendMessage({
+      popupAction: { event: "reportUpdated", message: { report: report } }
+    });
+    return;
+  }
+
+  if (status === "FINISHED") {
+    // Mark existing report status as finished
+    const items = await chrome.storage.local.get([reportKey]);
+    let existingReport = items[reportKey];
+
+    if (existingReport != null) {
+      const now = Date.now();
+      existingReport.lastUpdated = now;
+      existingReport.status = report.status;
+
+      await chrome.storage.local.set({ [reportKey]: existingReport });
+
+      //notify with the success (skip for wfa children)
+      if (report.type !== "wfa") {
+        chrome.runtime.sendMessage({
+          notify: { type: "success", content: "Optimization Completed Successfully & Added to Reports" }
         });
       }
-      break;
-
-    case "FINISHED":
-      // Mark existing report status as finished
-      chrome.storage.local.get([reportKey], items => {
-        let existingReport = items[reportKey];
-
-        if (existingReport != null) {
-          const now = Date.now();
-          existingReport.lastUpdated = now;
-          existingReport.status = report.status;
-
-          chrome.storage.local.set({ [reportKey]: existingReport });
-
-          //notify with the success (skip for wfa children)
-          if (report.type !== "wfa") {
-            chrome.runtime.sendMessage({
-              notify: {
-                type: "success",
-                content: "Optimization Completed Successfully & Added to Reports"
-              }
-            });
-          }
-        } else {
-          //notify with the warning
-          chrome.runtime.sendMessage({
-            notify: {
-              type: "warning",
-              content: "Optimization Failed & No Report Generated"
-            }
-          });
-        }
-        // Optimization is fully done → unlock (skip for wfa children)
-        if (report.type !== "wfa") {
-          chrome.runtime.sendMessage({
-            popupAction: { event: "unlockOptimizeButton" }
-          });
-        }
-
-        // send reportUpdate with 'FINISHED' status
-        chrome.runtime.sendMessage({
-          popupAction: {
-            event: "reportUpdated",
-            message: {
-              report: report
-            }
-          }
-        });
-        // remove listeners after final optimization for multi-time frame support
-        if (isFinal) {
-          window.removeEventListener("message", sleepEventCallback);
-          window.removeEventListener("message", reportDataEventCallback);
-        }
+    } else {
+      //notify with the warning
+      chrome.runtime.sendMessage({
+        notify: { type: "warning", content: "Optimization Failed & No Report Generated" }
       });
-      break;
+    }
+    // Optimization is fully done → unlock (skip for wfa children)
+    if (report.type !== "wfa") {
+      chrome.runtime.sendMessage({
+        popupAction: { event: "unlockOptimizeButton" }
+      });
+    }
+
+    // send reportUpdate with 'FINISHED' status
+    chrome.runtime.sendMessage({
+      popupAction: { event: "reportUpdated", message: { report: report } }
+    });
+    // remove listeners after final optimization for multi-time frame support
+    if (isFinal) {
+      window.removeEventListener("message", sleepEventCallback);
+      window.removeEventListener("message", reportDataEventCallback);
+    }
+    return;
   }
 }
 
