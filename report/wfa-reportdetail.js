@@ -243,7 +243,19 @@ function renderSummary() {
     tr.querySelector('[data-cell="window"]').textContent = i + 1
 
     const params = tr.querySelector('[data-cell="params"]')
-    if (winner.params != null) {
+    if (winner.detailedParameters != null && winner.detailedParameters.length > 0) {
+      params.textContent = ""
+      winner.detailedParameters.forEach((p, idx) => {
+        if (idx > 0) {
+          params.appendChild(document.createElement("br"))
+        }
+        const name = document.createElement("span")
+        name.className = "wfa-param-name"
+        name.textContent = p.name
+        params.appendChild(name)
+        params.appendChild(document.createTextNode(`: ${p.value}`))
+      })
+    } else if (winner.params != null) {
       params.textContent = winner.params
     } else {
       params.textContent = "—"

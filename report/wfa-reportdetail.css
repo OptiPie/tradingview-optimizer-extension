@@ -61,6 +61,11 @@
     cursor: pointer;
 }
 
+/* parameter name in the best-parameters cell — semibold, one step below full bold */
+.wfa-param-name {
+    font-weight: 600;
+}
+
 /* catchier, on-brand hover instead of the flat grey default */
 .wfa-window-table {
     --bs-table-hover-bg: rgba(13, 110, 253, .07);

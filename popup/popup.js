@@ -305,7 +305,48 @@ function switchReportView(view) {
   })
   // bootstrap-table renders with wrong widths while its pane is hidden; refresh on show
   $(isWfa ? "#wfaTable" : "#table").bootstrapTable("resetView")
+  if (isWfa) {
+    requestAnimationFrame(evaluateWfaScrollHint)
+  }
 }
+
+// nudge-chevron hinting the WFA reports table scrolls right — the Detail column (Open + remove buttons) overflows the narrow popup
+function evaluateWfaScrollHint() {
+  const pane = document.getElementById("wfa-reports-pane")
+  if (pane == null) {
+    return
+  }
+  let hint = pane.querySelector(".wfa-scroll-hint")
+  if (hint == null) {
+    hint = document.createElement("div")
+    hint.className = "wfa-scroll-hint"
+    hint.innerHTML = '<i class="bi bi-chevron-right"></i>'
+    pane.appendChild(hint)
+  }
+  const scroller = pane.querySelector(".fixed-table-body")
+  if (scroller == null) {
+    hint.classList.remove("show")
+    return
+  }
+  if (scroller.dataset.hintBound !== "true") {
+    scroller.addEventListener("scroll", evaluateWfaScrollHint)
+    scroller.dataset.hintBound = "true"
+  }
+  const moreRight = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1
+  if (moreRight) {
+    const thead = scroller.querySelector("thead")
+    if (thead != null) {
+      const theadRect = thead.getBoundingClientRect()
+      const paneRect = pane.getBoundingClientRect()
+      hint.style.top = (theadRect.top - paneRect.top + (theadRect.height - 20) / 2) + "px"
+    }
+    hint.classList.add("show")
+  } else {
+    hint.classList.remove("show")
+  }
+}
+
+window.addEventListener("resize", evaluateWfaScrollHint)
 
 document.querySelectorAll("[data-report-view]").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -457,6 +498,7 @@ function createWfaReportTable() {
     const $wfaTable = $('#wfaTable')
     $wfaTable.bootstrapTable({ data: wfaData })
     $wfaTable.bootstrapTable('load', wfaData)
+    requestAnimationFrame(evaluateWfaScrollHint)
   })
 }
 
@@ -526,10 +568,24 @@ window.openWfaDetail = {
   'click #wfa-detail-button': function (e, value, row, index) {
     chrome.tabs.create({ url: 'report/wfa-reportdetail.html?wfaID=' + row.wfaID })
   },
-  // Remove WFA report parent. TODO: cascade-delete the child report-data-* ids once logic is wired.
-  'click #remove-wfa-report': function (e, value, row, index) {
+  // Remove WFA report parent and cascade-delete its per-window child report-data-* entries.
+  'click #remove-wfa-report': async function (e, value, row, index) {
     var $wfaTable = $('#wfaTable')
-    chrome.storage.local.remove(["wfa-" + row.wfaID])
+    const wfaKey = "wfa-" + row.wfaID
+    const items = await chrome.storage.local.get([wfaKey])
+    const parent = items[wfaKey]
+    const keys = [wfaKey]
+    if (parent && parent.windows) {
+      Object.values(parent.windows).forEach(w => {
+        if (w.is && w.is.reportID) {
+          keys.push("report-data-" + w.is.reportID)
+        }
+        if (w.oos && w.oos.reportID) {
+          keys.push("report-data-" + w.oos.reportID)
+        }
+      })
+    }
+    await chrome.storage.local.remove(keys)
     $wfaTable.bootstrapTable('remove', {
       field: 'wfaID',
       values: [row.wfaID]

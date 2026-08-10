@@ -213,6 +213,32 @@ body {
     margin-right: 0.5rem;
 }
 
+/* horizontal-scroll nudge for the WFA reports table (Detail column can overflow the narrow popup) */
+#wfa-reports-pane {
+    position: relative;
+}
+
+.wfa-scroll-hint {
+    position: absolute;
+    right: 2px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dfe2e6;
+    color: #6c757d;
+    font-size: 0.72rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.wfa-scroll-hint.show {
+    display: flex;
+}
+
 th[data-field="parameters"],
 td[data-field="parameters"] {
     width: 100%;

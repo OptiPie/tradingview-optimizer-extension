@@ -320,7 +320,7 @@ async function Process() {
             }
             postWFAWindow(wfaID, {
                 windowIndex: i,
-                winner: { params: isWinner.params, isProfit: isProfit }
+                winner: { params: isWinner.params, detailedParameters: isWinner.detailedParameters, isProfit: isProfit }
             })
 
             // OOS: single IS-winner combo over the out-of-sample range
@@ -757,7 +757,7 @@ function saveOptimizationReport(optimizationResult, reportData) {
         replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
         profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
         if (profit > bestResult.profit) {
-            bestResult = { profit, params: parameters, inputs: snapshotWinningInputs() }
+            bestResult = { profit, params: parameters, detailedParameters: result.detailedParameters, inputs: snapshotWinningInputs() }
         }
         return ("Optimization param added to map")
     } else if (optimizationHistory.has(parameters)) {
