@@ -98,8 +98,8 @@ async function persistReportData(report) {
           notify: { type: "success", content: "Optimization Completed Successfully & Added to Reports" }
         });
       }
-    } else {
-      //notify with the warning
+    } else if (report.type !== "wfa") {
+      //notify with the warning (skip for wfa children — an empty OOS window is legitimate)
       chrome.runtime.sendMessage({
         notify: { type: "warning", content: "Optimization Failed & No Report Generated" }
       });

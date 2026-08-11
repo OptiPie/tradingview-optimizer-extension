@@ -16,6 +16,8 @@ let currentSample = "is"      // "is" | "oos"
 const summaryEl = document.getElementById("wfaSummary")
 const windowEl = document.getElementById("wfaWindow")
 const frameEl = document.getElementById("wfaReportFrame")
+const placeholderEl = document.getElementById("wfaFramePlaceholder")
+const placeholderTextEl = document.getElementById("wfaFramePlaceholderText")
 
 // pager: Summary + one numbered page per window
 function buildPager() {
@@ -93,10 +95,24 @@ function loadFrame() {
   }
 
   if (id == null) {
-    frameEl.removeAttribute("src") // this window's OOS didn't run
+    frameEl.removeAttribute("src")
+    frameEl.style.display = "none"
+    showFramePlaceholder()
     return
   }
+  placeholderEl.style.display = "none"
+  frameEl.style.display = ""
   frameEl.src = `reportdetail.html?strategyID=${id}&embedded=1`
+}
+
+// no report id for the current sample → generic, un-stale-able message instead of a blank frame
+function showFramePlaceholder() {
+  let sample = "In-sample"
+  if (currentSample === "oos") {
+    sample = "Out-of-sample"
+  }
+  placeholderTextEl.textContent = `${sample} run is not yet ready`
+  placeholderEl.style.display = ""
 }
 
 // iframes don't auto-size to content (they're replaced elements) — measure and set the height
@@ -414,6 +430,12 @@ chrome.runtime.onMessage.addListener((message) => {
 
   applyReport(popupAction.message.report) // re-render summary + pager
   highlightPager(currentPage)             // rebuilt pager lost its active state
+
+  // if a placeholder is showing, re-run loadFrame so the report swaps in once its id lands
+  // (guarded on the placeholder being visible → never reloads an already-loaded frame)
+  if (currentPage !== "summary" && placeholderEl.style.display !== "none") {
+    loadFrame()
+  }
 
   // flash breakdown rows that changed; animate the bar of a window that just appeared
   const rows = document.getElementById("wfaWindowRows")
