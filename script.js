@@ -19,6 +19,10 @@ var currentSelectableValues = {} // parameterIndex -> option value being swept; 
 // reportDataMessage defined globally and initiated from start
 var reportDataMessage;
 
+// stop signal — sleep() throws STOP_SIGNAL when shouldStop flips, unwinding the whole optimize stack to Process's catch
+var shouldStop = false
+var STOP_SIGNAL = "OPTIPIE_STOP"
+
 // prototype value setter, cached once — bypasses React's per-instance value override on date inputs
 var nativeInputSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
 
@@ -32,24 +36,28 @@ var ParameterType = {
 
 var isReportDataEmptySelector = "div[class*='emptyState' i]"
 
-var sleep = (ms) => new Promise((resolve) => {
-    const handler = (event) => {
-        if (event.data.type === "SleepEventComplete") {
-            window.removeEventListener("message", handler);
-            resolve();
-        }
-    };
-    window.addEventListener("message", handler);
+var sleep = (ms) => {
+    if (shouldStop) {
+        throw STOP_SIGNAL
+    }
+    return new Promise((resolve) => {
+        const handler = (event) => {
+            if (event.data.type === "SleepEventComplete") {
+                window.removeEventListener("message", handler);
+                resolve();
+            }
+        };
+        window.addEventListener("message", handler);
 
-    // Notify injector.js about the sleep request with the delay
-    window.postMessage({ type: "SleepEventStart", delay: ms }, "*");
-});
+        // Notify injector.js about the sleep request with the delay
+        window.postMessage({ type: "SleepEventStart", delay: ms }, "*");
+    });
+};
 
 // Run Optimization Process 
 Process()
 
 async function Process() {
-    var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = (event) => {
         let message = event.data
@@ -100,60 +108,82 @@ async function Process() {
     window.addEventListener("message", stopOptimizationEventCallback);
 
     //Wait for UserInputsEvent Callback
-    await sleep(750)
-    // sort userInputs before starting optimization
-    userNumericInputs.sort(function (a, b) {
-        return a.parameterIndex - b.parameterIndex;
-    });
-    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
-    var ranges = buildNumericRanges(userNumericInputs);
-    switch (optType) {
-        case "wfa":
-            await RunWFA()
-            break;
+    try {
+        await sleep(750)
+        // sort userInputs before starting optimization
+        userNumericInputs.sort(function (a, b) {
+            return a.parameterIndex - b.parameterIndex;
+        });
+        // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
+        var ranges = buildNumericRanges(userNumericInputs);
+        switch (optType) {
+            case "wfa":
+                await RunWFA()
+                break;
 
-        default:
-            // TODO(tech-debt): extract the no-timeframe / timeframe branches into their own functions, like RunWFA
-            if (userTimeFrames == null || userTimeFrames.length <= 0) {
-                // no time frame selection or free user flow
-                reportDataMessage = prepareInitialReport()
-                await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-                updateReport({ status: "FINISHED", isFinal: true })
-                await PublishReport()
-            } else {
-                for (let i = 0; i < userTimeFrames.length; i++) {
-                    // open time intervals dropdown and change it
-                    await sleep(500)
-
-                    let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
-                    // check if user has favorite time frames selected
-                    if (timeIntervalDropdown == null) {
-                        timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
-                    }
-                    timeIntervalDropdown.click()
-
-                    let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-                    await sleep(1000)
-                    document.querySelector(timeIntervalQuery).click()
-                    await sleep(1000)
+            default:
+                // TODO(tech-debt): extract the no-timeframe / timeframe branches into their own functions, like RunWFA
+                if (userTimeFrames == null || userTimeFrames.length <= 0) {
+                    // no time frame selection or free user flow
                     reportDataMessage = prepareInitialReport()
-                    await sleep(500)
-                    try {
-                        await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-                    } catch (err) {
-                        console.log(err)
-                        // catch the error, continue with the next time-frame
-                    }
-
-                    let isFinalOptimization = (i === userTimeFrames.length - 1)
-                    updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+                    await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+                    updateReport({ status: "FINISHED", isFinal: true })
                     await PublishReport()
+                } else {
+                    for (let i = 0; i < userTimeFrames.length; i++) {
+                        // open time intervals dropdown and change it
+                        await sleep(500)
 
-                    // reset global variables for new strategy optimization and for new timeframe
-                    optimizationHistory = new Map();
-                    bestResult = { profit: -999999, params: null }
+                        let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
+                        // check if user has favorite time frames selected
+                        if (timeIntervalDropdown == null) {
+                            timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
+                        }
+                        timeIntervalDropdown.click()
+
+                        let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+                        await sleep(1000)
+                        document.querySelector(timeIntervalQuery).click()
+                        await sleep(1000)
+                        reportDataMessage = prepareInitialReport()
+                        await sleep(500)
+                        try {
+                            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+                        } catch (err) {
+                            if (err === STOP_SIGNAL) {
+                                throw err
+                            }
+                            console.log(err)
+                            // catch the error, continue with the next time-frame
+                        }
+
+                        let isFinalOptimization = (i === userTimeFrames.length - 1)
+                        updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+                        await PublishReport()
+
+                        // reset global variables for new strategy optimization and for new timeframe
+                        optimizationHistory = new Map();
+                        bestResult = { profit: -999999, params: null }
+                    }
                 }
+        }
+    } catch (e) {
+        if (e !== STOP_SIGNAL) {
+            throw e
+        }
+        shouldStop = false
+        if (reportDataMessage != null) {
+            updateReport({ status: "FINISHED", isFinal: true })
+            await PublishReport()
+        }
+        if (optType === "wfa") {
+            let stoppedWfaID = null
+            if (wfaContext != null) {
+                stoppedWfaID = wfaContext.wfaID
             }
+            wfaContext = null
+            window.postMessage({ type: "WfaDataEvent", detail: { status: "FINISHED", wfaID: stoppedWfaID } }, "*")
+        }
     }
 
     // Optimize numeric inputs in the strategey for the currently chosen timeframe
@@ -559,21 +589,22 @@ function postWFAWindow(wfaID, windowData, extra) {
 async function SetUserIntervals(activeNumericInputs = userNumericInputs) {
     for (let i = 0; i < activeNumericInputs.length; i++) {
         let userInput = activeNumericInputs[i]
-        let startValue = userInput.start - userInput.stepSize
-
+        let startValue = parseFloat(userInput.start) + parseFloat(userInput.stepSize)
+        
         if (isFloat(startValue)) {
             let precision = getFloatPrecision(userInput.stepSize)
             startValue = fixPrecision(startValue, precision)
         }
-
+        
         // reset by step size in case of a user input is as same as current tv input value 
         if (userInput.start == tvInputs[userInput.parameterIndex].value) {
-            await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
+            await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
+            await sleep(150)
         } else {
             ChangeTvInput(tvInputs[userInput.parameterIndex], startValue)
         }
 
-        await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
+        await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
 
         await sleep(250);
     }
