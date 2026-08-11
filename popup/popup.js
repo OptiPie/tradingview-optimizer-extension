@@ -1569,6 +1569,16 @@ function calculateIterations() {
   } else {
     iterationValue.innerText = "-"
   }
+
+  // parallel-run warning: only surface it for a big WFA run, where a second tab is the ban risk
+  const parallelWarning = document.getElementById("wfaParallelWarning")
+  if (parallelWarning != null) {
+    if (isIterationValid && _wfaActive && totalIterations > 1500) {
+      parallelWarning.style.display = ""
+    } else {
+      parallelWarning.style.display = "none"
+    }
+  }
 }
 
 // Create user inputs message, return err.message if validation fails 

@@ -171,12 +171,18 @@
           </div>
           <div class="row g-2 pb-2">
             <div class="col-6">
-              <label class="form-label small mb-1">Summary
+              <label class="form-label small mb-1 d-flex align-items-center">Summary
                 <a href="https://optipie.app" target="_blank" class="text-primary text-decoration-none ms-1"
                   data-bs-toggle="tooltip" data-bs-placement="right"
                   title="How in-sample and out-of-sample days are calculated.">
                   <i class="bi bi-info-circle-fill"></i>
                 </a>
+                <span id="wfaParallelWarning" class="ms-auto text-warning" role="button" tabindex="0" style="display: none;"
+                  data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="tooltip-warning"
+                  data-bs-placement="left" data-bs-delay='{"show":300,"hide":150}'
+                  title="<i class='bi bi-exclamation-triangle-fill'></i> Run one large analysis at a time. Running several at once may cause temporary blocks.">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                </span>
               </label>
               <div class="card bg-light border-0" id="wfaSummary">
                 <div class="card-body py-2 px-3">
