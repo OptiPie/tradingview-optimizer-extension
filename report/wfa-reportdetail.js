@@ -3,11 +3,6 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 });
 let wfaID = params.wfaID;
 
-// TODO - TO BE REMOVED
-chrome.storage.local.get("wfa-" + wfaID, function (item) {
-  console.log(item)
-})
-
 let wfaReport   // filled from storage in the init at the bottom
 
 let currentPage = "summary"   // "summary" or a 0-based window index

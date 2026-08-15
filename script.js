@@ -9,6 +9,7 @@ var userTimeFrames = [] // time frames chosen by the user
 var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not
 var bestResult = { profit: null, params: null } // best run so far; profit null until a combo lands, params retained for the WFA winner
 var optimizationTimeout = 15 * 1000; // default timeout in milliseconds
+var _localeSeparators = null // cached profit-number group/decimal separators, derived from TV's UI locale
 
 // WFA run state — optType forks Process(); wfaContext enriches child reports while a window runs
 var optType = "classic"
@@ -1052,7 +1053,6 @@ function tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimiz
 }
 
 // TradingView renders profit in its UI locale; derive the group/decimal separators from it once
-let _localeSeparators = null
 function getLocaleSeparators() {
     if (_localeSeparators != null) {
         return _localeSeparators
