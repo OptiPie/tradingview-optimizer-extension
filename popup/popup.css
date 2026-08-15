@@ -1,3 +1,9 @@
+/* width lives on both html and body: Chrome sizes the popup from html, Firefox from body */
+html {
+    width: 560px;
+    transition: all .2s ease-in-out;
+}
+
 body {
     width: 560px;
     transition: all .2s ease-in-out;

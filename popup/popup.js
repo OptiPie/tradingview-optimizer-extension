@@ -445,6 +445,8 @@ function wfaAggregates(value) {
   })
   const isDone = windows.filter(w => w.winner?.isProfit != null)
   const oosDone = windows.filter(w => w.winner?.oosProfit != null)
+  // windows that ran OOS — profitable-count denominator, robust to a missed oosProfit read
+  const oosRan = windows.filter(w => w.winner?.isProfit != null && w.oos?.reportID != null)
 
   let avgIs = 0
   if (isDone.length) {
@@ -458,9 +460,11 @@ function wfaAggregates(value) {
   let avgOOS = "—"
   let profitable = "—"
   let wfe = "—"
+  if (oosRan.length) {
+    profitable = computeProfitable(oosRan)
+  }
   if (oosDone.length) {
     avgOOS = fmtSignedPct(avgOos)
-    profitable = computeProfitable(oosDone)
     if (avgIs > 0) {
       wfe = computeWfe(avgIs, avgOos, value.config).toFixed(2)
     }
@@ -1465,17 +1469,20 @@ function addSaveAutoFillSelectionListener(parameterCount) {
 
   });
 }
-// Dynamically change html body size 
+// Dynamically change popup size — set on both html (Chrome) and body (Firefox) so the popup shrinks back
 function addTabEventListeners() {
   document.querySelector("#reports-tab").addEventListener("click", function () {
+    document.documentElement.style.width = '720px'
     document.body.style.width = '720px'
   })
 
   document.querySelector("#home-tab").addEventListener("click", function () {
+    document.documentElement.style.width = '560px'
     document.body.style.width = '560px'
   })
 
   document.querySelector("#profile-tab").addEventListener("click", function () {
+    document.documentElement.style.width = '560px'
     document.body.style.width = '560px'
   })
 }

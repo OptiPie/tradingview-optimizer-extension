@@ -200,6 +200,8 @@ function renderSummary() {
   // has a reportID but no winner yet (announced up front so its report can stream)
   const isDone = windows.filter(w => w.winner?.isProfit != null)
   const oosDone = windows.filter(w => w.winner?.oosProfit != null)
+  // windows that ran OOS — profitable-count denominator, robust to a missed oosProfit read
+  const oosRan = windows.filter(w => w.winner?.isProfit != null && w.oos?.reportID != null)
 
   let avgIs = 0
   if (isDone.length) {
@@ -237,8 +239,8 @@ function renderSummary() {
   }
 
   const profitableEl = document.getElementById("kpiProfitable")
-  if (oosDone.length) {
-    profitableEl.textContent = computeProfitable(oosDone)
+  if (oosRan.length) {
+    profitableEl.textContent = computeProfitable(oosRan)
   } else {
     profitableEl.textContent = "—"
   }
