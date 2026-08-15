@@ -7,7 +7,7 @@ var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
 var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not
-var bestResult = { profit: -999999, params: null } // best run so far; params retained for the WFA winner
+var bestResult = { profit: null, params: null } // best run so far; profit null until a combo lands, params retained for the WFA winner
 var optimizationTimeout = 15 * 1000; // default timeout in milliseconds
 
 // WFA run state — optType forks Process(); wfaContext enriches child reports while a window runs
@@ -163,7 +163,7 @@ async function Process() {
 
                         // reset global variables for new strategy optimization and for new timeframe
                         optimizationHistory = new Map();
-                        bestResult = { profit: -999999, params: null }
+                        bestResult = { profit: null, params: null }
                     }
                 }
         }
@@ -333,7 +333,7 @@ async function Process() {
             wfaContext = { wfaID, windowIndex: i, sampleType: "is" }
             await setBacktestDateRange(win.is.start, win.is.end)
             optimizationHistory = new Map()
-            bestResult = { profit: -999999, params: null }
+            bestResult = { profit: null, params: null }
             reportDataMessage = prepareInitialReport()
             // announce the child up front so the WFA page can render the IS report while it streams
             postWFAWindow(wfaID, {
@@ -345,9 +345,6 @@ async function Process() {
             await PublishReport()
             const isWinner = bestResult
             let isProfit = isWinner.profit
-            if (isProfit === -999999) {
-                isProfit = null
-            }
             postWFAWindow(wfaID, {
                 windowIndex: i,
                 winner: { params: isWinner.params, detailedParameters: isWinner.detailedParameters, isProfit: isProfit }
@@ -357,7 +354,7 @@ async function Process() {
             wfaContext = { wfaID, windowIndex: i, sampleType: "oos" }
             await setBacktestDateRange(win.oos.start, win.oos.end)
             optimizationHistory = new Map()
-            bestResult = { profit: -999999, params: null }
+            bestResult = { profit: null, params: null }
             reportDataMessage = prepareInitialReport()
             // announce the OOS child up front too, same reason
             postWFAWindow(wfaID, {
@@ -369,9 +366,6 @@ async function Process() {
             await PublishReport()
             const oosWinner = bestResult
             let oosProfit = oosWinner.profit
-            if (oosProfit === -999999) {
-                oosProfit = null
-            }
             postWFAWindow(wfaID, {
                 windowIndex: i,
                 winner: { oosProfit: oosProfit }
@@ -785,9 +779,8 @@ function saveOptimizationReport(optimizationResult, reportData) {
         optimizationHistory.set(parameters, true)
         optimizationResult.set(parameters, reportData)
         //Update Max Profit
-        replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
-        profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
-        if (profit > bestResult.profit) {
+        profit = parseProfitAmount(reportData.netProfit.amount)
+        if (!Number.isNaN(profit) && (bestResult.profit === null || profit > bestResult.profit)) {
             bestResult = { profit, params: parameters, detailedParameters: result.detailedParameters, inputs: snapshotWinningInputs() }
         }
         return ("Optimization param added to map")
@@ -1056,6 +1049,42 @@ function tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimiz
     if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
         saveOptimizationReport(optimizationResult, reportData)
     }
+}
+
+// TradingView renders profit in its UI locale; derive the group/decimal separators from it once
+let _localeSeparators = null
+function getLocaleSeparators() {
+    if (_localeSeparators != null) {
+        return _localeSeparators
+    }
+    let lang = document.documentElement.lang || navigator.language || "en"
+    let group = ","
+    let decimal = "."
+    try {
+        for (let part of new Intl.NumberFormat(lang).formatToParts(11111.1)) {
+            if (part.type === "group") {
+                group = part.value
+            }
+            if (part.type === "decimal") {
+                decimal = part.value
+            }
+        }
+    } catch (e) {
+        group = ","
+        decimal = "."
+    }
+    _localeSeparators = { group, decimal }
+    return _localeSeparators
+}
+
+// parses a locale-formatted profit string (e.g. "1.234.567,89 EUR") into a Number
+function parseProfitAmount(text) {
+    let seps = getLocaleSeparators()
+    let s = String(text).replace("−", "-")
+    s = s.split(seps.group).join("")
+    s = s.split(seps.decimal).join(".")
+    s = s.replace(/[^0-9.\-]/g, "")
+    return Number(s)
 }
 
 // isFloat to check whether given number is float or not
