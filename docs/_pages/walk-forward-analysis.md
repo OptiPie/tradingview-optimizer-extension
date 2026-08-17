@@ -33,12 +33,17 @@ Before the numbers, here is how a run is set up. Three settings shape every walk
 - **Windows.** Each window is one in-sample plus out-of-sample run. The date range is split into several of them, stepping forward through time, so more windows means smaller slices and more tests.
 - **Split.** The in-sample to out-of-sample ratio inside each window. A 70/30 split optimizes on the first 70% of every window and tests on the remaining 30%.
 
-Together they decide how much history each window sees and how often the strategy is put back on trial. The run below covers a multi-year range, divided into 6 windows at a 70/30 split.
+Together they decide how much history each window sees and how often the strategy is put back on trial. The video below walks through a full run, a Supertrend strategy on BTCUSD split into 5 windows at 70/30, from setup all the way to the finished report.
 
-<!-- TODO: replace with the chosen THYAO WFA report screenshot -->
-![Walk-Forward Analysis report](/images/wfa-thyao-report.png)
+<!-- TODO: embed the WFA demo video (YouTube link + thumbnail) -->
 
-*Placeholder: swap in the specific report you want to feature, and we will finalize the run details (date range, windows, split) and write the walkthrough straight off its numbers (in-sample vs out-of-sample, and the resulting WFE).*
+In it, you will see the report OptiPie builds to be read at a glance:
+
+- **Summary metrics** up top: average out-of-sample profit, how many windows stayed profitable, and the Walk-Forward Efficiency score.
+- **Rolling windows** drawn as a staircase, so you can watch each in-sample and out-of-sample slice step forward through time.
+- **A per-window breakdown** that puts each window's best parameters and in-sample profit right next to what they actually made out-of-sample.
+
+The walkthrough sets a run up from scratch, then reads the results window by window.
 
 ---
 
