@@ -6,3 +6,4 @@ _site/
 vendor
 .manifest
 *optipie-report-dump*
+local/
