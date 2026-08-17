@@ -3,8 +3,17 @@
     padding-right: 7rem !important;
 }
 
-#timePeriod {
-    font-weight: bold;
+/* embedded mode (inside the WFA report page's iframe): drop the standalone chrome */
+/* !important needed to beat Bootstrap's .d-flex utility on the header/footer */
+.embedded header,
+.embedded footer,
+.embedded .report-pills {
+    display: none !important;
+}
+
+/* collapse the standalone page padding — the parent WFA page already provides margins */
+.embedded .report-detail {
+    padding: 0.5rem 1rem !important;
 }
 
 .progress-spinner {

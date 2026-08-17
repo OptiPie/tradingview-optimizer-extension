@@ -4,6 +4,16 @@ title: "News"
 ---
 
 ## What's New!
+### Version: v2.0.0
+
+> The biggest update OptiPie has seen so far. **Backtests, stronger than ever with Walk-Forward Analysis.**
+
+- **[Walk-Forward Analysis](https://optipie.app/walk-forward-analysis/)** is here. It takes optimization one step further: instead of trusting a backtest that scored itself on data it already knew, it forces your parameters to prove themselves on price they have never seen.
+- **UI/UX improvements** for the grid search and report detail pages.
+- **Improved support for non-English number formats**, so profit values that use comma or dot separators are read correctly.
+- General small bug fixes.
+
+## Previous Updates
 ### Version: v1.5.1 - v1.5.3
 
 > Same strategy, no re-typing.

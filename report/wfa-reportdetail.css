@@ -1,0 +1,227 @@
+/* WFA report page layout — its own wrapper, NOT the standalone report's 7rem padding */
+.wfa-report-detail {
+    padding-left: 5rem;
+    padding-right: 5rem;
+}
+
+/* align the IS/OOS toggle with the embedded report's content — 2rem, which Bootstrap's spacing scale skips */
+.wfa-sample-toggle {
+    padding-left: 2rem;
+}
+
+/* date pill calendar icon: subtle, lets the dates read as the primary content */
+#wfaSampleDateRange i {
+    color: var(--bs-secondary);
+}
+
+/* one-shot flash cue, mirrors the classic report's new-row highlight */
+@keyframes wfaFlash {
+    from { background-color: #82caff; }
+    to   { background-color: transparent; }
+}
+
+.wfa-flash {
+    animation: wfaFlash 2s ease forwards;
+}
+
+/* Summary KPI tiles */
+.wfa-kpi {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    height: 100%;
+}
+
+.wfa-kpi-label {
+    font-size: 0.8rem;
+    color: var(--bs-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.wfa-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* info icon next to a KPI label — muted until hover */
+.wfa-kpi-info {
+    margin-left: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    cursor: pointer;
+}
+
+.wfa-kpi-info:hover {
+    color: var(--bs-body-color);
+}
+
+/* per-window breakdown rows are clickable — jump to that window */
+.wfa-window-table tbody tr {
+    cursor: pointer;
+}
+
+/* parameter name in the best-parameters cell — semibold, one step below full bold */
+.wfa-param-name {
+    font-weight: 600;
+}
+
+/* catchier, on-brand hover instead of the flat grey default */
+.wfa-window-table {
+    --bs-table-hover-bg: rgba(13, 110, 253, .07);
+}
+
+/* chevron leads the window number = the resting "this row opens something" cue */
+.wfa-row-chevron {
+    margin-right: .45rem;
+    font-size: .75rem;
+    color: var(--bs-secondary);
+    opacity: .55;
+    transition: opacity .12s ease, transform .12s ease, color .12s ease;
+}
+
+.wfa-window-table tbody tr:hover .wfa-row-chevron {
+    color: var(--bs-primary);
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+/* --- header/footer chrome, duplicated from repordetail.css on purpose ---
+   (small copy > shared dependency for 2 pages — same call as the duplicated header/footer HTML) */
+#plusLogo {
+    display: none !important;
+}
+
+#plusUpgrade {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    background-color: #FD0;
+    letter-spacing: .03rem
+}
+
+#plusUpgrade i {
+    color: white;
+}
+
+/* --- Rolling-windows staircase: shared-axis bars, one row per window --- */
+.wfa-stair-grid {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    align-items: center;
+}
+
+/* shared month axis — sits in the timeline column only */
+.wfa-stair-axis {
+    position: relative;
+    grid-column: 2;
+    height: 20px;
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 6px;
+}
+
+.wfa-stair-tick {
+    position: absolute;
+    top: 3px;
+    transform: translateX(-50%);
+    font-size: 0.68rem;
+    color: var(--bs-secondary);
+    white-space: nowrap;
+}
+
+.wfa-stair-num {
+    grid-column: 1;
+    text-align: right;
+    padding-right: 8px;
+    font-size: 0.68rem;
+    color: var(--bs-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.wfa-stair-track {
+    grid-column: 2;
+    position: relative;
+    height: 34px;
+}
+
+.wfa-stair-bar {
+    position: absolute;
+    top: 3px;
+    height: 14px;
+    display: flex;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .06);
+    cursor: pointer;
+}
+
+.wfa-seg-is {
+    height: 100%;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-right: none;
+}
+
+.wfa-seg-oos {
+    height: 100%;
+    background: var(--bs-primary);
+}
+
+/* a newly-added window's bar draws onto the timeline instead of snapping in */
+@keyframes wfaStairAppear {
+    from { opacity: 0; transform: scaleX(0.5); }
+    to   { opacity: 1; transform: scaleX(1); }
+}
+
+.wfa-stair-appear {
+    transform-origin: left center;
+    animation: wfaStairAppear 0.45s ease-out;
+}
+
+/* period dates under each bar: IS start (neutral) + OOS boundary/end (primary) */
+.wfa-stair-date {
+    position: absolute;
+    top: 19px;
+    font-size: 0.6rem;
+    color: #495057;
+    white-space: nowrap;
+}
+
+.wfa-stair-date-start {
+    transform: translateX(0);
+}
+
+.wfa-stair-date-bound {
+    transform: translateX(-50%);
+    color: rgba(13, 110, 253, .82);
+    font-weight: 500;
+}
+
+.wfa-stair-date-end {
+    transform: translateX(-100%);
+    color: rgba(13, 110, 253, .82);
+    font-weight: 500;
+}
+
+.wfa-stair-legend {
+    margin-top: 0.9rem;
+    font-size: 0.78rem;
+    color: var(--bs-secondary);
+}
+
+.wfa-sw {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.wfa-sw-is {
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+}
+
+.wfa-sw-oos {
+    background: var(--bs-primary);
+}

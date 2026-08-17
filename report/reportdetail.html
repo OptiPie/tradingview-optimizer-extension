@@ -2,6 +2,7 @@
 <html>
 
 <head>
+  <meta charset="utf-8">
   <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
@@ -10,37 +11,48 @@
 
 <body>
   <div class="container-fluid">
-    <div class="container-fluid py-5 report-detail">
-      <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
-        <a href="https://optipie.app" target="_blank"
-          class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="normalLogo">
-          <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
-          <span class="fs-4"></span>
-        </a>
-        <a href="https://optipie.app" target="_blank"
-          class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="plusLogo">
-          <img src="/images/optipie_plus_app_logo.png" alt="OptiPie Plus logo" width="208" height="96">
-          <span class="fs-4"></span>
-        </a>
-      </header>
+    <header class="d-flex  flex-column justify-content-center align-items-center py-3 mb-1">
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="normalLogo">
+        <img src="/images/optipie_app_logo.png" alt="OptiPie logo">
+        <span class="fs-4"></span>
+      </a>
+      <a href="https://optipie.app" target="_blank"
+        class="d-flex align-items-center mb-3 mb-md-0 text-dark text-decoration-none" id="plusLogo">
+        <img src="/images/optipie_plus_app_logo.png" alt="OptiPie Plus logo" width="208" height="96">
+        <span class="fs-4"></span>
+      </a>
+    </header>
+
+    <div class="container-fluid py-3 report-detail">
+
+      <!-- report identity pills — mirrors the WFA pill language. Strategy pill sits in an auto-width
+           center column between equal side columns, so it lands dead-center on the page axis (under
+           the logo); Asset hugs its left, Timeframe its right. -->
+      <div class="container report-pills mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col d-flex justify-content-end">
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-coin me-1"></i><span
+                id="reportSymbol"></span></span>
+          </div>
+          <div class="col-auto">
+            <span class="badge rounded-pill fw-semibold fs-6 text-bg-primary">
+              <span id="reportStrategy"></span></span>
+          </div>
+          <div class="col d-flex justify-content-start">
+            <span class="badge rounded-pill fw-normal text-bg-light border"><i class="bi bi-clock me-1"></i><span
+                id="timePeriod"></span></span>
+          </div>
+        </div>
+      </div>
 
       <div class="container" id="toolbar">
         <div class="progress-spinner" style="display: none;">
-              <div class="spinner-animation"></div>
-              <div class="progress-status">Optimizing...</div>
-            </div>
+          <div class="spinner-animation"></div>
+          <div class="progress-status">Optimizing...</div>
+        </div>
         <div class="row align-items-center">
-          <div class="col-2">
-            <span>
-              Period:
-            </span>
-          </div>
-          <div class="col-2">
-            <span id="timePeriod">
-              1 hour
-              <span>
-          </div>
-          <div class="col-8">
+          <div class="col-12">
             <button type="button" class="btn btn-primary btn float-end" id="download-report"><i
                 class="bi bi-cloud-download"></i>
               Download
@@ -84,7 +96,7 @@
         <div class="col-md-4 d-flex align-items-center">
           <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
           </a>
-          <span class=" mb-md-0 text-muted">&copy; 2024 OptiPie</span>
+          <span class=" mb-md-0 text-muted">&copy; 2026 OptiPie</span>
         </div>
         <div class="col-md-4 d-flex justify-content-center">
           <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer"

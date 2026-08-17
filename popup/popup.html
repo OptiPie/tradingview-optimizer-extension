@@ -2,6 +2,7 @@
 <html>
 
 <head>
+  <meta charset="UTF-8">
   <link rel="stylesheet" href="/libs/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/libs/bootstrap/icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/libs/bootstrap-table/css/bootstrap-table.min.css" />
@@ -135,58 +136,213 @@
           </div>
         </div>
 
+        <div class="container" id="wfaPage" style="display: none;">
+          <div class="row g-2 pb-2">
+            <div class="col-4">
+              <label class="form-label small mb-1">Start Date</label>
+              <input type="date" class="form-control form-control-sm" id="wfaStartDate">
+            </div>
+            <div class="col-4">
+              <label class="form-label small mb-1">End Date</label>
+              <input type="date" class="form-control form-control-sm" id="wfaEndDate">
+            </div>
+            <div class="col-4">
+              <label class="form-label small mb-1">Windows</label>
+              <input type="number" class="form-control form-control-sm" id="wfaWindows" value="5" min="2" max="20">
+            </div>
+          </div>
+          <div class="row g-2 pb-2">
+            <div class="col-12">
+              <label class="form-label small mb-1">
+                In-Sample / Out-of-Sample Split
+                <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="right"
+                  title="How each window is split: the in-sample part is used to find the best settings, the out-of-sample part tests them on unseen data. A 60–90% in-sample split is the range most commonly used in practice."></i>
+              </label>
+              <div class="wfa-split-track">
+                <div class="wfa-split-frozen"></div>
+                <input type="range" id="wfaSplit" min="60" max="90" value="70">
+              </div>
+              <div class="d-flex justify-content-between small mt-1">
+                <span>In-sample <strong id="wfaIsPct">70%</strong></span>
+                <span>Out-of-sample <strong id="wfaOosPct">30%</strong></span>
+              </div>
+              <div class="small text-danger mt-1" id="wfaSplitAlert" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="row g-2 pb-2">
+            <div class="col-6">
+              <label class="form-label small mb-1 d-flex align-items-center">Summary
+                <a href="https://optipie.app" target="_blank" class="text-primary text-decoration-none ms-1"
+                  data-bs-toggle="tooltip" data-bs-placement="right"
+                  title="How in-sample and out-of-sample days are calculated.">
+                  <i class="bi bi-info-circle-fill"></i>
+                </a>
+                <span id="wfaParallelWarning" class="ms-auto text-warning" role="button" tabindex="0" style="display: none;"
+                  data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="tooltip-warning"
+                  data-bs-placement="left" data-bs-delay='{"show":300,"hide":150}'
+                  title="<i class='bi bi-exclamation-triangle-fill'></i> Run one large analysis at a time. Running several at once may cause temporary blocks.">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                </span>
+              </label>
+              <div class="card bg-light border-0" id="wfaSummary">
+                <div class="card-body py-2 px-3">
+                  <div id="wfaWindowPreview">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-secondary">In-Sample</span>
+                      <span id="wfaStatIs">—</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-secondary">Out-of-Sample</span>
+                      <span id="wfaStatOos">—</span>
+                    </div>
+                    <hr class="my-1">
+                    <div class="d-flex justify-content-between fw-semibold">
+                      <span>Window Size</span>
+                      <span id="wfaStatWindowSize">—</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="container">
           <div class="row align-items-center">
             <div class="col">
               <button type="button" class="btn btn-outline-dark btn-sm" id="addParameter"><i
                   class="bi bi-plus-circle"></i>Add Parameter</button>
+              <button type="button" class="btn btn-soft-primary btn-sm rounded-pill" id="wfaBackNav">
+                <i class="bi bi-arrow-left-short"></i> Parameters
+              </button>
             </div>
             <div class="col">
-              <button type="button" class="btn btn-dark btn float-end" id="optimize"><i
-                  class="bi bi-graph-up-arrow"></i>Optimize</button>
+              <div class="btn-group float-end" id="optimizeGroup" role="group"
+                aria-label="Basic radio toggle button group">
+                <button type="button" class="btn btn-dark btn" id="optimize"><i class="bi bi-graph-up-arrow"></i><span
+                    id="optimizeLabel">Optimize</span></button>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-dark dropdown-toggle" id="optimizeDropdown"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item d-flex align-items-center justify-content-between wfa-menu-gold" href="#"
+                        id="wfaMenuItem">
+                        <span class="wfa-menu-label"><i class="me-2" id="wfaMenuIcon"></i><span
+                            id="wfaMenuText"></span></span>
+                        <i class="bi bi-info-circle text-muted ms-2" id="wfaMenuInfo" data-bs-toggle="tooltip"
+                          data-bs-placement="left" title=""></i>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
               <div class="container" id="skeleton-stop">
-                <span class="placeholder col-2" style="width: 15%;"></span>
-                <span class="placeholder col-1" style="width:5%;"></span>
+                <span class="placeholder col-2" style="width:6%;"></span>
+                <span class="placeholder col-1" style="width:4%;"></span>
               </div>
               <button type="button" class="btn btn-danger btn btn-sm float-end" id="stop"><i
                   class="bi bi-stop-circle-fill"></i>Stop</button>
+            </div>
+          </div>
+          <div class="row" id="wfaNextLabel">
+            <div class="col">
+              <div id="wfaLabel">Walk-Forward</div>
+            </div>
+          </div>
+          <div class="row">
+            <div id="wfaNextGroup">
+              <button type="button" class="btn btn-soft-primary btn-sm rounded-pill" id="wfaNext">
+                Dates <i class="bi bi-arrow-right-short"></i>
+              </button>
+              <div id="wfaLabel">Walk-Forward</div>
             </div>
           </div>
         </div>
       </div>
       <div class="tab-pane fade" id="reports-tab-pane" role="tabpanel" aria-labelledby="reports-tab" tabindex="0">
         <div class="container-fluid">
-          <div class="toolbar">
-            <button id="refresh" class="btn btn-secondary">Refresh</button>
+          <div class="tab-content" id="reportsSubTabContent">
+            <div class="tab-pane fade show active" id="classic-reports-pane" role="tabpanel"
+              aria-labelledby="classic-reports-tab" tabindex="0">
+              <div class="toolbar d-flex align-items-center gap-2">
+                <button id="refresh" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></button>
+                <ul class="nav nav-tabs reports-subtab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-report-view="classic" type="button">Classic</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
+                  </li>
+                </ul>
+              </div>
+              <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
+                data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
+                data-icon-size="sm" data-search-align="right" data-unique-id="strategyID">
+                <thead>
+                  <tr>
+                    <th data-field="strategyID" data-visible="false">ID</th>
+                    <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name
+                    </th>
+                    <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
+                    <th data-field="symbol" data-sortable="true" data-sorter="dateSorter"
+                      data-cell-style="symbolColumnStyle">Symbol</th>
+                    <th data-field="timePeriod" data-sortable="false">Period</th>
+                    <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
+                    </th>
+                    <th data-field="maxProfit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit
+                    </th>
+                    <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
+                      data-events="openReportDetail">Report Detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <button id="report-detail-button" type="button" class="btn btn-primary btn-sm">
+                        Open
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tab-pane fade" id="wfa-reports-pane" role="tabpanel" aria-labelledby="wfa-reports-tab"
+              tabindex="0">
+              <div class="wfa-toolbar d-flex align-items-center gap-2">
+                <button id="wfaRefresh" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></button>
+                <ul class="nav nav-tabs reports-subtab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-report-view="classic" type="button">Classic</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
+                  </li>
+                </ul>
+              </div>
+              <table id="wfaTable" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
+                data-toolbar=".wfa-toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
+                data-icon-size="sm" data-search-align="right" data-unique-id="wfaID">
+                <thead>
+                  <tr>
+                    <th data-field="wfaID" data-visible="false">ID</th>
+                    <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name
+                    </th>
+                    <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
+                    <th data-field="symbol" data-sortable="true" data-cell-style="symbolColumnStyle">Symbol</th>
+                    <th data-field="timePeriod" data-sortable="false">Period</th>
+                    <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters</th>
+                    <th data-field="profitable" data-sortable="true">Profitable</th>
+                    <th data-field="wfe" data-sortable="true">WFE</th>
+                    <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
+                      data-events="openWfaDetail">Detail</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
-          <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
-            data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-            data-buttons-prefix="btn-sm btn" data-search-align="left" data-unique-id="strategyID">
-            <thead>
-              <tr>
-                <th data-field="strategyID" data-visible="false">ID</th>
-                <th data-field="strategyName" data-sortable="true" data-cell-style="strategyNameColumnStyle">Name</th>
-                <th data-field="date" data-sortable="true" data-sorter="dateSorter">Date</th>
-                <th data-field="symbol" data-sortable="true" data-sorter="dateSorter"
-                  data-cell-style="symbolColumnStyle">Symbol</th>
-                <th data-field="timePeriod" data-sortable="false">Period</th>
-                <th data-field="parameters" data-sortable="false" data-cell-style="parametersColumnStyle">Parameters
-                </th>
-                <th data-field="maxProfit" data-sortable="true" data-cell-style="maxProfitColumnStyle">Max Profit</th>
-                <th data-field="detail" data-sortable="false" data-cell-style="reportDetailButtonStyle"
-                  data-events="openReportDetail">Report Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <button id="report-detail-button" type="button" class="btn btn-primary btn-sm">
-                    Open
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
       <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
@@ -224,14 +380,13 @@
                     <div class="card text-start border-light" id="benefits">
                       <ul class="list-group list-group-flush">
                         <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-bar-chart-steps"></i> Walk-Forward Analysis</h6>
+                        </li>
+                        <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
                         </li>
                         <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
-                        </li>
-                        <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
-                            Report</h6>
                         </li>
                         <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
@@ -278,14 +433,13 @@
                     <div class="card text-start border-light" id="benefits">
                       <ul class="list-group list-group-flush">
                         <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-bar-chart-steps"></i> Walk-Forward Analysis</h6>
+                        </li>
+                        <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
                         </li>
                         <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
-                        </li>
-                        <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
-                            Report</h6>
                         </li>
                         <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
@@ -328,14 +482,13 @@
                     <div class="card text-start border-light" id="benefits">
                       <ul class="list-group list-group-flush">
                         <li class="list-group-item">
+                          <h6 class="card-text"><i class="bi bi-bar-chart-steps"></i> Walk-Forward Analysis</h6>
+                        </li>
+                        <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-alarm"></i> Multi-Timeframe Optimization
                         </li>
                         <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-check2-circle"></i> Selectable Parameters</h6>
-                        </li>
-                        <li class="list-group-item">
-                          <h6 class="card-text"><i class="bi bi-stop-circle"></i> Stoppable Optimization with Partial
-                            Report</h6>
                         </li>
                         <li class="list-group-item">
                           <h6 class="card-text"><i class="bi bi-clipboard-data"></i> Extended Report Data</h6>
@@ -388,7 +541,7 @@
       <div class="col-md-4 d-flex align-items-center">
         <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
         </a>
-        <span class=" mb-md-0 text-muted">&copy; 2025 OptiPie</span>
+        <span class=" mb-md-0 text-muted">&copy; 2026 OptiPie</span>
       </div>
       <div class="col-md-4 d-flex">
         <a href="https://buymeacoffee.com/optipieapp/membership" target="_blank" rel="noopener noreferrer"
@@ -411,26 +564,32 @@
                   <div class="form-check form-switch mb-0 me-1">
                     <input class="form-check-input" type="checkbox" id="longRunningOptimizations">
                   </div>
-                  <label class="form-check-label text-nowrap" for="longRunningOptimizations">Long-running Optimizations</label>
+                  <label class="form-check-label text-nowrap" for="longRunningOptimizations">Long-running
+                    Optimizations</label>
                 </div>
                 <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
                   title="Increases timeout from 15s to 60s per iteration for slow-loading strategies"></i>
               </div>
             </li>
-            <li><hr class="dropdown-divider"></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
             <li class="px-3 py-2">
               <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                   <div class="form-check form-switch mb-0 me-1">
                     <input class="form-check-input" type="checkbox" id="applyLastUsedAsDefault">
                   </div>
-                  <label class="form-check-label text-nowrap" for="applyLastUsedAsDefault">Try Last Used Parameters</label>
+                  <label class="form-check-label text-nowrap" for="applyLastUsedAsDefault">Try Last Used
+                    Parameters</label>
                 </div>
                 <i class="bi bi-info-circle text-muted ms-3" data-bs-toggle="tooltip" data-bs-placement="left"
                   title="When no saved parameters are found for the current strategy, tries to apply the last used parameters"></i>
               </div>
             </li>
-            <li><hr class="dropdown-divider"></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
             <li class="px-3 py-2">
               <div class="d-flex align-items-center justify-content-end">
                 <div class="d-flex align-items-center gap-2">
