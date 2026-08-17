@@ -87,7 +87,7 @@ updateUserUI()
 
 // non-functional UI changes made with storage
 function updateUserUI() {
-  chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
+  chrome.storage.local.get(["optimizationType", "isPlusUser"], ({ optimizationType, isPlusUser }) => {
     if (isPlusUser) {
       // show plus logo
       var logo = document.getElementById("normalLogo")
@@ -103,10 +103,28 @@ function updateUserUI() {
       plusLogo.style.cssText = 'display:none !important'
       var logo = document.getElementById("normalLogo")
       logo.style.cssText = 'display:block !important';
-      // add plus upgrade button 
+      // add plus upgrade button
       var plusUpgrade = document.getElementById("plusUpgrade")
       plusUpgrade.style.display = 'block'
     }
+
+    _wfaActive = optimizationType === "wfa" && isPlusUser
+    if (_wfaActive) {
+      showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
+      document.getElementById("optimizeGroup").classList.add("btn-group-gold")
+      document.getElementById("optimizeLabel").textContent = "Analyze"
+
+      // only show the Dates nav button if we're on the parameters page
+      if (document.getElementById("wfaPage").style.display === "none") {
+        showWithTransition(wfaNextGroup, "inline-block")
+      }
+    } else {
+      hideWithTransition(document.getElementById("wfaNextGroup"))
+      document.getElementById("optimizeGroup").classList.remove("btn-group-gold")
+      document.getElementById("optimizeLabel").textContent = "Optimize"
+    }
+    // re-render the WFA menu lock state once membership has resolved
+    updateWfaMenuItem()
   });
 }
 
@@ -151,6 +169,20 @@ optimize.addEventListener("click", async () => {
     }
 
     return
+  }
+
+  // Hard gate: WFA is Plus-only. Re-check from storage so a DOM-unlocked button still can't run it.
+  if (_wfaActive) {
+    const { isPlusUser } = await chrome.storage.local.get("isPlusUser")
+    if (!isPlusUser) {
+      chrome.runtime.sendMessage({
+        notify: {
+          type: "warning",
+          content: "Walk-Forward Analysis is a Plus feature"
+        }
+      });
+      return
+    }
   }
 
   // Walk-forward runs a single timeframe (0 selected => current chart TF). Block multi-select.
@@ -291,61 +323,6 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 // Create Reports and Profile Tabs
 createReportTable()
 
-// report-view nav lives in both table toolbars; keep them in sync
-function switchReportView(view) {
-  const isWfa = view === "wfa"
-  const classicPane = document.getElementById("classic-reports-pane")
-  const wfaPane = document.getElementById("wfa-reports-pane")
-  classicPane.classList.toggle("show", !isWfa)
-  classicPane.classList.toggle("active", !isWfa)
-  wfaPane.classList.toggle("show", isWfa)
-  wfaPane.classList.toggle("active", isWfa)
-  document.querySelectorAll("[data-report-view]").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.reportView === view)
-  })
-  // bootstrap-table renders with wrong widths while its pane is hidden; refresh on show
-  $(isWfa ? "#wfaTable" : "#table").bootstrapTable("resetView")
-  if (isWfa) {
-    requestAnimationFrame(evaluateWfaScrollHint)
-  }
-}
-
-// nudge-chevron hinting the WFA reports table scrolls right — the Detail column (Open + remove buttons) overflows the narrow popup
-function evaluateWfaScrollHint() {
-  const pane = document.getElementById("wfa-reports-pane")
-  if (pane == null) {
-    return
-  }
-  let hint = pane.querySelector(".wfa-scroll-hint")
-  if (hint == null) {
-    hint = document.createElement("div")
-    hint.className = "wfa-scroll-hint"
-    hint.innerHTML = '<i class="bi bi-chevron-right"></i>'
-    pane.appendChild(hint)
-  }
-  const scroller = pane.querySelector(".fixed-table-body")
-  if (scroller == null) {
-    hint.classList.remove("show")
-    return
-  }
-  if (scroller.dataset.hintBound !== "true") {
-    scroller.addEventListener("scroll", evaluateWfaScrollHint)
-    scroller.dataset.hintBound = "true"
-  }
-  const moreRight = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1
-  if (moreRight) {
-    const thead = scroller.querySelector("thead")
-    if (thead != null) {
-      const theadRect = thead.getBoundingClientRect()
-      const paneRect = pane.getBoundingClientRect()
-      hint.style.top = (theadRect.top - paneRect.top + (theadRect.height - 20) / 2) + "px"
-    }
-    hint.classList.add("show")
-  } else {
-    hint.classList.remove("show")
-  }
-}
-
 window.addEventListener("resize", evaluateWfaScrollHint)
 
 document.querySelectorAll("[data-report-view]").forEach((btn) => {
@@ -416,11 +393,6 @@ function wfaDetailHtml(wfaID) {
   return '<button id="wfa-detail-button" wfa-id="' + wfaID + '" type="button" class="btn btn-primary btn-sm"><i class="bi bi-clipboard2-data-fill"> Open</i></button>\
   <button id="remove-wfa-report" type="button" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>'
 }
-
-// aggregate helpers (mirror wfa-reportdetail.js so the list row matches the detail page)
-function parseProfit(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, "")) || 0 }
-function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length }
-function fmtSignedPct(v) { return (v >= 0 ? "+" : "") + v.toFixed(1) + "%" }
 
 // WFE (Pardo length-normalized). Own func = one home for the formula — mirrors the same calc
 // on the WFA detail page; if it ever changes, update both.
@@ -600,6 +572,62 @@ window.openWfaDetail = {
 // init AFTER openWfaDetail exists — bootstrap-table resolves data-events at build time
 createWfaReportTable()
 
+// report-view nav lives in both table toolbars; keep them in sync
+function switchReportView(view) {
+  const isWfa = view === "wfa"
+  const classicPane = document.getElementById("classic-reports-pane")
+  const wfaPane = document.getElementById("wfa-reports-pane")
+  classicPane.classList.toggle("show", !isWfa)
+  classicPane.classList.toggle("active", !isWfa)
+  wfaPane.classList.toggle("show", isWfa)
+  wfaPane.classList.toggle("active", isWfa)
+  document.querySelectorAll("[data-report-view]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.reportView === view)
+  })
+  // bootstrap-table renders with wrong widths while its pane is hidden; refresh on show
+  $(isWfa ? "#wfaTable" : "#table").bootstrapTable("resetView")
+  if (isWfa) {
+    requestAnimationFrame(evaluateWfaScrollHint)
+  }
+}
+
+// nudge-chevron hinting the WFA reports table scrolls right — the Detail column (Open + remove buttons) overflows the narrow popup
+function evaluateWfaScrollHint() {
+  const pane = document.getElementById("wfa-reports-pane")
+  if (pane == null) {
+    return
+  }
+  let hint = pane.querySelector(".wfa-scroll-hint")
+  if (hint == null) {
+    hint = document.createElement("div")
+    hint.className = "wfa-scroll-hint"
+    hint.innerHTML = '<i class="bi bi-chevron-right"></i>'
+    pane.appendChild(hint)
+  }
+  const scroller = pane.querySelector(".fixed-table-body")
+  if (scroller == null) {
+    hint.classList.remove("show")
+    return
+  }
+  if (scroller.dataset.hintBound !== "true") {
+    scroller.addEventListener("scroll", evaluateWfaScrollHint)
+    scroller.dataset.hintBound = "true"
+  }
+  const moreRight = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1
+  if (moreRight) {
+    const thead = scroller.querySelector("thead")
+    if (thead != null) {
+      const theadRect = thead.getBoundingClientRect()
+      const paneRect = pane.getBoundingClientRect()
+      hint.style.top = (theadRect.top - paneRect.top + (theadRect.height - 20) / 2) + "px"
+    }
+    hint.classList.add("show")
+  } else {
+    hint.classList.remove("show")
+  }
+}
+
+
 //#endregion
 
 //#region Profile Tab
@@ -643,7 +671,6 @@ async function injectPlusFeatures(userEmail) {
   var user = await GetMembershipInfo(userEmail)
   if (user.is_membership_active) {
     chrome.storage.local.set({ "isPlusUser": true });
-    updateUserUI()
     // show skeletons first for features
     showSkeleton("timeFrame", "time-frame")
     showSkeleton("stop", "stop")
@@ -729,6 +756,10 @@ async function injectPlusFeatures(userEmail) {
   } else {
     chrome.storage.local.set({ "isPlusUser": false });
   }
+
+  // Update userUI based on membership type & selected optimization mode
+  updateUserUI()
+
   // Add Parameter Button Event Listener, with 'parameterLimit'
   addParameter.addEventListener("click", async () => {
     await addParameterBlock(parameterLimit)
@@ -1006,7 +1037,12 @@ logoutButtons.forEach(logoutButton => {
     setTimeout(() => {
       hideSkeleton("login", "profile")
     }, 250);
-    chrome.storage.local.set({ "isPlusUser": false });
+
+    // revert to classic mode 
+    let optimizationType = "classic"
+    chrome.storage.local.set({ optimizationType })
+    chrome.storage.local.set({ isPlusUser: false });
+    
     updateUserUI()
   });
 })
@@ -1016,47 +1052,50 @@ logoutButtons.forEach(logoutButton => {
 //#endregion
 
 //#region  Walk-Forward Analysis UI
-// initial optimization mode = last-used choice (default: classic)
-chrome.storage.local.get("optimizationType", ({ optimizationType }) => {
-  _wfaActive = optimizationType === "wfa"
-  if (_wfaActive) {
-    showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
-    document.getElementById("optimizeGroup").classList.add("btn-group-gold")
-    document.getElementById("optimizeLabel").textContent = "Analyze"
-  }
-  // JS is the single source of truth for the mode-switch line (label, icon, tooltip)
-  updateWfaMenuItem()
-})
 
 // keep the mode-switch dropdown line in sync with the current mode
 function updateWfaMenuItem() {
-  const menuItem = document.getElementById("wfaMenuItem")
-  const menuText = document.getElementById("wfaMenuText")
-  const menuIcon = document.getElementById("wfaMenuIcon")
-  let infoText
-  if (_wfaActive) {
-    menuText.textContent = "Switch to Classic Optimization"
-    menuIcon.className = "bi bi-graph-up-arrow me-2"
-    menuItem.classList.remove("wfa-menu-gold")
-    infoText = "Brute-force optimization — tests every parameter combination to find the single best performer over your date range."
-  } else {
-    menuText.textContent = "Switch to Walk-Forward Analysis"
-    menuIcon.className = "bi bi-calendar-week me-2"
-    menuItem.classList.add("wfa-menu-gold")
-    infoText = "Tests your strategy across several time periods and checks each result against later data, helping you find parameters that stay reliable over time rather than ones tuned to the past."
-  }
-  // tooltip inits ~200ms after load; use the instance once it exists, else seed the title attribute
-  const menuInfo = document.getElementById("wfaMenuInfo")
-  const tooltip = bootstrap.Tooltip.getInstance(menuInfo)
-  if (tooltip) {
-    tooltip.setContent({ ".tooltip-inner": infoText })
-  } else {
-    menuInfo.setAttribute("title", infoText)
-  }
+  chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
+    const menuItem = document.getElementById("wfaMenuItem")
+    const menuText = document.getElementById("wfaMenuText")
+    const menuIcon = document.getElementById("wfaMenuIcon")
+    let infoText
+    if (!isPlusUser) {
+      // Plus-only: show the item locked as an upsell rather than a mode toggle
+      menuText.textContent = "Walk-Forward Analysis"
+      menuIcon.className = "bi bi-lock-fill me-2"
+      menuItem.classList.add("wfa-menu-gold")
+      infoText = "A Plus feature. Optimize across rolling windows and validate on data your strategy has never seen. Upgrade to unlock."
+    } else if (_wfaActive) {
+      menuText.textContent = "Switch to Classic Optimization"
+      menuIcon.className = "bi bi-graph-up-arrow me-2"
+      menuItem.classList.remove("wfa-menu-gold")
+      infoText = "Brute-force optimization — tests every parameter combination to find the single best performer over your date range."
+    } else {
+      menuText.textContent = "Switch to Walk-Forward Analysis"
+      menuIcon.className = "bi bi-calendar-week me-2"
+      menuItem.classList.add("wfa-menu-gold")
+      infoText = "Tests your strategy across several time periods and checks each result against later data, helping you find parameters that stay reliable over time rather than ones tuned to the past."
+    }
+    // tooltip inits ~200ms after load; use the instance once it exists, else seed the title attribute
+    const menuInfo = document.getElementById("wfaMenuInfo")
+    const tooltip = bootstrap.Tooltip.getInstance(menuInfo)
+    if (tooltip) {
+      tooltip.setContent({ ".tooltip-inner": infoText })
+    } else {
+      menuInfo.setAttribute("title", infoText)
+    }
+  })
 }
 
-document.getElementById("wfaMenuItem").addEventListener("click", (e) => {
+document.getElementById("wfaMenuItem").addEventListener("click", async (e) => {
   e.preventDefault()
+  const { isPlusUser } = await chrome.storage.local.get("isPlusUser")
+  if (!isPlusUser) {
+    // locked: route free users to upgrade instead of toggling the mode
+    chrome.tabs.create({ url: "https://buymeacoffee.com/optipieapp/membership" })
+    return
+  }
   _wfaActive = !_wfaActive
   let optimizationType = "classic"
   if (_wfaActive) {
@@ -1107,7 +1146,6 @@ function showWfaPage(show) {
   const wfaBackNav = document.getElementById("wfaBackNav")
   const wfaNextGroup = document.getElementById("wfaNextGroup")
   const wfaNextLabel = document.getElementById("wfaNextLabel")
-
   if (show) {
     hideElement(parameters)
     hideElement(addParameterBtn)
@@ -1122,7 +1160,10 @@ function showWfaPage(show) {
     hideElement(wfaNextLabel)
     showWithTransition(parameters)
     showWithTransition(addParameterBtn, "inline-block")
-    if (_wfaActive) showWithTransition(wfaNextGroup, "inline-block")
+  
+    if (_wfaActive) {
+      showWithTransition(wfaNextGroup, "inline-block")
+    }
   }
 }
 
@@ -1893,6 +1934,11 @@ var TimeFrameMap = new Map([
 
 //#region Helpers
 
+// aggregate helpers (mirror wfa-reportdetail.js so the list row matches the detail page)
+function parseProfit(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, "")) || 0 }
+function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length }
+function fmtSignedPct(v) { return (v >= 0 ? "+" : "") + v.toFixed(1) + "%" }
+
 function isSameStrategy(keyA, keyB) {
   if (!keyA || !keyB) return false
   return keyA.split('::')[0] === keyB.split('::')[0]
@@ -1941,6 +1987,9 @@ function hideWithTransition(el) {
   el.classList.remove("is-shown");
   const done = () => {
     el.removeEventListener("transitionend", done);
+    if (el.classList.contains("is-shown")){
+      return; // re-shown mid-fade; abort the stale hide
+    } 
     el.style.display = "none";
     el.classList.remove("with-transition");
   };
@@ -2097,12 +2146,12 @@ async function cleanupSavedStrategyInputs() {
   const settings = await getSettings();
   const maxAgeDays = settings.savedParamsCleanupAge || 90;
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
-  
+
   const allItems = await chrome.storage.local.get(null);
   const keysToDelete = Object.entries(allItems)
     .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
     .map(([key]) => key);
-  
+
   if (keysToDelete.length > 0) {
     await chrome.storage.local.remove(keysToDelete);
   }
