@@ -110,13 +110,12 @@ function updateUserUI() {
 
     _wfaActive = optimizationType === "wfa" && isPlusUser
     if (_wfaActive) {
-      showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
       document.getElementById("optimizeGroup").classList.add("btn-group-gold")
       document.getElementById("optimizeLabel").textContent = "Analyze"
 
       // only show the Dates nav button if we're on the parameters page
       if (document.getElementById("wfaPage").style.display === "none") {
-        showWithTransition(wfaNextGroup, "inline-block")
+        showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
       }
     } else {
       hideWithTransition(document.getElementById("wfaNextGroup"))

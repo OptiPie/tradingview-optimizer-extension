@@ -84,7 +84,6 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 
 chrome.storage.local.get("report-data-" + strategyID, function (item) {
   var report = Object.values(item)[0]
-  console.log(report)
   var timePeriodValue = report.timePeriod
   var values = report.reportData
 

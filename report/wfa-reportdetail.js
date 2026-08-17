@@ -305,7 +305,7 @@ function renderSummary() {
 // and each steps forward exactly one OOS length. Dates are DERIVED from the formula,
 // not from the child report ids.
 const DAY = 86400000
-function fmtDate(d) { return d.toLocaleDateString("en-US", { month: "short", day: "2-digit" }) }
+function fmtDate(d) { return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "2-digit" }) }
 
 function makeStairDate(kind, leftPct, text) {
   const el = document.createElement("span")
@@ -316,11 +316,11 @@ function makeStairDate(kind, leftPct, text) {
 }
 
 function renderStaircase() {
-  const { windows, config, dateRange } = wfaReport
+  const { windows, config, dateRange, windowCount } = wfaReport
   const start = new Date(dateRange.start)
   const end = new Date(dateRange.end)
   const T = (end - start) / DAY
-  const N = windows.length
+  const N = windowCount
   const oosRatio = config.oosPct / config.isPct
   const IS = T / (1 + N * oosRatio)
   const OOS = IS * oosRatio
@@ -364,7 +364,7 @@ function renderStaircase() {
     // boundary, so only the LAST bar labels its own end.
     track.appendChild(makeStairDate("start", pct(isStart), fmtDate(dayToDate(isStart))))
     track.appendChild(makeStairDate("bound", pct(bound), fmtDate(dayToDate(bound))))
-    if (i === windows.length - 1) {
+    if (i === windowCount - 1) {
       track.appendChild(makeStairDate("end", pct(winEnd), fmtDate(dayToDate(winEnd))))
     }
 
