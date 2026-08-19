@@ -35,7 +35,11 @@ Before the numbers, here is how a run is set up. Three settings shape every walk
 
 Together they decide how much history each window sees and how often the strategy is put back on trial. The video below walks through a full run, a Supertrend strategy on BTCUSD split into 5 windows at 70/30, from setup all the way to the finished report.
 
-<!-- TODO: embed the WFA demo video (YouTube link + thumbnail) -->
+<div align="left">
+      <a href="https://youtu.be/qRUqxoON24s">
+         <img src="../images/wfa-thumbnail-yt.png" alt="OptiPie Walk-Forward Analysis" style="width:100%;">
+      </a>
+</div>
 
 In it, you will see the report OptiPie builds to be read at a glance:
 
