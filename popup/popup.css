@@ -1,3 +1,9 @@
+/* width lives on both html and body: Chrome sizes the popup from html, Firefox from body */
+html {
+    width: 560px;
+    transition: all .2s ease-in-out;
+}
+
 body {
     width: 560px;
     transition: all .2s ease-in-out;
@@ -99,9 +105,16 @@ body {
     transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
-.with-transition.show {
+.with-transition.is-shown {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* #parameters is an ancestor of the selectable dropdown; a lingering translateY(0) keeps a
+   stacking context on it, which traps the dropup's z-index behind the nav. Resolve to `none`
+   once shown (visually identical) so the dropdown competes at the top level again. */
+#parameters.with-transition.is-shown {
+    transform: none;
 }
 
 #settings{
@@ -203,7 +216,33 @@ body {
 }
 
 .toolbar {
-    margin-right: 1rem;
+    margin-right: 0.5rem;
+}
+
+/* horizontal-scroll nudge for the WFA reports table (Detail column can overflow the narrow popup) */
+#wfa-reports-pane {
+    position: relative;
+}
+
+.wfa-scroll-hint {
+    position: absolute;
+    right: 2px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dfe2e6;
+    color: #6c757d;
+    font-size: 0.72rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.wfa-scroll-hint.show {
+    display: flex;
 }
 
 th[data-field="parameters"],
@@ -237,16 +276,37 @@ td[data-field="maxprofit"] {
     animation: rowFlash 1.2s ease-out;
 }
 
-table#table thead {
+table#table thead,
+table#wfaTable thead {
     font-size: 13px;
 }
 
-table#table tbody {
+table#table tbody,
+table#wfaTable tbody {
     font-size: 12px;
 }
 
 .container-fluid.footer {
     font-size: 14px;
+}
+
+/* shrink bootstrap-table's generated search box */
+.fixed-table-toolbar .search-input {
+    max-width: 10rem;
+}
+
+/* Reports sub-tabs — smaller/lighter than the main nav to read as subordinate */
+.reports-subtab .nav-link {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--bs-secondary);
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+.reports-subtab .nav-link.active {
+    font-weight: 500;
+    color: var(--bs-body-color);
 }
 
 /* Settings Dropdown */
@@ -277,3 +337,138 @@ table#table tbody {
 .tooltip-warning .bi-exclamation-triangle-fill { color: #ffc107 !important; }
 
 .tooltip-warning { --bs-tooltip-max-width: 220px; }
+
+/* Walk-Forward Analysis */
+#wfaPage {
+    display: none;
+}
+
+#wfaNextLabel {
+    display: none;
+}
+
+#wfaBackNav,
+#wfaNext {
+    outline: none;
+    box-shadow: none;
+    text-decoration: none;
+    margin-top: 0.3rem;
+}
+
+#wfaBackNav i,
+#wfaNext i {
+    font-size: 1.3em;
+    vertical-align: -0.15em;
+}
+
+.btn-soft-primary {
+    background-color: #e7f1ff;
+    border-color: transparent;
+    color: #0d6efd;
+}
+
+.btn-soft-primary:hover,
+.btn-soft-primary:active,
+.btn-soft-primary:focus {
+    background-color: #d4e6ff;
+    border-color: transparent;
+    color: #0d6efd;
+}
+
+#wfaBackNav {
+    display: none;
+}
+
+#wfaNextGroup {
+    display: none;
+}
+
+#wfaBackNav:hover,
+#wfaNext:hover {
+    color: var(--bs-secondary) !important;
+}
+
+#wfaLabel {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    color: var(--bs-secondary);
+    margin-top: 2px;
+
+    float:right
+}
+
+.wfa-split-track {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* locked first 50% — in-sample can never drop below this */
+.wfa-split-frozen {
+    width: 50%;
+    height: 0.4rem;
+    border-radius: 0.25rem 0 0 0.25rem;
+    background: repeating-linear-gradient(45deg, #a3cfbb, #a3cfbb 4px, #d1e7dd 4px, #d1e7dd 8px);
+}
+
+#wfaSplit {
+    width: 50%;
+    accent-color: var(--bs-success);
+}
+
+#wfaSplit.wfa-split-alert {
+    accent-color: var(--bs-danger);
+}
+
+/* frozen base follows the alert state too, so the whole zone turns red */
+.wfa-split-track:has(#wfaSplit.wfa-split-alert) .wfa-split-frozen {
+    background: repeating-linear-gradient(45deg, #f1aeb5, #f1aeb5 4px, #f8d7da 4px, #f8d7da 8px);
+}
+
+:root {
+    /* sampled from the Plus logo's dominant gold pixel cluster (RGB 203,162,46) */
+    --gold-light: #CBA22E;
+    --gold-dark: #8C701F;
+    --gold-hover-light: #B08F28;
+    --gold-hover-dark: #79601A;
+}
+
+#optimizeGroup.btn-group-gold {
+    background: linear-gradient(270deg, var(--gold-dark), var(--gold-light));
+    border-radius: 0.375rem;
+}
+
+#optimizeGroup.btn-group-gold:hover {
+    background: linear-gradient(270deg, var(--gold-hover-dark), var(--gold-hover-light));
+}
+
+#optimizeGroup.btn-group-gold #optimize,
+#optimizeGroup.btn-group-gold #optimizeDropdown {
+    background: transparent;
+    border-color: transparent;
+    color: #f5f0e6;
+}
+
+/* single-item menu: light up the whole dropdown on hover, not just the row */
+#optimizeGroup .dropdown-menu:has(#wfaMenuItem:hover) {
+    background-color: var(--bs-dropdown-link-hover-bg);
+}
+
+#optimizeGroup #wfaMenuItem:hover {
+    background-color: transparent;
+}
+
+/* soft gold wash on hover for the WFA upsell line */
+#optimizeGroup .dropdown-menu:has(#wfaMenuItem.wfa-menu-gold:hover) {
+    background-color: #f9f4e6;
+}
+
+/* shiny gold treatment on the "Switch to Walk-Forward Analysis" upsell line */
+#wfaMenuItem.wfa-menu-gold .wfa-menu-label {
+    background: linear-gradient(270deg, var(--gold-dark), var(--gold-light));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 500;
+}
+

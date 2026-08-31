@@ -7,11 +7,25 @@ var userNumericInputs = [], userCheckboxInputs = [], userSelectableInputs = []
 var userInputs = [] // combined user inputs of above
 var userTimeFrames = [] // time frames chosen by the user
 var optimizationHistory = new Map(); // holds whether parameter has been already optimized or not
-var maxProfit = -999999
+var bestResult = { profit: null, params: null } // best run so far; profit null until a combo lands, params retained for the WFA winner
 var optimizationTimeout = 15 * 1000; // default timeout in milliseconds
+var _localeSeparators = null // cached profit-number group/decimal separators, derived from TV's UI locale
+
+// WFA run state — optType forks Process(); wfaContext enriches child reports while a window runs
+var optType = "classic"
+var wfaOptInputs = null
+var wfaContext = null // { wfaID, windowIndex, sampleType } during a WFA window, else null
+var currentSelectableValues = {} // parameterIndex -> option value being swept; feeds the OOS winner snapshot (innerText ≠ value)
 
 // reportDataMessage defined globally and initiated from start
 var reportDataMessage;
+
+// stop signal — sleep() throws STOP_SIGNAL when shouldStop flips, unwinding the whole optimize stack to Process's catch
+var shouldStop = false
+var STOP_SIGNAL = "OPTIPIE_STOP"
+
+// prototype value setter, cached once — bypasses React's per-instance value override on date inputs
+var nativeInputSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
 
 //parameter types
 var ParameterType = {
@@ -23,32 +37,39 @@ var ParameterType = {
 
 var isReportDataEmptySelector = "div[class*='emptyState' i]"
 
-var sleep = (ms) => new Promise((resolve) => {
-    const handler = (event) => {
-        if (event.data.type === "SleepEventComplete") {
-            window.removeEventListener("message", handler);
-            resolve();
-        }
-    };
-    window.addEventListener("message", handler);
+var sleep = (ms) => {
+    if (shouldStop) {
+        throw STOP_SIGNAL
+    }
+    return new Promise((resolve) => {
+        const handler = (event) => {
+            if (event.data.type === "SleepEventComplete") {
+                window.removeEventListener("message", handler);
+                resolve();
+            }
+        };
+        window.addEventListener("message", handler);
 
-    // Notify injector.js about the sleep request with the delay
-    window.postMessage({ type: "SleepEventStart", delay: ms }, "*");
-});
+        // Notify injector.js about the sleep request with the delay
+        window.postMessage({ type: "SleepEventStart", delay: ms }, "*");
+    });
+};
 
 // Run Optimization Process 
 Process()
 
 async function Process() {
-    var shouldStop = false;
     //Construct UserInputs with callback
     var userInputsEventCallback = (event) => {
         let message = event.data
         if (message.type === "UserInputsEvent") {
             window.removeEventListener("message", userInputsEventCallback);
 
-            for (let i = 0; i < message.detail.parameters.length; i++) {
-                let parameter = message.detail.parameters[i];
+            const detail = message.detail
+            optType = detail.type
+            const classicOptInputs = optType === "wfa" ? detail.wfaOptInputs.classicOptInputs : detail.classicOptInputs
+            for (let i = 0; i < classicOptInputs.parameters.length; i++) {
+                let parameter = classicOptInputs.parameters[i];
                 switch (parameter.type) {
                     case ParameterType.Numeric:
                         userNumericInputs.push(parameter)
@@ -62,11 +83,15 @@ async function Process() {
                 }
                 userInputs.push(parameter)
             }
-            userTimeFrames = message.detail.timeFrames
+            userTimeFrames = classicOptInputs.timeFrames
 
             // Extract settings and set optimization timeout
-            if (message.detail.settings?.isLongRunningOptimizations) {
+            if (classicOptInputs.settings?.isLongRunningOptimizations) {
                 optimizationTimeout = 60 * 1000; // 60 seconds
+            }
+
+            if (optType === "wfa") {
+                wfaOptInputs = detail.wfaOptInputs
             }
         }
     }
@@ -84,102 +109,115 @@ async function Process() {
     window.addEventListener("message", stopOptimizationEventCallback);
 
     //Wait for UserInputsEvent Callback
-    await sleep(750)
-    // sort userInputs before starting optimization
-    userNumericInputs.sort(function (a, b) {
-        return a.parameterIndex - b.parameterIndex;
-    });
-    // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
-    var ranges = [];
+    try {
+        await sleep(750)
+        // sort userInputs before starting optimization
+        userNumericInputs.sort(function (a, b) {
+            return a.parameterIndex - b.parameterIndex;
+        });
+        // Total Loop Size: Step(N) * Step(N+1) * ...Step(Nth)
+        var ranges = buildNumericRanges(userNumericInputs);
+        switch (optType) {
+            case "wfa":
+                await RunWFA()
+                break;
 
-    // Create user input ranges with given step size for each parameter
-    userNumericInputs.forEach((element, index) => {
-        var range = 0
-        // fix index for free users
-        if (element.parameterIndex == -1) {
-            element.parameterIndex = index
+            default:
+                // TODO(tech-debt): extract the no-timeframe / timeframe branches into their own functions, like RunWFA
+                if (userTimeFrames == null || userTimeFrames.length <= 0) {
+                    // no time frame selection or free user flow
+                    reportDataMessage = prepareInitialReport()
+                    await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+                    updateReport({ status: "FINISHED", isFinal: true })
+                    await PublishReport()
+                } else {
+                    for (let i = 0; i < userTimeFrames.length; i++) {
+                        // open time intervals dropdown and change it
+                        await sleep(500)
+
+                        let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
+                        // check if user has favorite time frames selected
+                        if (timeIntervalDropdown == null) {
+                            timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
+                        }
+                        timeIntervalDropdown.click()
+
+                        let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
+                        await sleep(1000)
+                        document.querySelector(timeIntervalQuery).click()
+                        await sleep(1000)
+                        reportDataMessage = prepareInitialReport()
+                        await sleep(500)
+                        try {
+                            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+                        } catch (err) {
+                            if (err === STOP_SIGNAL) {
+                                throw err
+                            }
+                            console.log(err)
+                            // catch the error, continue with the next time-frame
+                        }
+
+                        let isFinalOptimization = (i === userTimeFrames.length - 1)
+                        updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+                        await PublishReport()
+
+                        // reset global variables for new strategy optimization and for new timeframe
+                        optimizationHistory = new Map();
+                        bestResult = { profit: null, params: null }
+                    }
+                }
         }
-        if (index == 0) {
-            range = (element.end - element.start) / element.stepSize
-            var roundedRange = Math.round(range * 100) / 100
-            ranges.push(roundedRange)
-        } else {
-            range = ((element.end - element.start) / element.stepSize)
-            var roundedRange = (Math.round(range * 100) / 100) + 1
-            ranges.push(roundedRange)
+    } catch (e) {
+        if (e !== STOP_SIGNAL) {
+            throw e
         }
-    });
-    if (userTimeFrames == null || userTimeFrames.length <= 0) {
-        // no time frame selection or free user flow
-        reportDataMessage = prepareInitialReport()
-        await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-        updateReport({ status: "FINISHED", isFinal: true })
-        await PublishReport()
-    } else {
-        for (let i = 0; i < userTimeFrames.length; i++) {
-            // open time intervals dropdown and change it
-            await sleep(500)
-
-            let timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='menuContent' i]")
-            // check if user has favorite time frames selected
-            if (timeIntervalDropdown == null) {
-                timeIntervalDropdown = document.querySelector("#header-toolbar-intervals div[class*='arrow' i]")
-            }
-            timeIntervalDropdown.click()
-
-            let timeIntervalQuery = `div[data-value='${userTimeFrames[i][0]}']`
-            await sleep(1000)
-            document.querySelector(timeIntervalQuery).click()
-            await sleep(1000)
-            reportDataMessage = prepareInitialReport()
-            await sleep(500)
-            try {
-                await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
-            } catch (err) {
-                console.log(err)
-                // catch the error, continue with the next time-frame
-            }
-
-            let isFinalOptimization = (i === userTimeFrames.length - 1)
-            updateReport({ status: "FINISHED", isFinal: isFinalOptimization })
+        shouldStop = false
+        if (reportDataMessage != null) {
+            updateReport({ status: "FINISHED", isFinal: true })
             await PublishReport()
-
-            // reset global variables for new strategy optimization and for new timeframe
-            optimizationHistory = new Map();
-            maxProfit = -99999
+        }
+        if (optType === "wfa") {
+            let stoppedWfaID = null
+            if (wfaContext != null) {
+                stoppedWfaID = wfaContext.wfaID
+            }
+            wfaContext = null
+            window.postMessage({ type: "WfaDataEvent", detail: { status: "FINISHED", wfaID: stoppedWfaID } }, "*")
         }
     }
 
     // Optimize numeric inputs in the strategey for the currently chosen timeframe
-    async function OptimizeNumerics() {
+    // activeNumericInputs/activeRanges default to the globals; WFA-OOS passes a pinned single-combo set
+    async function OptimizeNumerics(activeNumericInputs = userNumericInputs, activeRanges = ranges) {
         shouldStop = false;
-        await SetUserIntervals()
+        await SetUserIntervals(activeNumericInputs)
 
         // Base call function
         const baseCall = async () => {
-            for (let j = 0; j < ranges[0]; j++) {
+            for (let j = 0; j < activeRanges[0]; j++) {
                 if (shouldStop) {
                     break;
                 }
-                await OptimizeParams(userNumericInputs[0].parameterIndex, userNumericInputs[0].stepSize);
+                await OptimizeParams(activeNumericInputs[0].parameterIndex, activeNumericInputs[0].stepSize);
             }
         };
 
         // Wrapper function for subsequent calls to build nested for loops
         const wrapSubsequentCalls = async (baseCall, index) => {
-            if (index >= ranges.length) {
+            if (index >= activeRanges.length) {
                 // start executing after wrapping everything in place
                 await baseCall()
                 return;
             }
 
             const currentCall = async () => {
-                for (let j = 0; j < ranges[index]; j++) {
+                for (let j = 0; j < activeRanges[index]; j++) {
                     if (shouldStop) {
                         break;
                     }
                     await baseCall();
-                    await ResetInnerOptimizeOuterParameter(ranges, j, index);
+                    await ResetInnerOptimizeOuterParameter(activeRanges, j, index, activeNumericInputs);
                 }
             };
 
@@ -196,14 +234,14 @@ async function Process() {
     }
 
     // Optimize checkbox inputs in the strategey for the currently chosen timeframe 
-    async function OptimizeCheckboxes(nextFunction) {
-        if (!isOptimizationCalled(userCheckboxInputs)) {
+    async function OptimizeCheckboxes(nextFunction, activeCheckboxInputs = userCheckboxInputs) {
+        if (!isOptimizationCalled(activeCheckboxInputs)) {
             if (nextFunction) {
                 await nextFunction();
             }
             return
         }
-        let checkBoxesLength = userCheckboxInputs.length
+        let checkBoxesLength = activeCheckboxInputs.length
 
         for (let i = 0; i < 2 ** checkBoxesLength; i++) {
             let binaryString = i.toString(2).padStart(checkBoxesLength, '0')
@@ -214,11 +252,11 @@ async function Process() {
                 // renew tv inputs
                 tvInputs = document.querySelectorAll(tvInputsQuery)
 
-                if (tvInputs[userCheckboxInputs[j].parameterIndex].checked && value == 0) {
-                    tvInputs[userCheckboxInputs[j].parameterIndex].click()
+                if (tvInputs[activeCheckboxInputs[j].parameterIndex].checked && value == 0) {
+                    tvInputs[activeCheckboxInputs[j].parameterIndex].click()
                 }
-                if (!tvInputs[userCheckboxInputs[j].parameterIndex].checked && value == 1) {
-                    tvInputs[userCheckboxInputs[j].parameterIndex].click()
+                if (!tvInputs[activeCheckboxInputs[j].parameterIndex].checked && value == 1) {
+                    tvInputs[activeCheckboxInputs[j].parameterIndex].click()
                 }
             }
 
@@ -234,8 +272,8 @@ async function Process() {
     }
 
     // Optimize selectable inputs in the strategey for the currently chosen timeframe 
-    async function OptimizeSelectables(nextFunction) {
-        if (!isOptimizationCalled(userSelectableInputs)) {
+    async function OptimizeSelectables(nextFunction, activeSelectableInputs = userSelectableInputs) {
+        if (!isOptimizationCalled(activeSelectableInputs)) {
             if (nextFunction) {
                 await nextFunction();
             }
@@ -243,33 +281,15 @@ async function Process() {
         }
 
         // cartesian product to build up all selectable combinations
-        let selectableInputCombinations = generateCombinationsFromInputs(userSelectableInputs)
+        let selectableInputCombinations = generateCombinationsFromInputs(activeSelectableInputs)
 
         for (let i = 0; i < selectableInputCombinations.length; i++) {
             let selectableInputCombination = selectableInputCombinations[i]
             for (let j = 0; j < selectableInputCombination.length; j++) {
                 let option = selectableInputCombination[j].option
                 let parameterIndex = selectableInputCombination[j].parameterIndex
-                // renew tv inputs
-                tvInputs = document.querySelectorAll(tvInputsQuery)
-                // open up dropdown
-                tvInputs[parameterIndex].click()
-
-                await sleep(600)
-                let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
-                if (ddOptionsWrapper == null) continue
-                let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
-
-                let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children.props.children
-                // click on dropdown
-                for (let i = 0; i < ddOptions.length; i++) {
-                    const ddOptionVal = ddOptions[i].props.item.value
-                    if (ddOptionVal === option) {
-                        document.getElementById(ddOptions[i].props.id).click()
-                        break
-                    }
-                }
-                await sleep(250)
+                currentSelectableValues[parameterIndex] = option // save the real value here for the OOS winner snapshot
+                await selectOptionByValue(parameterIndex, option)
             }
             if (nextFunction) {
                 await nextFunction();
@@ -301,6 +321,62 @@ async function Process() {
         return true;
     }
 
+    // WFA orchestrator — sequential rolling windows; each = full IS grid then OOS single-combo run.
+    // Per window dual-publish: enriched child ReportDataEvent + parent WfaDataEvent upsert.
+    async function RunWFA() {
+        const wfaID = prepareInitialWFAReport()
+        const windows = computeWindows(wfaOptInputs.config, wfaOptInputs.dateRange, wfaOptInputs.windows)
+
+        for (let i = 0; i < windows.length; i++) {
+            const win = windows[i]
+
+            // IS: full grid over the in-sample range → winner by IS profit
+            wfaContext = { wfaID, windowIndex: i, sampleType: "is" }
+            await setBacktestDateRange(win.is.start, win.is.end)
+            optimizationHistory = new Map()
+            bestResult = { profit: null, params: null }
+            reportDataMessage = prepareInitialReport()
+            // announce the child up front so the WFA page can render the IS report while it streams
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                is: { reportID: reportDataMessage.strategyID, start: win.is.start, end: win.is.end }
+            })
+            await OptimizeCheckboxes(() => OptimizeSelectables(() => OptimizeNumerics()))
+            updateReport({ status: "FINISHED", isFinal: false })
+            await PublishReport()
+            const isWinner = bestResult
+            let isProfit = isWinner.profit
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                winner: { params: isWinner.params, detailedParameters: isWinner.detailedParameters, isProfit: isProfit }
+            })
+
+            // OOS: single IS-winner combo over the out-of-sample range
+            wfaContext = { wfaID, windowIndex: i, sampleType: "oos" }
+            await setBacktestDateRange(win.oos.start, win.oos.end)
+            optimizationHistory = new Map()
+            bestResult = { profit: null, params: null }
+            reportDataMessage = prepareInitialReport()
+            // announce the OOS child up front too, same reason
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                oos: { reportID: reportDataMessage.strategyID, start: win.oos.start, end: win.oos.end }
+            })
+            await pinAndRunOOS(isWinner.inputs)
+            updateReport({ status: "FINISHED", isFinal: false })
+            await PublishReport()
+            const oosWinner = bestResult
+            let oosProfit = oosWinner.profit
+            postWFAWindow(wfaID, {
+                windowIndex: i,
+                winner: { oosProfit: oosProfit }
+            }, { isWindowFinal: true })
+        }
+
+        wfaContext = null
+        window.postMessage({ type: "WfaDataEvent", detail: { status: "FINISHED", wfaID } }, "*")
+    }
+
 }
 
 // PublishReport publishes the report after optimization is complete
@@ -309,27 +385,8 @@ async function PublishReport() {
     window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
 }
 
-// prepareInitialReport populates initial report before starting a fresh optimization
-function prepareInitialReport() {
-    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
-    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
-    let strategyTimePeriod = ""
-
-    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
-    if (timePeriodGroup.length > 1) {
-        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
-
-        // Check if favorite time periods exist  
-        if (selectedPeriod != null) {
-            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
-        } else {
-            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
-        }
-    }
-
-    let title = document.querySelector("title")?.innerText
-    let strategySymbol = title.split(' ')[0]
-
+// formats the swept parameter spec as HTML
+function buildParametersString() {
     let userInputsToString = ""
 
     userInputs.forEach((element, index) => {
@@ -344,8 +401,8 @@ function prepareInitialReport() {
             }
 
             if (needsTooltip) {
-                userInputsToString += `<strong 
-                    data-bs-toggle="tooltip" 
+                userInputsToString += `<strong
+                    data-bs-toggle="tooltip"
                     title="${fullName}"
                     >${displayName}</strong>: `;
             } else {
@@ -378,47 +435,171 @@ function prepareInitialReport() {
 
     })
 
+    return userInputsToString
+}
+
+// prepareInitialReport populates initial report before starting a fresh optimization
+function prepareInitialReport() {
+    //Add ID, StrategyName, Parameters and MaxProfit to Report Message
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
+    let strategyTimePeriod = ""
+
+    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 1) {
+        selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+
+        // Check if favorite time periods exist  
+        if (selectedPeriod != null) {
+            strategyTimePeriod = selectedPeriod.querySelector("div[class*=value]")?.innerHTML
+        } else {
+            strategyTimePeriod = timePeriodGroup[1].querySelector("div[class*=value]")?.innerHTML
+        }
+    }
+
+    let title = document.querySelector("title")?.innerText
+    let strategySymbol = title.split(' ')[0]
+
+    let userInputsToString = buildParametersString()
+
     let dateRange = document.querySelector(`div[class*='backtesting' i] div[class*='dateRange' i] 
         span[class*='container' i]`)?.innerText
 
-    let reportDataMessage = {
+    reportDataMessage = {
         "strategyID": Date.now(),
         "created": Date.now(),
         "strategyName": strategyName,
         "symbol": strategySymbol,
         "timePeriod": strategyTimePeriod,
         "parameters": userInputsToString,
-        "maxProfit": maxProfit, // NOT READY
+        "maxProfit": bestResult.profit, // NOT READY
         "reportData": [], // NOT READY
         "status": "STARTED",
-        "dateRange": dateRange // solely for analytics 
+        "dateRange": dateRange // solely for analytics
+    }
+
+    // enrich as a WFA child when a window is running (classic leaves wfaContext null)
+    if (wfaContext != null) {
+        reportDataMessage.type = "wfa"
+        reportDataMessage.wfaID = wfaContext.wfaID
+        reportDataMessage.windowIndex = wfaContext.windowIndex
+        reportDataMessage.sampleType = wfaContext.sampleType
     }
 
     // Send update that optimization has started
-    window.postMessage({ type: "ReportDataEvent", detail: reportDataMessage }, "*");
+    PublishReport();
 
     return reportDataMessage
 }
 
-// Set User Given Intervals Before Optimization Starts
-async function SetUserIntervals() {
-    for (let i = 0; i < userNumericInputs.length; i++) {
-        let userInput = userNumericInputs[i]
-        let startValue = userInput.start - userInput.stepSize
+// buildNumericRanges → per-parameter loop counts from start/end/step.
+function buildNumericRanges(numericInputs) {
+    let ranges = []
+    numericInputs.forEach((element, index) => {
+        var range = 0
+        // fix index for free users
+        if (element.parameterIndex == -1) {
+            element.parameterIndex = index
+        }
+        if (index == 0) {
+            range = (element.end - element.start) / element.stepSize
+            var roundedRange = Math.round(range * 100) / 100
+            ranges.push(roundedRange)
+        } else {
+            range = ((element.end - element.start) / element.stepSize)
+            var roundedRange = (Math.round(range * 100) / 100) + 1
+            ranges.push(roundedRange)
+        }
+    })
+    return ranges
+}
 
+// computeWindows derives rolling IS/OOS date windows from the total range + split.
+// Rolling classic WFA: IS = T/(1 + N*oosRatio), OOS = IS*oosRatio, each window steps forward one OOS.
+function computeWindows(config, dateRange, N) {
+    const startMs = new Date(dateRange.start).getTime()
+    const endMs = new Date(dateRange.end).getTime()
+    const T = endMs - startMs
+    const oosRatio = config.oosPct / config.isPct
+    const IS = T / (1 + N * oosRatio)
+    const OOS = IS * oosRatio
+
+    const toISO = (ms) => new Date(ms).toISOString().slice(0, 10)
+    let windows = []
+    for (let i = 0; i < N; i++) {
+        let isStart = startMs + i * OOS
+        let isEnd = isStart + IS
+        let oosEnd = isEnd + OOS
+        windows.push({
+            windowIndex: i,
+            is: { start: toISO(isStart), end: toISO(isEnd) },
+            oos: { start: toISO(isEnd), end: toISO(oosEnd) }
+        })
+    }
+    return windows
+}
+
+// prepareInitialWFAReport mints the wfaID and posts the parent STARTED lifecycle event.
+function prepareInitialWFAReport() {
+    const wfaID = Date.now()
+
+    let strategyName = document.querySelector("button[data-qa-id*='backtesting' i] span[class*='title' i]")?.textContent
+    let title = document.querySelector("title")?.innerText
+    let symbol = title.split(' ')[0]
+
+    let timePeriod = ""
+    let timePeriodGroup = document.querySelectorAll("div[class*=innerWrap] div[class*=group]")
+    if (timePeriodGroup.length > 1) {
+        let selectedPeriod = timePeriodGroup[1].querySelector("button[aria-checked*=true]")
+        timePeriod = (selectedPeriod ?? timePeriodGroup[1]).querySelector("div[class*=value]")?.innerHTML
+    }
+
+    // account/instrument currency from the net-profit cell — constant across the whole run
+    let currency = document.querySelectorAll("div div[class^='containerCell' i] > div:nth-child(2)")[0]?.querySelector("[class*='currency' i]")?.innerText
+
+    window.postMessage({
+        type: "WfaDataEvent",
+        detail: {
+            status: "STARTED",
+            wfaID, created: wfaID,
+            strategyName, symbol, timePeriod, currency,
+            parameters: buildParametersString(),
+            config: wfaOptInputs.config,
+            dateRange: wfaOptInputs.dateRange,
+            windowCount: wfaOptInputs.windows
+        }
+    }, "*")
+
+    return wfaID
+}
+
+// postWFAWindow posts a parent IN_PROGRESS upsert for one window's IS or OOS slice.
+function postWFAWindow(wfaID, windowData, extra) {
+    window.postMessage({
+        type: "WfaDataEvent",
+        detail: { status: "IN_PROGRESS", wfaID, window: windowData, ...(extra || {}) }
+    }, "*")
+}
+
+// Set User Given Intervals Before Optimization Starts
+async function SetUserIntervals(activeNumericInputs = userNumericInputs) {
+    for (let i = 0; i < activeNumericInputs.length; i++) {
+        let userInput = activeNumericInputs[i]
+        let startValue = parseFloat(userInput.start) + parseFloat(userInput.stepSize)
+        
         if (isFloat(startValue)) {
             let precision = getFloatPrecision(userInput.stepSize)
             startValue = fixPrecision(startValue, precision)
         }
-
+        
         // reset by step size in case of a user input is as same as current tv input value 
         if (userInput.start == tvInputs[userInput.parameterIndex].value) {
-            await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
+            await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
+            await sleep(150)
         } else {
             ChangeTvInput(tvInputs[userInput.parameterIndex], startValue)
         }
 
-        await OptimizeParams(userInput.parameterIndex, userInput.stepSize)
+        await OptimizeParams(userInput.parameterIndex, "-" + userInput.stepSize)
 
         await sleep(250);
     }
@@ -482,8 +663,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
         let backtestUpdateButton = document.querySelector("div[data-qa-id*='backtesting-updated' i] button")
         if (backtestUpdateButton != null) {
             backtestUpdateButton.click()
-            isBacktestUpdated = true
         }
+        // at this stage it's ensured that report tab is up-to-date
+        isBacktestUpdated = true
     }
 
     let observer;
@@ -560,7 +742,7 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     updateReport({
         status: "IN_PROGRESS",
-        maxProfit,
+        maxProfit: bestResult.profit,
         reportData: optimizationResultsObject
     });
     PublishReport()
@@ -598,10 +780,9 @@ function saveOptimizationReport(optimizationResult, reportData) {
         optimizationHistory.set(parameters, true)
         optimizationResult.set(parameters, reportData)
         //Update Max Profit
-        replacedNDashProfit = reportData.netProfit.amount.replace("−", "-")
-        profit = Number(replacedNDashProfit.replace(/[^0-9-\.]+/g, ""))
-        if (profit > maxProfit) {
-            maxProfit = profit
+        profit = parseProfitAmount(reportData.netProfit.amount)
+        if (!Number.isNaN(profit) && (bestResult.profit === null || profit > bestResult.profit)) {
+            bestResult = { profit, params: parameters, detailedParameters: result.detailedParameters, inputs: snapshotWinningInputs() }
         }
         return ("Optimization param added to map")
     } else if (optimizationHistory.has(parameters)) {
@@ -619,20 +800,147 @@ async function resetAndOptimizeParameter(tvParameterIndex, resetValue, stepSize)
 }
 
 // Reset & Optimize Inner Loop parameter, Optimize Outer Loop parameter
-async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index) {
-    let previousTvParameterIndex = userNumericInputs[index - 1].parameterIndex
-    let currentTvParameterIndex = userNumericInputs[index].parameterIndex
+async function ResetInnerOptimizeOuterParameter(ranges, rangeIteration, index, activeNumericInputs = userNumericInputs) {
+    let previousTvParameterIndex = activeNumericInputs[index - 1].parameterIndex
+    let currentTvParameterIndex = activeNumericInputs[index].parameterIndex
 
-    let resetValue = userNumericInputs[index - 1].start - userNumericInputs[index - 1].stepSize
+    let resetValue = activeNumericInputs[index - 1].start - activeNumericInputs[index - 1].stepSize
 
-    let previousStepSize = userNumericInputs[index - 1].stepSize
-    let currentStepSize = userNumericInputs[index].stepSize
+    let previousStepSize = activeNumericInputs[index - 1].stepSize
+    let currentStepSize = activeNumericInputs[index].stepSize
     //Reset and optimze inner
     await resetAndOptimizeParameter(previousTvParameterIndex, resetValue, previousStepSize)
     // Optimize outer unless it's last iteration
     if (rangeIteration != ranges[index] - 1) {
         await OptimizeParams(currentTvParameterIndex, currentStepSize)
     }
+}
+
+// selectOptionByValue opens a selectable's dropdown and clicks the option whose value matches (TV reactProps).
+async function selectOptionByValue(parameterIndex, option) {
+    // renew tv inputs
+    tvInputs = document.querySelectorAll(tvInputsQuery)
+    // open up dropdown
+    tvInputs[parameterIndex].click()
+
+    await sleep(600)
+    let ddOptionsWrapper = document.querySelector("div[class*='mainContent' i]")
+    if (ddOptionsWrapper == null) return
+    let reactPropsKey = Object.keys(ddOptionsWrapper).find(key => key.includes("reactProps"));
+
+    let ddOptions = ddOptionsWrapper[reactPropsKey].children.props.children.props.children
+    // click on dropdown
+    for (let i = 0; i < ddOptions.length; i++) {
+        const ddOptionVal = ddOptions[i].props.item.value
+        if (ddOptionVal === option) {
+            document.getElementById(ddOptions[i].props.id).click()
+            break
+        }
+    }
+    await sleep(250)
+}
+
+// snapshotWinningInputs captures the current (winning) combo as [{parameterIndex, type, value}] for the OOS pin.
+// numeric/checkbox read live off the DOM; selectable reads the tracked value (DOM innerText ≠ option value).
+function snapshotWinningInputs() {
+    return userInputs.map(input => {
+        let value
+        switch (input.type) {
+            case ParameterType.Checkbox:
+                value = tvInputs[input.parameterIndex].checked
+                break
+            case ParameterType.Selectable:
+                value = currentSelectableValues[input.parameterIndex]
+                break
+            default: // Numeric
+                value = tvInputs[input.parameterIndex].value
+        }
+        return { parameterIndex: input.parameterIndex, type: input.type, value }
+    })
+}
+
+// pinAndRunOOS applies the IS winner to every input, then fires ONE OptimizeParams to backtest + record the single OOS combo.
+async function pinAndRunOOS(winnerInputs) {
+    // a numeric drives the single backtest via its increment (popup guarantees >=1 numeric)
+    let trigger = winnerInputs.find(w => w.type === ParameterType.Numeric)
+
+    // set every non-trigger input to its winning value (no backtest yet)
+    for (let w of winnerInputs) {
+        if (w === trigger) continue
+        tvInputs = document.querySelectorAll(tvInputsQuery)
+        switch (w.type) {
+            case ParameterType.Selectable:
+                await selectOptionByValue(w.parameterIndex, w.value)
+                break
+            case ParameterType.Checkbox:
+                if (tvInputs[w.parameterIndex].checked !== w.value) {
+                    tvInputs[w.parameterIndex].click()
+                }
+                break
+            case ParameterType.Numeric:
+                ChangeTvInput(tvInputs[w.parameterIndex], w.value)
+                break
+        }
+        await sleep(250)
+    }
+
+    // position the trigger one step below its winner; OptimizeParams increments it back → the single backtest
+    let stepSize = userNumericInputs.find(n => n.parameterIndex === trigger.parameterIndex).stepSize
+    let triggerStart = Number(trigger.value) - Number(stepSize)
+    if (isFloat(triggerStart)) {
+        let precision = getFloatPrecision(stepSize)
+        triggerStart = fixPrecision(triggerStart, precision)
+    }
+    tvInputs = document.querySelectorAll(tvInputsQuery)
+    ChangeTvInput(tvInputs[trigger.parameterIndex], triggerStart)
+    await sleep(250)
+    await OptimizeParams(trigger.parameterIndex, stepSize)
+}
+
+// setBacktestDateRange applies a custom backtest date range (per WFA window). PRELIMINARY — selectors/guards to harden.
+async function setBacktestDateRange(start, end) {
+    document.querySelector('[data-qa-id="date-range-menu"]')?.click()
+    await sleep(500)
+    document.querySelector('[data-qa-id="custom-date-range-item"]')?.click()
+    await sleep(500)
+
+    const dates = document.querySelectorAll('[data-qa-id="date-picker-wrapper"]')
+    const startInput = dates[0].querySelector("input")
+    const endInput = dates[1].querySelector("input")
+
+    // write start, then a real focus transition to end so React commits start before end is written
+    setDateInput(startInput, start)
+    moveDateFocus(startInput, endInput)
+    setDateInput(endInput, end)
+    await sleep(250)
+
+    // when the range already matches, Select is disabled and can't commit — dismiss via the close (X) instead
+    const submitBtn = document.querySelector('[data-name*="custom-date-range-dialog" i] [data-qa-id*="submit-button" i]')
+    const submitEnabled = submitBtn != null && submitBtn.disabled !== true && submitBtn.getAttribute("aria-disabled") !== "true"
+    if (submitEnabled) {
+        submitBtn.click()
+    } else {
+        document.querySelector('[data-name*="custom-date-range-dialog" i] button[data-qa-id="close" i]')?.click()
+    }
+
+    await sleep(1000) // let the backtest recompute settle before optimizing
+}
+
+// writes a date field through the prototype value setter so React's tracker registers it
+function setDateInput(input, value) {
+    input.focus()
+    nativeInputSet.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+// moves focus between date fields via bubbling focusout/focusin — the events React commits onBlur/onFocus through
+function moveDateFocus(from, to) {
+    from.dispatchEvent(new Event('change', { bubbles: true }))
+    from.dispatchEvent(new FocusEvent('blur', { bubbles: false, relatedTarget: to }))
+    from.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: to }))
+    to.focus()
+    to.dispatchEvent(new FocusEvent('focusin', { bubbles: true, relatedTarget: from }))
+    to.dispatchEvent(new FocusEvent('focus', { bubbles: false, relatedTarget: from }))
 }
 
 // Change TvInput value in Tv Strategy Options Window
@@ -742,6 +1050,41 @@ function tryToSaveOptimizationReport(isBacktestingOn, isBacktestUpdated, optimiz
     if (!isReportDataEmpty && implies(isBacktestingOn, isBacktestUpdated)) {
         saveOptimizationReport(optimizationResult, reportData)
     }
+}
+
+// TradingView renders profit in its UI locale; derive the group/decimal separators from it once
+function getLocaleSeparators() {
+    if (_localeSeparators != null) {
+        return _localeSeparators
+    }
+    let lang = document.documentElement.lang || navigator.language || "en"
+    let group = ","
+    let decimal = "."
+    try {
+        for (let part of new Intl.NumberFormat(lang).formatToParts(11111.1)) {
+            if (part.type === "group") {
+                group = part.value
+            }
+            if (part.type === "decimal") {
+                decimal = part.value
+            }
+        }
+    } catch (e) {
+        group = ","
+        decimal = "."
+    }
+    _localeSeparators = { group, decimal }
+    return _localeSeparators
+}
+
+// parses a locale-formatted profit string (e.g. "1.234.567,89 EUR") into a Number
+function parseProfitAmount(text) {
+    let seps = getLocaleSeparators()
+    let s = String(text).replace("−", "-")
+    s = s.split(seps.group).join("")
+    s = s.split(seps.decimal).join(".")
+    s = s.replace(/[^0-9.\-]/g, "")
+    return Number(s)
 }
 
 // isFloat to check whether given number is float or not

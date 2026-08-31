@@ -4,6 +4,7 @@ const unlockOptimizeButton = 'unlockOptimizeButton'
 const getTvParameters = 'getTvParameters'
 const getStrategyContext = 'getStrategyContext'
 const reportUpdated = 'reportUpdated'
+const wfaReportUpdated = 'wfaReportUpdated'
 
 let optimize = document.getElementById("optimize");
 let addParameter = document.getElementById("addParameter");
@@ -17,6 +18,13 @@ let _currentStrategyKey = null;
 const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
 // storage key for last used inputs fallback
 const LAST_USED_INPUTS_KEY = 'lastUsedInputs'
+// flag to track wfa mode
+let _wfaActive = false // (default: classic)
+// per-window calendar-day floors — prevent empty/weekend-gap windows
+const WFA_MIN_IS_DAYS = 14
+const WFA_MIN_OOS_DAYS = 5
+// set by updateWfaSplit when the current config produces a window below the floors; read by the launch guard
+let _wfaBelowFloor = false
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -79,7 +87,7 @@ updateUserUI()
 
 // non-functional UI changes made with storage
 function updateUserUI() {
-  chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
+  chrome.storage.local.get(["optimizationType", "isPlusUser"], ({ optimizationType, isPlusUser }) => {
     if (isPlusUser) {
       // show plus logo
       var logo = document.getElementById("normalLogo")
@@ -95,10 +103,27 @@ function updateUserUI() {
       plusLogo.style.cssText = 'display:none !important'
       var logo = document.getElementById("normalLogo")
       logo.style.cssText = 'display:block !important';
-      // add plus upgrade button 
+      // add plus upgrade button
       var plusUpgrade = document.getElementById("plusUpgrade")
       plusUpgrade.style.display = 'block'
     }
+
+    _wfaActive = optimizationType === "wfa" && isPlusUser
+    if (_wfaActive) {
+      document.getElementById("optimizeGroup").classList.add("btn-group-gold")
+      document.getElementById("optimizeLabel").textContent = "Analyze"
+
+      // only show the Dates nav button if we're on the parameters page
+      if (document.getElementById("wfaPage").style.display === "none") {
+        showWithTransition(document.getElementById("wfaNextGroup"), "inline-block")
+      }
+    } else {
+      hideWithTransition(document.getElementById("wfaNextGroup"))
+      document.getElementById("optimizeGroup").classList.remove("btn-group-gold")
+      document.getElementById("optimizeLabel").textContent = "Optimize"
+    }
+    // re-render the WFA menu lock state once membership has resolved
+    updateWfaMenuItem()
   });
 }
 
@@ -107,12 +132,12 @@ function updateUserUI() {
 optimize.addEventListener("click", async () => {
   let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  var userInputs = new Object({
+  var classicOptInputs = new Object({
     parameters: [],
     timeFrames: []
   })
   // err is handled as value
-  var err = await CreateUserInputsMessage(userInputs)
+  var err = await CreateUserInputsMessage(classicOptInputs)
 
   if (err != null) {
     switch (err.message) {
@@ -145,11 +170,90 @@ optimize.addEventListener("click", async () => {
     return
   }
 
-  // Add settings to userInputs
-  const settings = await getSettings();
-  userInputs.settings = settings;
+  // Hard gate: WFA is Plus-only. Re-check from storage so a DOM-unlocked button still can't run it.
+  if (_wfaActive) {
+    const { isPlusUser } = await chrome.storage.local.get("isPlusUser")
+    if (!isPlusUser) {
+      chrome.runtime.sendMessage({
+        notify: {
+          type: "warning",
+          content: "Walk-Forward Analysis is a Plus feature"
+        }
+      });
+      return
+    }
+  }
 
-  chrome.storage.local.set({ "userInputs": userInputs });
+  // Walk-forward runs a single timeframe (0 selected => current chart TF). Block multi-select.
+  if (_wfaActive && classicOptInputs.timeFrames.length > 1) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: "Walk-Forward Analysis supports a single timeframe"
+      }
+    });
+    return
+  }
+
+  // Walk-forward needs an explicit analysis range — block launch if either date is empty.
+  if (_wfaActive && (!document.getElementById("wfaStartDate").value || !document.getElementById("wfaEndDate").value)) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: "Walk-Forward Analysis requires a start and end date"
+      }
+    });
+    return
+  }
+
+  // End must come after start — reject an inverted or zero-length range.
+  if (_wfaActive && new Date(document.getElementById("wfaStartDate").value) >= new Date(document.getElementById("wfaEndDate").value)) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: "Walk-Forward Analysis end date must be after the start date"
+      }
+    });
+    return
+  }
+
+  // Per-window day floors — block a config whose windows fall below the minimums (flag set by updateWfaSplit).
+  if (_wfaActive && _wfaBelowFloor) {
+    chrome.runtime.sendMessage({
+      notify: {
+        type: "warning",
+        content: `Each window needs at least ${WFA_MIN_IS_DAYS} days in-sample and ${WFA_MIN_OOS_DAYS} days out-of-sample`
+      }
+    });
+    return
+  }
+
+  // Add settings to the classic inputs (each WFA window reuses them per run)
+  const settings = await getSettings();
+  classicOptInputs.settings = settings;
+
+  // Wrap by mode so injector branches on `type` (no reflection guessing). WFA carries the windowing
+  // config (split/range/count); injector consumes it to derive each window's concrete dates.
+  let payload
+  if (_wfaActive) {
+    const isPct = parseInt(document.getElementById("wfaSplit").value)
+    payload = {
+      type: "wfa",
+      wfaOptInputs: {
+        classicOptInputs,
+        config: { isPct, oosPct: 100 - isPct },
+        dateRange: {
+          start: document.getElementById("wfaStartDate").value,
+          end: document.getElementById("wfaEndDate").value
+        },
+        windows: parseInt(document.getElementById("wfaWindows").value) || 0
+      }
+    }
+  } else {
+    payload = { type: "classic", classicOptInputs }
+  }
+
+  chrome.storage.local.set({ "userInputs": payload });
 
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
@@ -198,9 +302,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           break;
 
         case reportUpdated:
+          if (popupAction.message.report.type === "wfa") break; // wfa children live-update via wfaReportUpdated
           let strategyId = popupAction.message.report.strategyID
           let maxProfit = popupAction.message.report.maxProfit
           UpdateStrategyReportRow(strategyId, maxProfit)
+          break;
+
+        case wfaReportUpdated:
+          UpdateWfaReportRow(popupAction.message.report)
           break;
       }
     }
@@ -213,7 +322,23 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 // Create Reports and Profile Tabs
 createReportTable()
 
-// Refresh Report Data Manually 
+window.addEventListener("resize", evaluateWfaScrollHint)
+
+document.querySelectorAll("[data-report-view]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    switchReportView(btn.dataset.reportView)
+    chrome.storage.local.set({ reportType: btn.dataset.reportView })
+  })
+})
+
+// restore the last-viewed report tab (default: classic)
+chrome.storage.local.get("reportType", ({ reportType }) => {
+  if (reportType) {
+    switchReportView(reportType)
+  }
+})
+
+// Refresh Report Data Manually
 addRefreshDataEventListener()
 
 //#region Report Tab & Table
@@ -229,7 +354,7 @@ async function createReportTable() {
     }
 
     for (const [key, value] of Object.entries(items)) {
-      if (key.startsWith("report-data-")) {
+      if (key.startsWith("report-data-") && value.type !== "wfa") {
         var date = new Date(value.created)
         var formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
         var report = {
@@ -261,6 +386,95 @@ async function createReportTable() {
 function reportDetailHtml(strategyID) {
   return '<button id="report-detail-button" strategy-id="' + strategyID + '" type="button" class="btn btn-primary btn-sm"><i class="bi bi-clipboard2-data-fill"> Open</i></button>\
   <button id="remove-report" type="button" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>'
+}
+
+function wfaDetailHtml(wfaID) {
+  return '<button id="wfa-detail-button" wfa-id="' + wfaID + '" type="button" class="btn btn-primary btn-sm"><i class="bi bi-clipboard2-data-fill"> Open</i></button>\
+  <button id="remove-wfa-report" type="button" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>'
+}
+
+// WFE (Pardo length-normalized). Own func = one home for the formula — mirrors the same calc
+// on the WFA detail page; if it ever changes, update both.
+function computeWfe(avgIs, avgOos, config) {
+  return (avgOos / avgIs) * (config.isPct / config.oosPct)
+}
+
+// Profitable OOS windows as "X/Y (Z%)" over completed windows. Own func for the same reason.
+function computeProfitable(oosDone) {
+  const winners = oosDone.filter(w => parseProfit(w.winner.oosProfit) > 0).length
+  return `${winners}/${oosDone.length} (${Math.round(winners / oosDone.length * 100)}%)`
+}
+
+// aggregate cells over COMPLETED windows only → "—" until a window's first IS+OOS finale lands
+function wfaAggregates(value) {
+  const windows = Object.values(value.windows || {})
+  // null the -999999 "no result" sentinel so OOS reads as not-run (skipped in avgOos/WFE/profitable denominator)
+  windows.forEach(w => {
+    if (w.winner && w.winner.oosProfit === -999999) {
+      w.winner.oosProfit = null
+    }
+  })
+  const isDone = windows.filter(w => w.winner?.isProfit != null)
+  const oosDone = windows.filter(w => w.winner?.oosProfit != null)
+  // windows that ran OOS — profitable-count denominator, robust to a missed oosProfit read
+  const oosRan = windows.filter(w => w.winner?.isProfit != null && w.oos?.reportID != null)
+
+  let avgIs = 0
+  if (isDone.length) {
+    avgIs = avg(isDone.map(w => parseProfit(w.winner.isProfit)))
+  }
+  let avgOos = 0
+  if (oosDone.length) {
+    avgOos = avg(oosDone.map(w => parseProfit(w.winner.oosProfit)))
+  }
+
+  let avgOOS = "—"
+  let profitable = "—"
+  let wfe = "—"
+  if (oosRan.length) {
+    profitable = computeProfitable(oosRan)
+  }
+  if (oosDone.length) {
+    avgOOS = fmtSignedPct(avgOos)
+    if (avgIs > 0) {
+      wfe = computeWfe(avgIs, avgOos, value.config).toFixed(2)
+    }
+  }
+  return { avgOOS, profitable, wfe }
+}
+
+function createWfaReportTable() {
+  chrome.storage.local.get(null, function (items) {
+    if (items == null) return
+    const wfaData = []
+
+    for (const [key, value] of Object.entries(items)) {
+      if (!key.startsWith("wfa-")) continue
+
+      const date = new Date(value.created)
+      const formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
+      const agg = wfaAggregates(value)
+
+      wfaData.push({
+        wfaID: value.wfaID,
+        strategyName: value.strategyName,
+        date: formattedDate,
+        symbol: value.symbol,
+        timePeriod: value.timePeriod,
+        parameters: value.parameters || "",
+        windows: value.windowCount,
+        avgOOS: agg.avgOOS,
+        profitable: agg.profitable,
+        wfe: agg.wfe,
+        detail: wfaDetailHtml(value.wfaID)
+      })
+    }
+
+    const $wfaTable = $('#wfaTable')
+    $wfaTable.bootstrapTable({ data: wfaData })
+    $wfaTable.bootstrapTable('load', wfaData)
+    requestAnimationFrame(evaluateWfaScrollHint)
+  })
 }
 
 // Add Custom Styles to Columns 
@@ -324,6 +538,95 @@ window.openReportDetail = {
   }
 }
 
+window.openWfaDetail = {
+  // open the WFA report page (summary + per-window pages via iframe)
+  'click #wfa-detail-button': function (e, value, row, index) {
+    chrome.tabs.create({ url: 'report/wfa-reportdetail.html?wfaID=' + row.wfaID })
+  },
+  // Remove WFA report parent and cascade-delete its per-window child report-data-* entries.
+  'click #remove-wfa-report': async function (e, value, row, index) {
+    var $wfaTable = $('#wfaTable')
+    const wfaKey = "wfa-" + row.wfaID
+    const items = await chrome.storage.local.get([wfaKey])
+    const parent = items[wfaKey]
+    const keys = [wfaKey]
+    if (parent && parent.windows) {
+      Object.values(parent.windows).forEach(w => {
+        if (w.is && w.is.reportID) {
+          keys.push("report-data-" + w.is.reportID)
+        }
+        if (w.oos && w.oos.reportID) {
+          keys.push("report-data-" + w.oos.reportID)
+        }
+      })
+    }
+    await chrome.storage.local.remove(keys)
+    $wfaTable.bootstrapTable('remove', {
+      field: 'wfaID',
+      values: [row.wfaID]
+    })
+  }
+}
+
+// init AFTER openWfaDetail exists — bootstrap-table resolves data-events at build time
+createWfaReportTable()
+
+// report-view nav lives in both table toolbars; keep them in sync
+function switchReportView(view) {
+  const isWfa = view === "wfa"
+  const classicPane = document.getElementById("classic-reports-pane")
+  const wfaPane = document.getElementById("wfa-reports-pane")
+  classicPane.classList.toggle("show", !isWfa)
+  classicPane.classList.toggle("active", !isWfa)
+  wfaPane.classList.toggle("show", isWfa)
+  wfaPane.classList.toggle("active", isWfa)
+  document.querySelectorAll("[data-report-view]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.reportView === view)
+  })
+  // bootstrap-table renders with wrong widths while its pane is hidden; refresh on show
+  $(isWfa ? "#wfaTable" : "#table").bootstrapTable("resetView")
+  if (isWfa) {
+    requestAnimationFrame(evaluateWfaScrollHint)
+  }
+}
+
+// nudge-chevron hinting the WFA reports table scrolls right — the Detail column (Open + remove buttons) overflows the narrow popup
+function evaluateWfaScrollHint() {
+  const pane = document.getElementById("wfa-reports-pane")
+  if (pane == null) {
+    return
+  }
+  let hint = pane.querySelector(".wfa-scroll-hint")
+  if (hint == null) {
+    hint = document.createElement("div")
+    hint.className = "wfa-scroll-hint"
+    hint.innerHTML = '<i class="bi bi-chevron-right"></i>'
+    pane.appendChild(hint)
+  }
+  const scroller = pane.querySelector(".fixed-table-body")
+  if (scroller == null) {
+    hint.classList.remove("show")
+    return
+  }
+  if (scroller.dataset.hintBound !== "true") {
+    scroller.addEventListener("scroll", evaluateWfaScrollHint)
+    scroller.dataset.hintBound = "true"
+  }
+  const moreRight = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1
+  if (moreRight) {
+    const thead = scroller.querySelector("thead")
+    if (thead != null) {
+      const theadRect = thead.getBoundingClientRect()
+      const paneRect = pane.getBoundingClientRect()
+      hint.style.top = (theadRect.top - paneRect.top + (theadRect.height - 20) / 2) + "px"
+    }
+    hint.classList.add("show")
+  } else {
+    hint.classList.remove("show")
+  }
+}
+
+
 //#endregion
 
 //#region Profile Tab
@@ -367,7 +670,6 @@ async function injectPlusFeatures(userEmail) {
   var user = await GetMembershipInfo(userEmail)
   if (user.is_membership_active) {
     chrome.storage.local.set({ "isPlusUser": true });
-    updateUserUI()
     // show skeletons first for features
     showSkeleton("timeFrame", "time-frame")
     showSkeleton("stop", "stop")
@@ -453,6 +755,10 @@ async function injectPlusFeatures(userEmail) {
   } else {
     chrome.storage.local.set({ "isPlusUser": false });
   }
+
+  // Update userUI based on membership type & selected optimization mode
+  updateUserUI()
+
   // Add Parameter Button Event Listener, with 'parameterLimit'
   addParameter.addEventListener("click", async () => {
     await addParameterBlock(parameterLimit)
@@ -730,12 +1036,193 @@ logoutButtons.forEach(logoutButton => {
     setTimeout(() => {
       hideSkeleton("login", "profile")
     }, 250);
-    chrome.storage.local.set({ "isPlusUser": false });
+
+    // revert to classic mode 
+    let optimizationType = "classic"
+    chrome.storage.local.set({ optimizationType })
+    chrome.storage.local.set({ isPlusUser: false });
+    
     updateUserUI()
   });
 })
 
 
+
+//#endregion
+
+//#region  Walk-Forward Analysis UI
+
+// keep the mode-switch dropdown line in sync with the current mode
+function updateWfaMenuItem() {
+  chrome.storage.local.get("isPlusUser", ({ isPlusUser }) => {
+    const menuItem = document.getElementById("wfaMenuItem")
+    const menuText = document.getElementById("wfaMenuText")
+    const menuIcon = document.getElementById("wfaMenuIcon")
+    let infoText
+    if (!isPlusUser) {
+      // Plus-only: show the item locked as an upsell rather than a mode toggle
+      menuText.textContent = "Walk-Forward Analysis"
+      menuIcon.className = "bi bi-lock-fill me-2"
+      menuItem.classList.add("wfa-menu-gold")
+      infoText = "A Plus feature. Optimize across rolling windows and validate on data your strategy has never seen. Upgrade to unlock."
+    } else if (_wfaActive) {
+      menuText.textContent = "Switch to Classic Optimization"
+      menuIcon.className = "bi bi-graph-up-arrow me-2"
+      menuItem.classList.remove("wfa-menu-gold")
+      infoText = "Brute-force optimization — tests every parameter combination to find the single best performer over your date range."
+    } else {
+      menuText.textContent = "Switch to Walk-Forward Analysis"
+      menuIcon.className = "bi bi-calendar-week me-2"
+      menuItem.classList.add("wfa-menu-gold")
+      infoText = "Tests your strategy across several time periods and checks each result against later data, helping you find parameters that stay reliable over time rather than ones tuned to the past."
+    }
+    // tooltip inits ~200ms after load; use the instance once it exists, else seed the title attribute
+    const menuInfo = document.getElementById("wfaMenuInfo")
+    const tooltip = bootstrap.Tooltip.getInstance(menuInfo)
+    if (tooltip) {
+      tooltip.setContent({ ".tooltip-inner": infoText })
+    } else {
+      menuInfo.setAttribute("title", infoText)
+    }
+  })
+}
+
+document.getElementById("wfaMenuItem").addEventListener("click", async (e) => {
+  e.preventDefault()
+  const { isPlusUser } = await chrome.storage.local.get("isPlusUser")
+  if (!isPlusUser) {
+    // locked: route free users to upgrade instead of toggling the mode
+    chrome.tabs.create({ url: "https://buymeacoffee.com/optipieapp/membership" })
+    return
+  }
+  _wfaActive = !_wfaActive
+  let optimizationType = "classic"
+  if (_wfaActive) {
+    optimizationType = "wfa"
+  }
+  chrome.storage.local.set({ optimizationType })
+  const wfaNextGroup = document.getElementById("wfaNextGroup")
+  const optimizeGroup = document.getElementById("optimizeGroup")
+  const optimizeLabel = document.getElementById("optimizeLabel")
+
+  if (_wfaActive) {
+    optimizeGroup.classList.add("btn-group-gold")
+    optimizeLabel.textContent = "Analyze"
+    // only show the Dates nav button if we're on the parameters page
+    if (document.getElementById("wfaPage").style.display === "none") {
+      showWithTransition(wfaNextGroup, "inline-block")
+    }
+  } else {
+    hideWithTransition(wfaNextGroup)
+    optimizeGroup.classList.remove("btn-group-gold")
+    optimizeLabel.textContent = "Optimize"
+    if (document.getElementById("wfaPage").style.display !== "none") {
+      showWfaPage(false)
+    }
+  }
+  updateWfaMenuItem()
+  calculateIterations()
+})
+
+document.getElementById("wfaNext").addEventListener("click", () => showWfaPage(true))
+document.getElementById("wfaBackNav").addEventListener("click", () => showWfaPage(false))
+
+document.getElementById("wfaWindows").addEventListener("input", updateWfaPreview)
+document.getElementById("wfaStartDate").addEventListener("change", updateWfaPreview)
+document.getElementById("wfaEndDate").addEventListener("change", updateWfaPreview)
+document.getElementById("wfaSplit").addEventListener("input", updateWfaSplit)
+
+// persist WFA config per strategy on settle (change, not input, to avoid write spam)
+document.getElementById("wfaSplit").addEventListener("change", saveStrategyInputs)
+document.getElementById("wfaStartDate").addEventListener("change", saveStrategyInputs)
+document.getElementById("wfaEndDate").addEventListener("change", saveStrategyInputs)
+document.getElementById("wfaWindows").addEventListener("change", saveStrategyInputs)
+
+function showWfaPage(show) {
+  const parameters = document.getElementById("parameters")
+  const wfaPage = document.getElementById("wfaPage")
+  const addParameterBtn = document.getElementById("addParameter")
+  const wfaBackNav = document.getElementById("wfaBackNav")
+  const wfaNextGroup = document.getElementById("wfaNextGroup")
+  const wfaNextLabel = document.getElementById("wfaNextLabel")
+  if (show) {
+    hideElement(parameters)
+    hideElement(addParameterBtn)
+    hideElement(wfaNextGroup)
+    showWithTransition(wfaPage)
+    showWithTransition(wfaBackNav, "inline-block")
+    showWithTransition(wfaNextLabel, "flex")
+  } else {
+    hideElement(wfaPage)
+    hideElement(wfaBackNav)
+    // handled inside wfaNextGroup due to layout differences 
+    hideElement(wfaNextLabel)
+    showWithTransition(parameters)
+    showWithTransition(addParameterBtn, "inline-block")
+  
+    if (_wfaActive) {
+      showWithTransition(wfaNextGroup, "inline-block")
+    }
+  }
+}
+
+function updateWfaPreview() {
+  updateWfaSplit()
+  calculateIterations()
+}
+
+// update the IS/OOS split readout, per-window day counts, and recommended-range alert
+function updateWfaSplit() {
+  const slider = document.getElementById("wfaSplit")
+  const isPct = parseInt(slider.value)
+  const oosPct = 100 - isPct
+
+  document.getElementById("wfaIsPct").textContent = `${isPct}%`
+  document.getElementById("wfaOosPct").textContent = `${oosPct}%`
+
+  // per-window day breakdown, only when the date range is valid
+  const start = document.getElementById("wfaStartDate").value
+  const end = document.getElementById("wfaEndDate").value
+  const windows = parseInt(document.getElementById("wfaWindows").value) || 0
+  const isDays = document.getElementById("wfaStatIs")
+  const oosDays = document.getElementById("wfaStatOos")
+  const windowSize = document.getElementById("wfaStatWindowSize")
+  const totalDays = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))
+
+  const alert = document.getElementById("wfaSplitAlert")
+
+  if (start && end && windows >= 2 && totalDays > 0) {
+    // classic rolling walk-forward: IS windows overlap, stepping forward by one OOS length.
+    // total = IS_length + windows * OOS_length, with OOS_length = IS_length * (oosPct / isPct)
+    const oosRatio = oosPct / isPct
+    const isLen = totalDays / (1 + windows * oosRatio)
+    const oosLen = isLen * oosRatio
+    // round the parts first so the displayed sum always adds up (IS + OOS = Window Size)
+    const isRounded = Math.round(isLen)
+    const oosRounded = Math.round(oosLen)
+    isDays.textContent = `~${isRounded} days`
+    oosDays.textContent = `~${oosRounded} days`
+    windowSize.textContent = `~${isRounded + oosRounded} days`
+
+    // flag windows below the per-window day floors, and gate the launch on it
+    _wfaBelowFloor = isRounded < WFA_MIN_IS_DAYS || oosRounded < WFA_MIN_OOS_DAYS
+    if (_wfaBelowFloor) {
+      slider.classList.add("wfa-split-alert")
+      alert.textContent = `Each window needs at least ${WFA_MIN_IS_DAYS} days in-sample and ${WFA_MIN_OOS_DAYS} days out-of-sample. Widen the date range or reduce the window count.`
+      alert.style.display = "block"
+    } else {
+      slider.classList.remove("wfa-split-alert")
+      alert.style.display = "none"
+    }
+  } else {
+    isDays.textContent = "—"
+    oosDays.textContent = "—"
+    windowSize.textContent = "—"
+    _wfaBelowFloor = false
+    slider.classList.remove("wfa-split-alert")
+    alert.style.display = "none"
+  }
+}
 
 //#endregion
 
@@ -882,9 +1369,16 @@ async function saveStrategyInputs() {
     })
   }
 
+  const wfa = {
+    split: document.getElementById("wfaSplit").value,
+    startDate: document.getElementById("wfaStartDate").value,
+    endDate: document.getElementById("wfaEndDate").value,
+    windows: document.getElementById("wfaWindows").value,
+  }
+
   chrome.storage.local.set({
-    [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, savedAt: Date.now() },
-    [LAST_USED_INPUTS_KEY]: { parameters, strategyKey: _currentStrategyKey },
+    [STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey]: { parameters, wfa, savedAt: Date.now() },
+    [LAST_USED_INPUTS_KEY]: { parameters, wfa, strategyKey: _currentStrategyKey },
   })
 }
 
@@ -896,7 +1390,14 @@ async function restoreStrategyInputs() {
   const result = await chrome.storage.local.get(siKey)
   let entry = result[siKey]
 
-  if (!entry?.parameters) {
+  if (entry?.parameters) {
+    // opening a strategy that has its own config makes it the "last active" one, so an unknown
+    // strategy opened next seeds from THIS — not a stale earlier edit
+    chrome.storage.local.set({
+      [LAST_USED_INPUTS_KEY]: { parameters: entry.parameters, wfa: entry.wfa, strategyKey: _currentStrategyKey },
+    })
+  } else {
+    // no own config → fall back to last-active (do NOT rewrite LAST_USED here: unknown strategy)
     const settings = await getSettings()
     if (!settings.applyLastUsedAsDefault) return
     const lastUsedResult = await chrome.storage.local.get(LAST_USED_INPUTS_KEY)
@@ -934,6 +1435,16 @@ async function restoreStrategyInputs() {
     if (endInputs[i]) endInputs[i].value = param.end || ''
     if (stepInputs[i]) stepInputs[i].value = param.step || ''
   })
+
+  // WFA config (only on entries saved with it — old entries skip)
+  if (entry.wfa) {
+    document.getElementById("wfaSplit").value = entry.wfa.split || ''
+    document.getElementById("wfaStartDate").value = entry.wfa.startDate || ''
+    document.getElementById("wfaEndDate").value = entry.wfa.endDate || ''
+    document.getElementById("wfaWindows").value = entry.wfa.windows || ''
+    updateWfaSplit()
+    updateWfaPreview()
+  }
 
   setTimeout(() => calculateIterations(), 500)
 }
@@ -998,17 +1509,20 @@ function addSaveAutoFillSelectionListener(parameterCount) {
 
   });
 }
-// Dynamically change html body size 
+// Dynamically change popup size — set on both html (Chrome) and body (Firefox) so the popup shrinks back
 function addTabEventListeners() {
   document.querySelector("#reports-tab").addEventListener("click", function () {
+    document.documentElement.style.width = '720px'
     document.body.style.width = '720px'
   })
 
   document.querySelector("#home-tab").addEventListener("click", function () {
+    document.documentElement.style.width = '560px'
     document.body.style.width = '560px'
   })
 
   document.querySelector("#profile-tab").addEventListener("click", function () {
+    document.documentElement.style.width = '560px'
     document.body.style.width = '560px'
   })
 }
@@ -1092,9 +1606,25 @@ function calculateIterations() {
   };
 
   if (isIterationValid) {
+    if (_wfaActive) {
+      const windows = parseInt(document.getElementById("wfaWindows").value) || 0
+      if (windows >= 2) {
+        totalIterations *= windows
+      }
+    }
     iterationValue.innerText = totalIterations
   } else {
     iterationValue.innerText = "-"
+  }
+
+  // parallel-run warning: only surface it for a big WFA run, where a second tab is the ban risk
+  const parallelWarning = document.getElementById("wfaParallelWarning")
+  if (parallelWarning != null) {
+    if (isIterationValid && _wfaActive && totalIterations > 1500) {
+      parallelWarning.style.display = ""
+    } else {
+      parallelWarning.style.display = "none"
+    }
   }
 }
 
@@ -1215,6 +1745,28 @@ function UpdateStrategyReportRow(strategyId, maxProfit) {
     }
   })
   row = document.querySelector(`[data-uniqueid*='${strategyId}']`)
+  flashUpdatedRow(row)
+}
+
+// WFA sibling of UpdateStrategyReportRow — refresh one parent's row (aggregates) as its windows land
+function UpdateWfaReportRow(parent) {
+  let row = document.querySelector(`#wfa-reports-pane [data-uniqueid*='${parent.wfaID}']`)
+  if (row == null) {
+    // first ping before the row exists → build the table from scratch
+    createWfaReportTable()
+    return
+  }
+
+  const agg = wfaAggregates(parent)
+  let $wfaTable = $('#wfaTable')
+  $wfaTable.bootstrapTable('updateByUniqueId', {
+    id: parent.wfaID,
+    row: {
+      "profitable": agg.profitable,
+      "wfe": agg.wfe
+    }
+  })
+  row = document.querySelector(`#wfa-reports-pane [data-uniqueid*='${parent.wfaID}']`)
   flashUpdatedRow(row)
 }
 
@@ -1381,6 +1933,11 @@ var TimeFrameMap = new Map([
 
 //#region Helpers
 
+// aggregate helpers (mirror wfa-reportdetail.js so the list row matches the detail page)
+function parseProfit(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, "")) || 0 }
+function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length }
+function fmtSignedPct(v) { return (v >= 0 ? "+" : "") + v.toFixed(1) + "%" }
+
 function isSameStrategy(keyA, keyB) {
   if (!keyA || !keyB) return false
   return keyA.split('::')[0] === keyB.split('::')[0]
@@ -1414,13 +1971,28 @@ function showWithTransition(el, displayType = "block") {
   // Force reflow to kick off transition
   void el.offsetWidth;
 
-  el.classList.add("show");
+  el.classList.add("is-shown");
 }
 
 // hideElement along with transition class
 function hideElement(el) {
-  el.classList.remove("show", "with-transition");
+  el.classList.remove("is-shown", "with-transition");
   el.style.display = "none";
+}
+
+// fade element out, then hide once the transition finishes
+function hideWithTransition(el) {
+  if (el.style.display === "none") return;
+  el.classList.remove("is-shown");
+  const done = () => {
+    el.removeEventListener("transitionend", done);
+    if (el.classList.contains("is-shown")){
+      return; // re-shown mid-fade; abort the stale hide
+    } 
+    el.style.display = "none";
+    el.classList.remove("with-transition");
+  };
+  el.addEventListener("transitionend", done);
 }
 
 
@@ -1573,12 +2145,12 @@ async function cleanupSavedStrategyInputs() {
   const settings = await getSettings();
   const maxAgeDays = settings.savedParamsCleanupAge || 90;
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
-  
+
   const allItems = await chrome.storage.local.get(null);
   const keysToDelete = Object.entries(allItems)
     .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
     .map(([key]) => key);
-  
+
   if (keysToDelete.length > 0) {
     await chrome.storage.local.remove(keysToDelete);
   }
