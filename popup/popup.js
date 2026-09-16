@@ -375,7 +375,7 @@ async function createReportTable() {
     $table.bootstrapTable('load', reportData)
 
 
-    // init tool tip 
+    // init tool tip
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     tooltipTriggerList.forEach(function (tooltipTriggerEl) {
       new bootstrap.Tooltip(tooltipTriggerEl)
@@ -443,14 +443,14 @@ function wfaAggregates(value) {
   return { avgOOS, profitable, wfe }
 }
 
-function createWfaReportTable() {
-  chrome.storage.local.get(null, function (items) {
+async function createWfaReportTable() {
+  const allKeys = await chrome.storage.local.getKeys()
+  const wfaKeys = allKeys.filter(key => key.startsWith("wfa-"))
+  chrome.storage.local.get(wfaKeys, function (items) {
     if (items == null) return
     const wfaData = []
 
-    for (const [key, value] of Object.entries(items)) {
-      if (!key.startsWith("wfa-")) continue
-
+    for (const value of Object.values(items)) {
       const date = new Date(value.created)
       const formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
       const agg = wfaAggregates(value)
@@ -2146,9 +2146,11 @@ async function cleanupSavedStrategyInputs() {
   const maxAgeDays = settings.savedParamsCleanupAge || 90;
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
 
-  const allItems = await chrome.storage.local.get(null);
-  const keysToDelete = Object.entries(allItems)
-    .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
+  const allKeys = await chrome.storage.local.getKeys();
+  const siKeys = allKeys.filter(key => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX));
+  const siItems = await chrome.storage.local.get(siKeys);
+  const keysToDelete = Object.entries(siItems)
+    .filter(([, value]) => value?.savedAt < cutoff)
     .map(([key]) => key);
 
   if (keysToDelete.length > 0) {
