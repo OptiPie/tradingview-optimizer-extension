@@ -82,10 +82,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   return false;
 });
 
-chrome.storage.local.get("report-data-" + strategyID, function (item) {
-  var report = Object.values(item)[0]
+const reportKey = "report-data-" + strategyID
+const detailKey = "report-detail-" + strategyID
+
+chrome.storage.local.get([reportKey, detailKey], function (item) {
+  var report = item[reportKey]
   var timePeriodValue = report.timePeriod
-  var values = report.reportData
+  // legacy records carry the grid inline, migrated ones keep it under report-detail-*
+  var values = report.reportData || item[detailKey]?.reportData
 
   var detailedParameters = Object.values(values)[0].detailedParameters
   var timePeriod = document.querySelector("#timePeriod")

@@ -35,6 +35,7 @@ var reportDataEventCallback = (event) => {
 // persists one report update (STARTED announces, IN_PROGRESS merges a chunk, FINISHED closes out)
 async function persistReportData(report) {
   const reportKey = "report-data-" + report.strategyID;
+  const detailKey = "report-detail-" + report.strategyID;
   const status = report.status;
   const isFinal = report.isFinal
   const newRow = report.reportData;
@@ -49,30 +50,32 @@ async function persistReportData(report) {
   if (status === "IN_PROGRESS") {
     // Merge each chunk into the existing reportData object, or initialize if missing/empty
     if (!(newRow && Object.keys(newRow).length > 0)) return;
-    const items = await chrome.storage.local.get([reportKey]);
+    const items = await chrome.storage.local.get([reportKey, detailKey]);
     let existingReport = items[reportKey];
+    let existingData = items[detailKey]?.reportData;
 
     if (existingReport) {
-      let existingData = existingReport.reportData;
-      // If existingData is a non‐empty object, merge newRow into it
-      if (existingData && Object.keys(existingData).length > 0) {
-        existingReport.reportData = { ...existingData, ...newRow };
-        existingReport.maxProfit = report.maxProfit
-      } else {
-        // If empty or undefined, just take newRow as the base
-        existingReport.reportData = { ...newRow };
-        existingReport.maxProfit = report.maxProfit
-      }
+      existingReport.maxProfit = report.maxProfit
     } else {
-      // No report yet → initialize with the full incoming report object
-      existingReport = report;
+      // No report yet → initialize from the incoming report object
+      existingReport = { ...report };
+    }
+    delete existingReport.reportData;
+
+    // If existingData is a non‐empty object, merge newRow into it
+    let mergedData = { ...newRow };
+    if (existingData && Object.keys(existingData).length > 0) {
+      mergedData = { ...existingData, ...newRow };
     }
 
     const now = Date.now();
     existingReport.lastUpdated = now;
     report.lastUpdated = now;
 
-    await chrome.storage.local.set({ [reportKey]: existingReport });
+    await chrome.storage.local.set({
+      [detailKey]: { strategyID: report.strategyID, reportData: mergedData },
+      [reportKey]: existingReport
+    });
 
     chrome.runtime.sendMessage({
       popupAction: { event: "reportUpdated", message: { report: report } }
