@@ -15,6 +15,8 @@ if (params.embedded) {
 var reportDetailData = [], reportDetailDataCSV = []
 var $table = $('#table')
 let progressSpinnerInterval = null
+// one report carries one structure throughout, so this holds for the whole page
+let isDeprecatedReportData = false
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -60,11 +62,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
               "averageTradePercent": value?.averageTrade.percent,
               "avgerageBarsInTrades": value?.avgerageBarsInTrades,
             }
-            let reportDetailCSV = { ...reportDetail }
+            let reportDetailCSV = toCsvRow(reportDetail, value.detailedParameters)
             value.detailedParameters.forEach((element, index) => {
               index += 1
               reportDetail['parameter' + index] = element.value
-              reportDetailCSV[element.name] = element.value
             });
             reportDetailData.push(reportDetail)
             reportDetailDataCSV.push(reportDetailCSV)
@@ -103,8 +104,6 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
   // identity pills (Asset · Strategy) — timeframe pill reuses #timePeriod above
   document.getElementById("reportSymbol").textContent = report.symbol ?? ""
   document.getElementById("reportStrategy").textContent = report.strategyName ?? ""
-  let isDeprecatedReportData = false;
-
   // Show progress spinner immediately on page load
   updateProgressSpinner(report)
 
@@ -134,11 +133,10 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
       "averageTradePercent": value?.averageTrade.percent,
       "avgerageBarsInTrades": value?.avgerageBarsInTrades,
     }
-    let reportDetailCSV = { ...reportDetail }
+    let reportDetailCSV = toCsvRow(reportDetail, value.detailedParameters)
     value.detailedParameters.forEach((element, index) => {
       index += 1
       reportDetail['parameter' + index] = element.value
-      reportDetailCSV[element.name] = element.value
     });
     reportDetailData.push(reportDetail)
     reportDetailDataCSV.push(reportDetailCSV)
@@ -176,6 +174,65 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
     downloadCSVReport(reportDetailDataCSV)
   })
 });
+
+// amount fields that carry the account currency appended by the report builder
+const CSV_AMOUNT_FIELDS = ["netProfitAmount", "maxDrawdownAmount", "averageTradeAmount"]
+
+// fields only old reports carry, dropped from the export when the report has none
+const CSV_LEGACY_FIELDS = ["averageTradeAmount", "averageTradePercent", "avgerageBarsInTrades"]
+
+// swaps tradingview's unicode minus for a plain one and drops the leading plus
+function normalizeSigns(value) {
+  if (typeof value !== "string") {
+    return value
+  }
+  let text = value.split("−").join("-")
+  if (text.startsWith("+")) {
+    text = text.slice(1)
+  }
+  return text
+}
+
+// splits "6,420.00 USD" into its amount and its currency code
+function splitCurrency(value) {
+  if (typeof value !== "string") {
+    return { amount: value, currency: "" }
+  }
+  let lastSpace = value.lastIndexOf(" ")
+  if (lastSpace === -1) {
+    return { amount: value, currency: "" }
+  }
+  return { amount: value.slice(0, lastSpace), currency: value.slice(lastSpace + 1) }
+}
+
+// builds the CSV row from a table row, with plain signs and the currency in its own column
+function toCsvRow(reportDetail, detailedParameters) {
+  let currency = ""
+  let csvRow = { "parameters": reportDetail.parameters }
+
+  detailedParameters.forEach(element => {
+    csvRow[element.name] = element.value
+  })
+  csvRow.currency = ""
+
+  for (const [field, value] of Object.entries(reportDetail)) {
+    if (field === "parameters") {
+      continue
+    }
+    let csvValue = normalizeSigns(value)
+    if (CSV_AMOUNT_FIELDS.includes(field)) {
+      let parts = splitCurrency(csvValue)
+      csvValue = parts.amount
+      if (parts.currency !== "") {
+        currency = parts.currency
+      }
+    }
+    csvRow[field] = csvValue
+  }
+
+  csvRow.currency = currency
+  return csvRow
+}
 
 // renders a derived metric for the table, dashed when undefined or saved before the metric existed
 function formatMetric(value) {
@@ -228,7 +285,8 @@ function updateUserUI() {
 
 function downloadCSVReport(reportDetailData) {
   const csv = convertReportToCSV(reportDetailData)
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  // byte order mark so excel reads the file as utf-8 instead of mangling it
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement('a')
@@ -239,7 +297,11 @@ function downloadCSVReport(reportDetailData) {
 }
 
 function convertReportToCSV(reportDetailData) {
-  const keys = Object.keys(reportDetailData[0]);
+  let keys = Object.keys(reportDetailData[0]);
+  // tradingview stopped providing these, so only reports that still carry them export them
+  if (!isDeprecatedReportData) {
+    keys = keys.filter(key => !CSV_LEGACY_FIELDS.includes(key))
+  }
   var result = keys.map((key) => {
     return key.toUpperCase();
   }).join(",") + "\n";
