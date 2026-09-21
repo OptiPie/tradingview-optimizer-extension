@@ -621,6 +621,9 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
                 amount: 0,
                 percent: ""
             },
+            romad: null,
+            expectancy: null,
+            payoffRatio: null,
             averageTrade: {
                 amount: 0,
                 percent: ""
@@ -1020,6 +1023,7 @@ function ReportBuilder(reportData) {
     //2. 
     reportData.maxDrawdown.amount = reportDataSelector[1].querySelector(valueSelector)?.innerText + ' ' + reportDataSelector[1].querySelector(currencySelector)?.innerText
     reportData.maxDrawdown.percent = reportDataSelector[1].querySelector(changeSelector)?.innerText
+    reportData.romad = calculateRoMaD(reportData.netProfit.amount, reportData.maxDrawdown.amount)
     //3.
     let rawProfitableTrades = reportDataSelector[2].querySelector(changeSelector)?.innerText
     reportData.closedTrades = rawProfitableTrades?.includes('/') ? rawProfitableTrades.split('/')[1].trim() : rawProfitableTrades
@@ -1027,6 +1031,8 @@ function ReportBuilder(reportData) {
     reportData.percentProfitable = reportDataSelector[2].querySelector(valueSelector)?.innerText
     //4.
     reportData.profitFactor = reportDataSelector[3].querySelector(valueSelector)?.innerText
+    reportData.expectancy = calculateExpectancy(reportData.netProfit.amount, reportData.closedTrades)
+    reportData.payoffRatio = calculatePayoffRatio(reportData.profitFactor, reportData.percentProfitable)
 
     //5. Deprecated
     //reportData.averageTrade.amount = reportDataSelector[5].querySelector(valueSelector).innerText + ' ' + reportDataSelector[5].querySelector(currencySelector).innerText
@@ -1085,6 +1091,50 @@ function parseProfitAmount(text) {
     s = s.split(seps.decimal).join(".")
     s = s.replace(/[^0-9.\-]/g, "")
     return Number(s)
+}
+
+// calculates return over maximum drawdown from the two amounts, null when drawdown is zero
+function calculateRoMaD(netProfitAmount, maxDrawdownAmount) {
+    if (!hasDigits(netProfitAmount)) {
+        return null
+    }
+    let profit = parseProfitAmount(netProfitAmount)
+    let drawdown = Math.abs(parseProfitAmount(maxDrawdownAmount))
+    if (isNaN(profit) || isNaN(drawdown) || drawdown === 0) {
+        return null
+    }
+    return fixPrecision(profit / drawdown, 2)
+}
+
+// reports whether a scraped value holds any digit, guarding against placeholders like infinity
+function hasDigits(text) {
+    return /\d/.test(String(text))
+}
+
+// calculates profit and loss per closed trade, null when there are no trades
+function calculateExpectancy(netProfitAmount, closedTrades) {
+    if (!hasDigits(netProfitAmount) || !hasDigits(closedTrades)) {
+        return null
+    }
+    let profit = parseProfitAmount(netProfitAmount)
+    let trades = parseProfitAmount(closedTrades)
+    if (isNaN(profit) || isNaN(trades) || trades === 0) {
+        return null
+    }
+    return fixPrecision(profit / trades, 2)
+}
+
+// calculates average win over average loss from profit factor and win rate, null when undefined
+function calculatePayoffRatio(profitFactor, percentProfitable) {
+    if (!hasDigits(profitFactor) || !hasDigits(percentProfitable)) {
+        return null
+    }
+    let factor = parseProfitAmount(profitFactor)
+    let winRate = parseProfitAmount(percentProfitable) / 100
+    if (isNaN(factor) || isNaN(winRate) || winRate <= 0 || winRate >= 1) {
+        return null
+    }
+    return fixPrecision(factor * (1 - winRate) / winRate, 2)
 }
 
 // isFloat to check whether given number is float or not

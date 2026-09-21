@@ -53,6 +53,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
               "closedTrades": value.closedTrades,
               "percentProfitable": value.percentProfitable,
               "profitFactor": value.profitFactor,
+              "romad": formatMetric(value.romad),
+              "expectancy": formatMetric(value.expectancy),
+              "payoffRatio": formatMetric(value.payoffRatio),
               "averageTradeAmount": value?.averageTrade.amount,
               "averageTradePercent": value?.averageTrade.percent,
               "avgerageBarsInTrades": value?.avgerageBarsInTrades,
@@ -86,6 +89,9 @@ const reportKey = "report-data-" + strategyID
 const detailKey = "report-detail-" + strategyID
 
 chrome.storage.local.get([reportKey, detailKey], function (item) {
+  // bootstrap-table silently ignores method calls before it auto-inits on ready
+  $table.bootstrapTable()
+
   var report = item[reportKey]
   var timePeriodValue = report.timePeriod
   // legacy records carry the grid inline, migrated ones keep it under report-detail-*
@@ -121,6 +127,9 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
       "closedTrades": value.closedTrades,
       "percentProfitable": value.percentProfitable,
       "profitFactor": value.profitFactor,
+      "romad": formatMetric(value.romad),
+      "expectancy": formatMetric(value.expectancy),
+      "payoffRatio": formatMetric(value.payoffRatio),
       "averageTradeAmount": value?.averageTrade.amount,
       "averageTradePercent": value?.averageTrade.percent,
       "avgerageBarsInTrades": value?.avgerageBarsInTrades,
@@ -158,6 +167,8 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
       document.querySelector(`input[data-field='${parameterName}']`).nextElementSibling.innerText = detailedParameter.name
       document.querySelector(`input[data-field='${parameterName}']`).parentElement.style.display = 'block'
     });
+    // header info tooltips, initialized last since showColumn rebuilds the header markup
+    document.querySelectorAll('#table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el))
   }, 250);
   const $downloadReportButton = $('#download-report')
 
@@ -165,6 +176,14 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
     downloadCSVReport(reportDetailDataCSV)
   })
 });
+
+// renders a derived metric for the table, dashed when undefined or saved before the metric existed
+function formatMetric(value) {
+  if (value === null || value === undefined) {
+    return "—"
+  }
+  return String(value)
+}
 
 // hides all drop down parameters initially
 function hideDropDownParameters() {
