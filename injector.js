@@ -2,7 +2,8 @@
 var InjectResult = {
   Injected: "Injected",
   NoDialog: "NoDialog",
-  StrategyMismatch: "StrategyMismatch"
+  StrategyMismatch: "StrategyMismatch",
+  RightToLeft: "RightToLeft"
 }
 
 var injectResult = InjectScriptIntoDOM()
@@ -231,10 +232,22 @@ if (injectResult === InjectResult.Injected) {
       content: "Error Optimization - Strategy Tester doesn't match the open settings"
     }
   });
+} else if (injectResult === InjectResult.RightToLeft) {
+  chrome.runtime.sendMessage({
+    notify: {
+      type: "warning",
+      content: "Error Optimization - Right to left languages are not supported, switch Tradingview.com language"
+    }
+  });
 }
 
 //Inject script into DOM to get access to React Props
 function InjectScriptIntoDOM() {
+  // right to left languages mirror the dom and the selectors no longer resolve
+  if (getComputedStyle(document.documentElement).direction === "rtl") {
+    return InjectResult.RightToLeft
+  }
+
   //Is TradingView Strategy Settings window opened validation
   if (document.querySelectorAll("div[data-name=indicator-properties-dialog]").length < 1) {
     return InjectResult.NoDialog

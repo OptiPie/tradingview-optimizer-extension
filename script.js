@@ -474,7 +474,8 @@ function prepareInitialReport() {
         "maxProfit": bestResult.profit, // NOT READY
         "reportData": [], // NOT READY
         "status": "STARTED",
-        "dateRange": dateRange // solely for analytics
+        "dateRange": dateRange, // solely for analytics
+        "separators": getLocaleSeparators() // tradingview's number format, for rendering and sorting later
     }
 
     // enrich as a WFA child when a window is running (classic leaves wfaContext null)

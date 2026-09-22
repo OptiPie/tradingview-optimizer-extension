@@ -17,6 +17,8 @@ var $table = $('#table')
 let progressSpinnerInterval = null
 // one report carries one structure throughout, so this holds for the whole page
 let isDeprecatedReportData = false
+// tradingview's number format for this report, legacy records predate it and default to en
+let reportSeparators = { group: ",", decimal: "." }
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -94,6 +96,9 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
   $table.bootstrapTable()
 
   var report = item[reportKey]
+  if (report.separators != null) {
+    reportSeparators = report.separators
+  }
   var timePeriodValue = report.timePeriod
   // legacy records carry the grid inline, migrated ones keep it under report-detail-*
   var values = report.reportData || item[detailKey]?.reportData
@@ -234,12 +239,12 @@ function toCsvRow(reportDetail, detailedParameters) {
   return csvRow
 }
 
-// renders a derived metric for the table, dashed when undefined or saved before the metric existed
+// renders a derived metric in the report's own number format, dashed when it has none
 function formatMetric(value) {
   if (value === null || value === undefined) {
     return "—"
   }
-  return String(value)
+  return String(value).split(".").join(reportSeparators.decimal)
 }
 
 // hides all drop down parameters initially
@@ -321,25 +326,39 @@ function convertReportToCSV(reportDetailData) {
   return result;
 }
 
-// CustomSort function to handle non numeric chars and dash/hyphen confusion
+// parses a table value using the report's own number format, NaN when it holds no digits
+function parseValue(text) {
+  let s = String(text)
+  if (!/\d/.test(s)) {
+    return NaN
+  }
+  s = s.replace("−", "-")
+  s = s.split(reportSeparators.group).join("")
+  s = s.split(reportSeparators.decimal).join(".")
+  s = s.replace(/[^0-9.\-]/g, "")
+  return Number(s)
+}
+
+// CustomSort function to handle the report's own number format and dash/hyphen confusion
 function customSort(sortName, sortOrder, data) {
   var order = sortOrder === 'desc' ? -1 : 1
   data.sort(function (a, b) {
-    var aa = ""
-    var bb = ""
-    // Check if number is negative with regex, rebuild and remove non-numeric chars
-    if (a[sortName].charAt(0).match(/\D/) != null && a[sortName].charAt(0) != '+') {
-      aa = '-' + a[sortName].substring(1, a[sortName].length)
-      aa = +((aa + '').replace(/[^0-9.-]+/g, ""))
-    } else {
-      aa = +((a[sortName] + '').replace(/[^0-9.-]+/g, ""))
+    var aText = String(a[sortName])
+    var bText = String(b[sortName])
+
+    // columns holding no digits at all, like selectable parameters, sort as text
+    if (!/\d/.test(aText) && !/\d/.test(bText)) {
+      return aText.localeCompare(bText) * order
     }
 
-    if (b[sortName].charAt(0).match(/\D/) != null && b[sortName].charAt(0) != '+') {
-      bb = '-' + b[sortName].substring(1, b[sortName].length)
-      bb = +((bb + '').replace(/[^0-9.-]+/g, ""))
-    } else {
-      bb = +((b[sortName] + '').replace(/[^0-9.-]+/g, ""))
+    var aa = parseValue(aText)
+    var bb = parseValue(bText)
+    // dashed values carry no number, keep them together at one end
+    if (isNaN(aa)) {
+      aa = -Infinity
+    }
+    if (isNaN(bb)) {
+      bb = -Infinity
     }
 
     if (aa < bb) {
