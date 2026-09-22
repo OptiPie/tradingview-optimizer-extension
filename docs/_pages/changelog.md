@@ -4,6 +4,20 @@ title: "News"
 ---
 
 ## What's New!
+### Version: v2.1.0
+
+> **Open faster, decide better.**
+
+- **Three new metrics** on the report detail page.
+  - **RoMaD**, net profit over maximum drawdown.
+  - **Expectancy**, average profit or loss per trade.
+  - **Payoff Ratio**, average win against average loss.
+- **Blazing fast Reports tab.** No more waiting on the extension. Reports open the moment you click, however many you have saved.
+- **Reports using different number formats now work as expected**, including sorting correctly on profit, drawdown and every other column.
+- **Cleaner CSV export.** Currency has its own column, parameter columns come first, and negative values use a plain minus sign.
+- General small bug fixes.
+
+## Previous Updates
 ### Version: v2.0.0
 
 > The biggest update OptiPie has seen so far. **Backtests, stronger than ever with Walk-Forward Analysis.**
