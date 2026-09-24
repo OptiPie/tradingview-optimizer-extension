@@ -16,6 +16,12 @@ let _autoFillBusy = false;
 let _currentStrategyKey = null;
 // storage key prefix for per-strategy saved inputs
 const STRATEGY_INPUTS_KEY_PREFIX = 'si::'
+// storage key prefix for optimization reports — the rest of the key is the creation timestamp
+const REPORT_DATA_KEY_PREFIX = 'report-data-'
+// storage key prefix for the optimization grid split out of the report record
+const REPORT_DETAIL_KEY_PREFIX = 'report-detail-'
+// reports fetched per storage round trip while building the report table
+const REPORT_SLICE_SIZE = 25
 // storage key for last used inputs fallback
 const LAST_USED_INPUTS_KEY = 'lastUsedInputs'
 // flag to track wfa mode
@@ -346,41 +352,68 @@ addRefreshDataEventListener()
 async function createReportTable() {
   await sleep(200)
 
-  chrome.storage.local.get(null, function (items) {
-    var reportData = []
+  const allKeys = await chrome.storage.local.getKeys()
+  const reportKeys = allKeys.filter(key => key.startsWith(REPORT_DATA_KEY_PREFIX))
+  // grids already split out, so migration resumes where it left off
+  const detailKeys = new Set(allKeys.filter(key => key.startsWith(REPORT_DETAIL_KEY_PREFIX)))
 
-    if (items == null) {
-      return
-    }
+  var reportData = []
 
-    for (const [key, value] of Object.entries(items)) {
-      if (key.startsWith("report-data-") && value.type !== "wfa") {
-        var date = new Date(value.created)
-        var formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
-        var report = {
-          "strategyID": value.strategyID,
-          "strategyName": value.strategyName,
-          "date": formattedDate,
-          "symbol": value.symbol,
-          "timePeriod": value.timePeriod,
-          "parameters": value.parameters,
-          "maxProfit": value.maxProfit,
-          "detail": reportDetailHtml(value.strategyID)
-        }
-        reportData.push(report)
+  // fetch in slices so a large store never deserializes in one blocking go
+  for (let i = 0; i < reportKeys.length; i += REPORT_SLICE_SIZE) {
+    const items = await chrome.storage.local.get(reportKeys.slice(i, i + REPORT_SLICE_SIZE))
+
+    for (const value of Object.values(items)) {
+      if (value.reportData != null && !detailKeys.has(REPORT_DETAIL_KEY_PREFIX + value.strategyID)) {
+        migrateReportRecord(value)
       }
+
+      if (value.type === "wfa") {
+        continue
+      }
+      var date = new Date(value.created)
+      var formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
+      var report = {
+        "strategyID": value.strategyID,
+        "strategyName": value.strategyName,
+        "date": formattedDate,
+        "symbol": value.symbol,
+        "timePeriod": value.timePeriod,
+        "parameters": value.parameters,
+        "maxProfit": value.maxProfit,
+        "detail": reportDetailHtml(value.strategyID)
+      }
+      reportData.push(report)
     }
-    var $table = $('#table')
-    $table.bootstrapTable({ data: reportData })
-    $table.bootstrapTable('load', reportData)
+  }
 
+  var $table = $('#table')
+  $table.bootstrapTable({ data: reportData })
+  $table.bootstrapTable('load', reportData)
 
-    // init tool tip 
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-      new bootstrap.Tooltip(tooltipTriggerEl)
-    });
+  // init tool tip
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+    new bootstrap.Tooltip(tooltipTriggerEl)
   });
+}
+
+// moves a report's grid into its own report-detail-* key and drops it from the report record
+async function migrateReportRecord(value) {
+  const thin = { ...value }
+  delete thin.reportData
+
+  try {
+    await chrome.storage.local.set({
+      [REPORT_DETAIL_KEY_PREFIX + value.strategyID]: {
+        strategyID: value.strategyID,
+        reportData: value.reportData
+      },
+      [REPORT_DATA_KEY_PREFIX + value.strategyID]: thin
+    })
+  } catch (e) {
+    console.log(e)
+  }
 }
 
 function reportDetailHtml(strategyID) {
@@ -443,14 +476,14 @@ function wfaAggregates(value) {
   return { avgOOS, profitable, wfe }
 }
 
-function createWfaReportTable() {
-  chrome.storage.local.get(null, function (items) {
+async function createWfaReportTable() {
+  const allKeys = await chrome.storage.local.getKeys()
+  const wfaKeys = allKeys.filter(key => key.startsWith("wfa-"))
+  chrome.storage.local.get(wfaKeys, function (items) {
     if (items == null) return
     const wfaData = []
 
-    for (const [key, value] of Object.entries(items)) {
-      if (!key.startsWith("wfa-")) continue
-
+    for (const value of Object.values(items)) {
       const date = new Date(value.created)
       const formattedDate = (date.getMonth() + 1).toString() + '/' + date.getDate() + '/' + date.getFullYear() + ' ' + ("0" + date.getHours()).slice(-2) + ':' + ("0" + date.getMinutes()).slice(-2)
       const agg = wfaAggregates(value)
@@ -530,7 +563,7 @@ window.openReportDetail = {
   // Remove Report from both storage and table
   'click #remove-report': function (e, value, row, index) {
     var $table = $('#table')
-    chrome.storage.local.remove(["report-data-" + row.strategyID])
+    chrome.storage.local.remove([REPORT_DATA_KEY_PREFIX + row.strategyID, REPORT_DETAIL_KEY_PREFIX + row.strategyID])
     $table.bootstrapTable('remove', {
       field: 'strategyID',
       values: [row.strategyID]
@@ -553,10 +586,12 @@ window.openWfaDetail = {
     if (parent && parent.windows) {
       Object.values(parent.windows).forEach(w => {
         if (w.is && w.is.reportID) {
-          keys.push("report-data-" + w.is.reportID)
+          keys.push(REPORT_DATA_KEY_PREFIX + w.is.reportID)
+          keys.push(REPORT_DETAIL_KEY_PREFIX + w.is.reportID)
         }
         if (w.oos && w.oos.reportID) {
-          keys.push("report-data-" + w.oos.reportID)
+          keys.push(REPORT_DATA_KEY_PREFIX + w.oos.reportID)
+          keys.push(REPORT_DETAIL_KEY_PREFIX + w.oos.reportID)
         }
       })
     }
@@ -2146,9 +2181,11 @@ async function cleanupSavedStrategyInputs() {
   const maxAgeDays = settings.savedParamsCleanupAge || 90;
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
 
-  const allItems = await chrome.storage.local.get(null);
-  const keysToDelete = Object.entries(allItems)
-    .filter(([key, value]) => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX) && value?.savedAt < cutoff)
+  const allKeys = await chrome.storage.local.getKeys();
+  const siKeys = allKeys.filter(key => key.startsWith(STRATEGY_INPUTS_KEY_PREFIX));
+  const siItems = await chrome.storage.local.get(siKeys);
+  const keysToDelete = Object.entries(siItems)
+    .filter(([, value]) => value?.savedAt < cutoff)
     .map(([key]) => key);
 
   if (keysToDelete.length > 0) {
