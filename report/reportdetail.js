@@ -15,6 +15,10 @@ if (params.embedded) {
 var reportDetailData = [], reportDetailDataCSV = []
 var $table = $('#table')
 let progressSpinnerInterval = null
+// one report carries one structure throughout, so this holds for the whole page
+let isDeprecatedReportData = false
+// tradingview's number format for this report, legacy records predate it and default to en
+let reportSeparators = { group: ",", decimal: "." }
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -53,15 +57,17 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
               "closedTrades": value.closedTrades,
               "percentProfitable": value.percentProfitable,
               "profitFactor": value.profitFactor,
+              "romad": formatMetric(value.romad),
+              "expectancy": formatMetric(value.expectancy),
+              "payoffRatio": formatMetric(value.payoffRatio),
               "averageTradeAmount": value?.averageTrade.amount,
               "averageTradePercent": value?.averageTrade.percent,
               "avgerageBarsInTrades": value?.avgerageBarsInTrades,
             }
-            let reportDetailCSV = { ...reportDetail }
+            let reportDetailCSV = toCsvRow(reportDetail, value.detailedParameters)
             value.detailedParameters.forEach((element, index) => {
               index += 1
               reportDetail['parameter' + index] = element.value
-              reportDetailCSV[element.name] = element.value
             });
             reportDetailData.push(reportDetail)
             reportDetailDataCSV.push(reportDetailCSV)
@@ -82,10 +88,20 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   return false;
 });
 
-chrome.storage.local.get("report-data-" + strategyID, function (item) {
-  var report = Object.values(item)[0]
+const reportKey = "report-data-" + strategyID
+const detailKey = "report-detail-" + strategyID
+
+chrome.storage.local.get([reportKey, detailKey], function (item) {
+  // bootstrap-table silently ignores method calls before it auto-inits on ready
+  $table.bootstrapTable()
+
+  var report = item[reportKey]
+  if (report.separators != null) {
+    reportSeparators = report.separators
+  }
   var timePeriodValue = report.timePeriod
-  var values = report.reportData
+  // legacy records carry the grid inline, migrated ones keep it under report-detail-*
+  var values = report.reportData || item[detailKey]?.reportData
 
   var detailedParameters = Object.values(values)[0].detailedParameters
   var timePeriod = document.querySelector("#timePeriod")
@@ -93,8 +109,6 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
   // identity pills (Asset · Strategy) — timeframe pill reuses #timePeriod above
   document.getElementById("reportSymbol").textContent = report.symbol ?? ""
   document.getElementById("reportStrategy").textContent = report.strategyName ?? ""
-  let isDeprecatedReportData = false;
-
   // Show progress spinner immediately on page load
   updateProgressSpinner(report)
 
@@ -117,15 +131,17 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
       "closedTrades": value.closedTrades,
       "percentProfitable": value.percentProfitable,
       "profitFactor": value.profitFactor,
+      "romad": formatMetric(value.romad),
+      "expectancy": formatMetric(value.expectancy),
+      "payoffRatio": formatMetric(value.payoffRatio),
       "averageTradeAmount": value?.averageTrade.amount,
       "averageTradePercent": value?.averageTrade.percent,
       "avgerageBarsInTrades": value?.avgerageBarsInTrades,
     }
-    let reportDetailCSV = { ...reportDetail }
+    let reportDetailCSV = toCsvRow(reportDetail, value.detailedParameters)
     value.detailedParameters.forEach((element, index) => {
       index += 1
       reportDetail['parameter' + index] = element.value
-      reportDetailCSV[element.name] = element.value
     });
     reportDetailData.push(reportDetail)
     reportDetailDataCSV.push(reportDetailCSV)
@@ -154,6 +170,8 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
       document.querySelector(`input[data-field='${parameterName}']`).nextElementSibling.innerText = detailedParameter.name
       document.querySelector(`input[data-field='${parameterName}']`).parentElement.style.display = 'block'
     });
+    // header info tooltips, initialized last since showColumn rebuilds the header markup
+    document.querySelectorAll('#table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el))
   }, 250);
   const $downloadReportButton = $('#download-report')
 
@@ -161,6 +179,73 @@ chrome.storage.local.get("report-data-" + strategyID, function (item) {
     downloadCSVReport(reportDetailDataCSV)
   })
 });
+
+// amount fields that carry the account currency appended by the report builder
+const CSV_AMOUNT_FIELDS = ["netProfitAmount", "maxDrawdownAmount", "averageTradeAmount"]
+
+// fields only old reports carry, dropped from the export when the report has none
+const CSV_LEGACY_FIELDS = ["averageTradeAmount", "averageTradePercent", "avgerageBarsInTrades"]
+
+// swaps tradingview's unicode minus for a plain one and drops the leading plus
+function normalizeSigns(value) {
+  if (typeof value !== "string") {
+    return value
+  }
+  let text = value.split("−").join("-")
+  if (text.startsWith("+")) {
+    text = text.slice(1)
+  }
+  return text
+}
+
+// splits "6,420.00 USD" into its amount and its currency code
+function splitCurrency(value) {
+  if (typeof value !== "string") {
+    return { amount: value, currency: "" }
+  }
+  let lastSpace = value.lastIndexOf(" ")
+  if (lastSpace === -1) {
+    return { amount: value, currency: "" }
+  }
+  return { amount: value.slice(0, lastSpace), currency: value.slice(lastSpace + 1) }
+}
+
+// builds the CSV row from a table row, with plain signs and the currency in its own column
+function toCsvRow(reportDetail, detailedParameters) {
+  let currency = ""
+  let csvRow = { "parameters": reportDetail.parameters }
+
+  detailedParameters.forEach(element => {
+    csvRow[element.name] = element.value
+  })
+  csvRow.currency = ""
+
+  for (const [field, value] of Object.entries(reportDetail)) {
+    if (field === "parameters") {
+      continue
+    }
+    let csvValue = normalizeSigns(value)
+    if (CSV_AMOUNT_FIELDS.includes(field)) {
+      let parts = splitCurrency(csvValue)
+      csvValue = parts.amount
+      if (parts.currency !== "") {
+        currency = parts.currency
+      }
+    }
+    csvRow[field] = csvValue
+  }
+
+  csvRow.currency = currency
+  return csvRow
+}
+
+// renders a derived metric in the report's own number format, dashed when it has none
+function formatMetric(value) {
+  if (value === null || value === undefined) {
+    return "—"
+  }
+  return String(value).split(".").join(reportSeparators.decimal)
+}
 
 // hides all drop down parameters initially
 function hideDropDownParameters() {
@@ -205,7 +290,8 @@ function updateUserUI() {
 
 function downloadCSVReport(reportDetailData) {
   const csv = convertReportToCSV(reportDetailData)
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  // byte order mark so excel reads the file as utf-8 instead of mangling it
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement('a')
@@ -216,7 +302,11 @@ function downloadCSVReport(reportDetailData) {
 }
 
 function convertReportToCSV(reportDetailData) {
-  const keys = Object.keys(reportDetailData[0]);
+  let keys = Object.keys(reportDetailData[0]);
+  // tradingview stopped providing these, so only reports that still carry them export them
+  if (!isDeprecatedReportData) {
+    keys = keys.filter(key => !CSV_LEGACY_FIELDS.includes(key))
+  }
   var result = keys.map((key) => {
     return key.toUpperCase();
   }).join(",") + "\n";
@@ -236,25 +326,39 @@ function convertReportToCSV(reportDetailData) {
   return result;
 }
 
-// CustomSort function to handle non numeric chars and dash/hyphen confusion
+// parses a table value using the report's own number format, NaN when it holds no digits
+function parseValue(text) {
+  let s = String(text)
+  if (!/\d/.test(s)) {
+    return NaN
+  }
+  s = s.replace("−", "-")
+  s = s.split(reportSeparators.group).join("")
+  s = s.split(reportSeparators.decimal).join(".")
+  s = s.replace(/[^0-9.\-]/g, "")
+  return Number(s)
+}
+
+// CustomSort function to handle the report's own number format and dash/hyphen confusion
 function customSort(sortName, sortOrder, data) {
   var order = sortOrder === 'desc' ? -1 : 1
   data.sort(function (a, b) {
-    var aa = ""
-    var bb = ""
-    // Check if number is negative with regex, rebuild and remove non-numeric chars
-    if (a[sortName].charAt(0).match(/\D/) != null && a[sortName].charAt(0) != '+') {
-      aa = '-' + a[sortName].substring(1, a[sortName].length)
-      aa = +((aa + '').replace(/[^0-9.-]+/g, ""))
-    } else {
-      aa = +((a[sortName] + '').replace(/[^0-9.-]+/g, ""))
+    var aText = String(a[sortName])
+    var bText = String(b[sortName])
+
+    // columns holding no digits at all, like selectable parameters, sort as text
+    if (!/\d/.test(aText) && !/\d/.test(bText)) {
+      return aText.localeCompare(bText) * order
     }
 
-    if (b[sortName].charAt(0).match(/\D/) != null && b[sortName].charAt(0) != '+') {
-      bb = '-' + b[sortName].substring(1, b[sortName].length)
-      bb = +((bb + '').replace(/[^0-9.-]+/g, ""))
-    } else {
-      bb = +((b[sortName] + '').replace(/[^0-9.-]+/g, ""))
+    var aa = parseValue(aText)
+    var bb = parseValue(bText)
+    // dashed values carry no number, keep them together at one end
+    if (isNaN(aa)) {
+      aa = -Infinity
+    }
+    if (isNaN(bb)) {
+      bb = -Infinity
     }
 
     if (aa < bb) {

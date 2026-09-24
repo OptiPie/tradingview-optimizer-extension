@@ -2,7 +2,8 @@
 var InjectResult = {
   Injected: "Injected",
   NoDialog: "NoDialog",
-  StrategyMismatch: "StrategyMismatch"
+  StrategyMismatch: "StrategyMismatch",
+  RightToLeft: "RightToLeft"
 }
 
 var injectResult = InjectScriptIntoDOM()
@@ -35,6 +36,7 @@ var reportDataEventCallback = (event) => {
 // persists one report update (STARTED announces, IN_PROGRESS merges a chunk, FINISHED closes out)
 async function persistReportData(report) {
   const reportKey = "report-data-" + report.strategyID;
+  const detailKey = "report-detail-" + report.strategyID;
   const status = report.status;
   const isFinal = report.isFinal
   const newRow = report.reportData;
@@ -49,30 +51,32 @@ async function persistReportData(report) {
   if (status === "IN_PROGRESS") {
     // Merge each chunk into the existing reportData object, or initialize if missing/empty
     if (!(newRow && Object.keys(newRow).length > 0)) return;
-    const items = await chrome.storage.local.get([reportKey]);
+    const items = await chrome.storage.local.get([reportKey, detailKey]);
     let existingReport = items[reportKey];
+    let existingData = items[detailKey]?.reportData;
 
     if (existingReport) {
-      let existingData = existingReport.reportData;
-      // If existingData is a non‐empty object, merge newRow into it
-      if (existingData && Object.keys(existingData).length > 0) {
-        existingReport.reportData = { ...existingData, ...newRow };
-        existingReport.maxProfit = report.maxProfit
-      } else {
-        // If empty or undefined, just take newRow as the base
-        existingReport.reportData = { ...newRow };
-        existingReport.maxProfit = report.maxProfit
-      }
+      existingReport.maxProfit = report.maxProfit
     } else {
-      // No report yet → initialize with the full incoming report object
-      existingReport = report;
+      // No report yet → initialize from the incoming report object
+      existingReport = { ...report };
+    }
+    delete existingReport.reportData;
+
+    // If existingData is a non‐empty object, merge newRow into it
+    let mergedData = { ...newRow };
+    if (existingData && Object.keys(existingData).length > 0) {
+      mergedData = { ...existingData, ...newRow };
     }
 
     const now = Date.now();
     existingReport.lastUpdated = now;
     report.lastUpdated = now;
 
-    await chrome.storage.local.set({ [reportKey]: existingReport });
+    await chrome.storage.local.set({
+      [detailKey]: { strategyID: report.strategyID, reportData: mergedData },
+      [reportKey]: existingReport
+    });
 
     chrome.runtime.sendMessage({
       popupAction: { event: "reportUpdated", message: { report: report } }
@@ -228,10 +232,22 @@ if (injectResult === InjectResult.Injected) {
       content: "Error Optimization - Strategy Tester doesn't match the open settings"
     }
   });
+} else if (injectResult === InjectResult.RightToLeft) {
+  chrome.runtime.sendMessage({
+    notify: {
+      type: "warning",
+      content: "Error Optimization - Right to left languages are not supported, switch Tradingview.com language"
+    }
+  });
 }
 
 //Inject script into DOM to get access to React Props
 function InjectScriptIntoDOM() {
+  // right to left languages mirror the dom and the selectors no longer resolve
+  if (getComputedStyle(document.documentElement).direction === "rtl") {
+    return InjectResult.RightToLeft
+  }
+
   //Is TradingView Strategy Settings window opened validation
   if (document.querySelectorAll("div[data-name=indicator-properties-dialog]").length < 1) {
     return InjectResult.NoDialog

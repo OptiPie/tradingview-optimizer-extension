@@ -5,11 +5,11 @@ title: "Walk-Forward Analysis"
 
 > The biggest update OptiPie has seen so far. **Backtests, stronger than ever with Walk-Forward Analysis.**
 
-Walk-Forward Analysis is here. It takes optimization one step further: instead of trusting a backtest that scored itself on data it already knew, it forces your parameters to prove themselves on price they have never seen.
+Walk-Forward Analysis is here: optimization that has to prove itself on data it has never seen.
+
+---
 
 ## What is Walk-Forward Analysis?
-
-> Optimization that has to prove itself on data it has never seen.
 
 Classic optimization runs a **grid-search**: it sweeps every parameter combination across your entire chart and keeps the best performer. The catch is built in. That "winner" was chosen because it fit the exact price history you tested it on. It is the top score on an exam the strategy already had the answer key to. Impressive in hindsight, and silent about what comes next.
 

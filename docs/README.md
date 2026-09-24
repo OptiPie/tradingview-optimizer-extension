@@ -126,7 +126,7 @@ Application logic starts with `popup.js` which is bounded to `popup.html`. When 
 
 ### Storage 
 
-Every successful optimization report is saved to `chrome.storage.local` with 'report-data-' + 'strategyId' format. 
+Every successful optimization report is saved to `chrome.storage.local` across two keys. 'report-data-' + 'strategyId' holds the report summary the Reports table renders, and 'report-detail-' + 'strategyId' holds the optimization grid keyed by parameter combination, which only the report detail page reads. Both keys are written together and removed together. 
 
 User Parameter Input values are also stored in `chrome.storage.local` for Chrome Session period. Starting new Chrome session will refresh the values. 
 
