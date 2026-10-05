@@ -19,6 +19,8 @@ let progressSpinnerInterval = null
 let isDeprecatedReportData = false
 // tradingview's number format for this report, legacy records predate it and default to en
 let reportSeparators = { group: ",", decimal: "." }
+// named parameter columns are plus-only
+let isPlusUser = false
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -91,9 +93,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 const reportKey = "report-data-" + strategyID
 const detailKey = "report-detail-" + strategyID
 
-chrome.storage.local.get([reportKey, detailKey], function (item) {
+chrome.storage.local.get([reportKey, detailKey, "isPlusUser"], function (item) {
   // bootstrap-table silently ignores method calls before it auto-inits on ready
   $table.bootstrapTable()
+  isPlusUser = item.isPlusUser === true
 
   var report = item[reportKey]
   if (report.separators != null) {
@@ -111,7 +114,6 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
   document.getElementById("reportStrategy").textContent = report.strategyName ?? ""
   // Show progress spinner immediately on page load
   updateProgressSpinner(report)
-
   progressSpinnerInterval = setInterval(() => {
     // Update progress spinner
     updateProgressSpinner(report)
@@ -121,7 +123,7 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
     if (value.averageTrade != null && value.averageTrade.amount != 0) {
       isDeprecatedReportData = true; // meaning it's old report data structure
     }
-
+    
     let reportDetail = {
       "parameters": key,
       "netProfitAmount": value.netProfit.amount,
@@ -159,17 +161,19 @@ chrome.storage.local.get([reportKey, detailKey], function (item) {
     $table.bootstrapTable('load', reportDetailData)
     $table.bootstrapTable('hideLoading')
     hideDropDownParameters()
-    detailedParameters.forEach((detailedParameter, index) => {
-      let parameterName = `parameter${index + 1}`
-      $table.bootstrapTable('showColumn', parameterName);
-      $table.bootstrapTable('updateColumnTitle', {
-        field: parameterName,
-        title: detailedParameter.name
-      })
-      // update drop down parameter names accordingly and make them visible again
-      document.querySelector(`input[data-field='${parameterName}']`).nextElementSibling.innerText = detailedParameter.name
-      document.querySelector(`input[data-field='${parameterName}']`).parentElement.style.display = 'block'
-    });
+    if (isPlusUser) {
+      detailedParameters.forEach((detailedParameter, index) => {
+        let parameterName = `parameter${index + 1}`
+        $table.bootstrapTable('showColumn', parameterName);
+        $table.bootstrapTable('updateColumnTitle', {
+          field: parameterName,
+          title: detailedParameter.name
+        })
+        // update drop down parameter names accordingly and make them visible again
+        document.querySelector(`input[data-field='${parameterName}']`).nextElementSibling.innerText = detailedParameter.name
+        document.querySelector(`input[data-field='${parameterName}']`).parentElement.style.display = 'block'
+      });
+    }
     // header info tooltips, initialized last since showColumn rebuilds the header markup
     document.querySelectorAll('#table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el))
   }, 250);
@@ -215,9 +219,11 @@ function toCsvRow(reportDetail, detailedParameters) {
   let currency = ""
   let csvRow = { "parameters": reportDetail.parameters }
 
-  detailedParameters.forEach(element => {
-    csvRow[element.name] = element.value
-  })
+  if (isPlusUser) {
+    detailedParameters.forEach(element => {
+      csvRow[element.name] = element.value
+    })
+  }
   csvRow.currency = ""
 
   for (const [field, value] of Object.entries(reportDetail)) {

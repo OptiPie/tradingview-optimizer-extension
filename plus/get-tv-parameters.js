@@ -2,7 +2,7 @@ var ParameterType = {
     Selectable: "Selectable",
     Numeric: "Numeric",
     Checkbox: "Checkbox",
-    DatePicker: "DatePicker" // not supported atm
+    Unknown: "Unknown" // not supported atm
 }
 
 // await execution 
@@ -43,19 +43,17 @@ async function getTvParameters() {
                 });
             } else if (dateParameter != null){
                 tvParameters.push({
-                    type: ParameterType.DatePicker,
+                    type: ParameterType.Unknown,
                     name: parameterName
                 });
             } else if (colorParameter != null){
-                // treat color picker as dateParameter as not supported atm
                 tvParameters.push({
-                    type: ParameterType.DatePicker,
+                    type: ParameterType.Unknown,
                     name: parameterName
                 });
             }else if (stringParameter != null){
-                // treat string parameter as dateParameter as not supported atm
                 tvParameters.push({
-                    type: ParameterType.DatePicker,
+                    type: ParameterType.Unknown,
                     name: parameterName
                 });
             }
