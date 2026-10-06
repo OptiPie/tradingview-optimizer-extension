@@ -57,6 +57,9 @@
                 class="bi bi-cloud-download"></i>
               Download
               Report</button>
+            <button type="button" class="btn btn-outline-primary float-end me-2" id="copy-combination"
+              title="Select a combination to copy" disabled><i class="bi bi-clipboard"></i>
+              Copy Combination</button>
           </div>
         </div>
       </div>
@@ -64,7 +67,7 @@
       <table id="table" data-toggle="table" data-sort-class="table-active" data-sortable="true" data-toolbar="#toolbar"
         data-toolbar-align="right" data-custom-sort="customSort" data-pagination="true" data-search="true"
         data-show-columns="true" data-search-align="left" data-buttons-align="left" data-visible-search="true"
-        data-unique-id="parameters" style="font-size: 16px;">
+        data-unique-id="parameters" data-row-style="selectedRowStyle" style="font-size: 16px;">
         <thead>
           <tr>
             <th data-field="parameters" data-sortable="true">Parameters</th>

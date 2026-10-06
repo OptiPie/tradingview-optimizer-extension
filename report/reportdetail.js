@@ -21,6 +21,8 @@ let isDeprecatedReportData = false
 let reportSeparators = { group: ",", decimal: "." }
 // named parameter columns are plus-only
 let isPlusUser = false
+// key of the row chosen for copying
+let selectedRowKey = null
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -182,7 +184,75 @@ chrome.storage.local.get([reportKey, detailKey, "isPlusUser"], function (item) {
   $downloadReportButton.click(function () {
     downloadCSVReport(reportDetailDataCSV)
   })
+
+  const $copyCombinationButton = $('#copy-combination')
+  if (report.inputsSnapshot == null) {
+    $copyCombinationButton.attr('title', 'Available on reports created with the latest version')
+  } else {
+    $table.on('click-row.bs.table', function (event, row, $element) {
+      selectedRowKey = row.parameters
+      $table.find('tr.selected-row').removeClass('selected-row')
+      $element.addClass('selected-row')
+      $copyCombinationButton.prop('disabled', false).attr('title', 'Copy the selected combination')
+    })
+    $copyCombinationButton.click(function () {
+      copySelectedCombination()
+    })
+  }
 });
+
+// copies the selected row's combination into storage as copiedCombination
+async function copySelectedCombination() {
+  if (selectedRowKey == null) {
+    return
+  }
+  const items = await chrome.storage.local.get([reportKey, detailKey])
+  let report = items[reportKey]
+  let row = items[detailKey]?.reportData?.[selectedRowKey]
+  if (report?.inputsSnapshot == null || row == null) {
+    return
+  }
+
+  let copiedCombination = {
+    sourceReportID: report.strategyID,
+    strategyName: report.strategyName,
+    symbol: report.symbol,
+    timePeriod: report.timePeriod,
+    copiedAt: Date.now(),
+    inputs: buildCombination(report.inputsSnapshot, row.detailedParameters)
+  }
+  await chrome.storage.local.set({ copiedCombination })
+
+  chrome.runtime.sendMessage({
+    notify: { type: "success", content: "Copied combination to clipboard" }
+  })
+}
+
+// selectedRowStyle keeps the copy selection highlighted across sorting and paging
+function selectedRowStyle(row) {
+  if (row.parameters === selectedRowKey) {
+    return { classes: 'selected-row' }
+  }
+  return {}
+}
+
+// buildCombination returns the snapshot with each optimized input set to the row's value
+function buildCombination(inputsSnapshot, detailedParameters) {
+  return inputsSnapshot.map(input => {
+    if (!input.isOptimized) {
+      return { ...input }
+    }
+    let rowParameter = detailedParameters.find(parameter => parameter.parameterIndex === input.parameterIndex)
+    if (rowParameter == null) {
+      return { ...input }
+    }
+    let value = rowParameter.value
+    if (input.type === "Checkbox") {
+      value = rowParameter.value === "On"
+    }
+    return { ...input, value }
+  })
+}
 
 // amount fields that carry the account currency appended by the report builder
 const CSV_AMOUNT_FIELDS = ["netProfitAmount", "maxDrawdownAmount", "averageTradeAmount"]

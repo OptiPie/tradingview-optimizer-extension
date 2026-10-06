@@ -53,6 +53,14 @@
     margin-right: 0.2rem;
 }
 
+#copy-combination i {
+    margin-right: 0.2rem;
+}
+
+#table tr.selected-row td {
+    background-color: #e9ecef;
+}
+
 #plusLogo {
     display: none !important;
 }
