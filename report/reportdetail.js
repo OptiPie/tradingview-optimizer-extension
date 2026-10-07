@@ -23,6 +23,8 @@ let reportSeparators = { group: ",", decimal: "." }
 let isPlusUser = false
 // key of the row chosen for copying
 let selectedRowKey = null
+// last chosen copy scope, "optimized" or "all"
+let copyScope = "all"
 
 // update non-functional UI components for free/plus users
 updateUserUI();
@@ -95,10 +97,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 const reportKey = "report-data-" + strategyID
 const detailKey = "report-detail-" + strategyID
 
-chrome.storage.local.get([reportKey, detailKey, "isPlusUser"], function (item) {
+chrome.storage.local.get([reportKey, detailKey, "isPlusUser", "copyParametersScope"], function (item) {
   // bootstrap-table silently ignores method calls before it auto-inits on ready
   $table.bootstrapTable()
   isPlusUser = item.isPlusUser === true
+  if (item.copyParametersScope != null) {
+    copyScope = item.copyParametersScope
+  }
 
   var report = item[reportKey]
   if (report.separators != null) {
@@ -185,25 +190,41 @@ chrome.storage.local.get([reportKey, detailKey, "isPlusUser"], function (item) {
     downloadCSVReport(reportDetailDataCSV)
   })
 
-  const $copyCombinationButton = $('#copy-combination')
+  const $copyParametersButton = $('#copy-parameters')
   if (report.inputsSnapshot == null) {
-    $copyCombinationButton.attr('title', 'Available on reports created with the latest version')
+    $copyParametersButton.attr('title', 'Available on reports created with the latest version')
   } else {
     $table.on('click-row.bs.table', function (event, row, $element) {
       selectedRowKey = row.parameters
       $table.find('tr.selected-row').removeClass('selected-row')
       $element.addClass('selected-row')
-      $copyCombinationButton.prop('disabled', false).attr('title', 'Copy the selected combination')
     })
-    $copyCombinationButton.click(function () {
-      copySelectedCombination()
+    $copyParametersButton.prop('disabled', false).attr('title', 'Copy the selected parameters, then apply them from your strategy settings')
+    $('#copy-parameters-scope').prop('disabled', false)
+    markCopyScope()
+    document.querySelectorAll('#toolbar [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el))
+    $copyParametersButton.click(function () {
+      copySelectedParameters(copyScope)
+    })
+    $('#strategy-inputs').show()
+    $('#inputs-snapshot-modal').on('show.bs.modal', function () {
+      renderInputsSnapshot()
+    })
+    $('[data-copy-scope]').click(function () {
+      copyScope = $(this).data('copy-scope')
+      chrome.storage.local.set({ copyParametersScope: copyScope })
+      markCopyScope()
+      copySelectedParameters(copyScope)
     })
   }
 });
 
-// copies the selected row's combination into storage as copiedCombination
-async function copySelectedCombination() {
+// copies the selected row's parameters into storage as copiedParameters, scoped to optimized or all inputs
+async function copySelectedParameters(scope) {
   if (selectedRowKey == null) {
+    chrome.runtime.sendMessage({
+      notify: { type: "warning", content: "Select a row in the table first" }
+    })
     return
   }
   const items = await chrome.storage.local.get([reportKey, detailKey])
@@ -213,19 +234,108 @@ async function copySelectedCombination() {
     return
   }
 
-  let copiedCombination = {
+  let copiedParameters = {
     sourceReportID: report.strategyID,
     strategyName: report.strategyName,
     symbol: report.symbol,
     timePeriod: report.timePeriod,
     copiedAt: Date.now(),
-    inputs: buildCombination(report.inputsSnapshot, row.detailedParameters)
+    scope: scope,
+    inputs: buildParameters(report.inputsSnapshot, row.detailedParameters)
   }
-  await chrome.storage.local.set({ copiedCombination })
+  await chrome.storage.local.set({ copiedParameters })
 
+  let content = "Copied all strategy inputs to clipboard"
+  if (scope === "optimized") {
+    content = "Copied optimized values to clipboard"
+  }
   chrome.runtime.sendMessage({
-    notify: { type: "success", content: "Copied combination to clipboard" }
+    notify: { type: "success", content: content }
   })
+}
+
+// markCopyScope highlights the copy option the main button uses
+function markCopyScope() {
+  $('[data-copy-scope]').each(function () {
+    $(this).toggleClass('active', $(this).data('copy-scope') === copyScope)
+  })
+}
+
+// renderInputsSnapshot lists the report's inputs, previewing the selected row's optimized values
+async function renderInputsSnapshot() {
+  const items = await chrome.storage.local.get([reportKey, detailKey])
+  let report = items[reportKey]
+  if (report?.inputsSnapshot == null) {
+    return
+  }
+  let inputs = report.inputsSnapshot
+  let selectedRow = null
+  if (selectedRowKey != null) {
+    selectedRow = items[detailKey]?.reportData?.[selectedRowKey]
+  }
+  if (selectedRow != null) {
+    inputs = buildParameters(report.inputsSnapshot, selectedRow.detailedParameters)
+  }
+
+  let rows = document.getElementById("inputs-snapshot-rows")
+  rows.innerHTML = ""
+  inputs.forEach(input => {
+    let isPending = input.isOptimized && selectedRow == null
+    let row = document.createElement("div")
+    row.className = "snapshot-row"
+    let name = document.createElement("span")
+    name.textContent = input.name
+
+    if (input.type === "Checkbox") {
+      let box = document.createElement("span")
+      box.className = "snapshot-check"
+      if (input.isOptimized) {
+        box.classList.add("is-optimized")
+      }
+      if (!isPending && input.value === true) {
+        box.classList.add("is-checked")
+        box.innerHTML = '<i class="bi bi-check-lg"></i>'
+      }
+      row.classList.add("is-checkbox")
+      row.append(box, name)
+    } else {
+      let value = document.createElement("span")
+      value.className = "snapshot-value"
+      if (input.isOptimized) {
+        value.classList.add("is-optimized")
+      }
+      let text = document.createElement("span")
+      if (isPending) {
+        text.textContent = "—"
+        text.className = "text-muted"
+      } else {
+        text.textContent = formatSnapshotValue(input.value)
+      }
+      value.appendChild(text)
+      if (input.type === "Selectable") {
+        let chevron = document.createElement("i")
+        chevron.className = "bi bi-chevron-down"
+        value.appendChild(chevron)
+      }
+      row.append(name, value)
+    }
+    rows.appendChild(row)
+  })
+
+  let notice = document.getElementById("inputs-snapshot-notice")
+  if (selectedRow == null) {
+    notice.style.display = "block"
+  } else {
+    notice.style.display = "none"
+  }
+}
+
+// formatSnapshotValue renders a snapshot value, dashed when empty
+function formatSnapshotValue(value) {
+  if (value === "" || value == null) {
+    return "—"
+  }
+  return value
 }
 
 // selectedRowStyle keeps the copy selection highlighted across sorting and paging
@@ -236,8 +346,8 @@ function selectedRowStyle(row) {
   return {}
 }
 
-// buildCombination returns the snapshot with each optimized input set to the row's value
-function buildCombination(inputsSnapshot, detailedParameters) {
+// buildParameters returns the snapshot with each optimized input set to the row's value
+function buildParameters(inputsSnapshot, detailedParameters) {
   return inputsSnapshot.map(input => {
     if (!input.isOptimized) {
       return { ...input }

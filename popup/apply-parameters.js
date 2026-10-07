@@ -173,8 +173,12 @@
         switch (match.type) {
             case "Numeric":
                 if (control.value !== value) {
+                    // focus, edit, then a real blur, which is what commits the value
+                    control.focus()
                     control.value = value
                     control.dispatchEvent(new Event("input", { bubbles: true }))
+                    control.dispatchEvent(new Event("change", { bubbles: true }))
+                    control.blur()
                     await wait(100)
                 }
                 return true

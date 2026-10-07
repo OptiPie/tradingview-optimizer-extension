@@ -53,12 +53,119 @@
     margin-right: 0.2rem;
 }
 
-#copy-combination i {
+#copy-parameters i {
     margin-right: 0.2rem;
 }
 
 #table tr.selected-row td {
     background-color: #e9ecef;
+}
+
+#strategy-inputs i {
+    margin-right: 0.2rem;
+}
+
+/* chosen copy option keeps plain menu colors, only its tick is shown */
+#toolbar .dropdown-item.active {
+    background-color: transparent;
+    color: var(--bs-dropdown-link-color);
+}
+
+#toolbar .dropdown-item.active:hover {
+    background-color: var(--bs-dropdown-link-hover-bg);
+}
+
+/* strategy inputs modal, laid out like the strategy settings dialog */
+.snapshot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+}
+
+.snapshot-row.is-checkbox {
+    justify-content: flex-start;
+    gap: 0.6rem;
+}
+
+.snapshot-value {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 140px;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+}
+
+.snapshot-value .bi-chevron-down {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.snapshot-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #adb5bd;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.snapshot-check.is-checked {
+    background-color: #131722;
+    border-color: #131722;
+    color: #ffffff;
+}
+
+.snapshot-value.is-optimized,
+.snapshot-check.is-optimized {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.snapshot-check.is-optimized.is-checked {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+/* copy split button without the inner separator */
+#copy-parameters {
+    border-right: none;
+}
+
+#copy-parameters-scope {
+    border-left: none;
+}
+
+#toolbar .dropdown-item[data-copy-scope] {
+    display: flex;
+    align-items: center;
+}
+
+.copy-scope-info {
+    margin-left: auto;
+    padding-left: 1rem;
+}
+
+.copy-scope-check {
+    visibility: hidden;
+    margin-right: 0.4rem;
+    font-size: 1.27rem;
+    vertical-align: -0.1rem;
+}
+
+/* tick in plus gold, same gradient as the popup's plus elements */
+#toolbar .dropdown-item.active .copy-scope-check {
+    visibility: visible;
+    background: linear-gradient(270deg, #8C701F, #CBA22E);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 #plusLogo {
