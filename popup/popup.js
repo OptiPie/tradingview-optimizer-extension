@@ -80,8 +80,19 @@ async function initStrategyContext() {
   })
 }
 
+// Inject apply-parameters.js for all users to add the apply button into the strategy dialog
+async function initApplyParameters() {
+  const tab = await getCurrentTab()
+  if (!tab?.id) return
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['popup/apply-parameters.js']
+  })
+}
+
 initPopupParametersByState()
 initStrategyContext()
+initApplyParameters()
 
 // Tab event listeners to change body width
 addTabEventListeners()
