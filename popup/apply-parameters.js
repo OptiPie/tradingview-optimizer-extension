@@ -35,26 +35,33 @@
         let top = 0
         let tabs = dialog.querySelector("#indicator-properties-dialog-tabs")
         if (tabs != null) {
-            top = tabs.getBoundingClientRect().top - container.getBoundingClientRect().top
+            top = tabs.getBoundingClientRect().bottom - container.getBoundingClientRect().top
         }
 
         let background = "#ffffff"
         let color = "#131722"
         let border = "#d1d4dc"
+        let logoFilter = "none"
         if (document.documentElement.classList.contains("theme-dark")) {
-            background = "#2a2e39"
+            background = "#171717"
             color = "#d1d4dc"
             border = "#434651"
+            logoFilter = "invert(1)"
         }
+
+        let logo = document.createElement("img")
+        logo.src = chrome.runtime.getURL("images/optipie_app_logo_cropped.png")
+        logo.alt = "OptiPie"
+        logo.style.cssText = `display: block; width: 54px; margin: 0 auto 4px; opacity: 0.55; filter: ${logoFilter};`
 
         let button = document.createElement("button")
         button.id = buttonID
         button.type = "button"
-        button.textContent = `Apply\nParameters`
-        button.style.cssText = `position: absolute; left: 100%; top: ${top}px; padding: 8px 12px;
+        button.appendChild(logo)
+        button.appendChild(document.createTextNode(`Apply`))
+        button.style.cssText = `position: absolute; left: 100%; top: ${top}px; padding: 6px 8px;
             background: ${background}; color: ${color}; border: 1px solid ${border}; border-left: none;
-            border-radius: 0 8px 8px 0; font-size: 14px; font-weight: 600; cursor: pointer; white-space: pre-line;
-            text-align: center; line-height: 1.3;`
+            border-radius: 0 8px 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.3;`
         button.addEventListener("click", function () {
             applyParameters()
         })
@@ -102,7 +109,9 @@
             }
         }
 
-        if (skipped > 0) {
+        if (skipped === 1) {
+            notify("warning", "Parameters applied, 1 input skipped")
+        } else if (skipped > 1) {
             notify("warning", `Parameters applied, ${skipped} inputs skipped`)
         } else {
             notify("success", "Parameters applied")

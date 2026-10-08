@@ -39,7 +39,8 @@
     {
       "resources": [
         "script.js",
-        "plus/get-selectable-parameter-options.js"
+        "plus/get-selectable-parameter-options.js",
+        "images/optipie_app_logo_cropped.png"
       ],
       "matches": [
         "https://*.tradingview.com/*"
