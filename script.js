@@ -899,10 +899,11 @@ function buildInputsSnapshot() {
                 snapshot.push(snapshotEntry(parameterName, ParameterType.Unknown, readRawValue(valueCell), parameterIndex))
                 parameterIndex++
             }
-        } // handle checkboxes
-        else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
+        } // handle checkboxes, skipping full width rows without one (e.g. text areas)
+        else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")
+            && parameterNameElements[i].querySelector("input[type='checkbox']") != null) {
             let checkbox = parameterNameElements[i].querySelector("input[type='checkbox']")
-            snapshot.push(snapshotEntry(parameterName, ParameterType.Checkbox, checkbox?.checked, parameterIndex))
+            snapshot.push(snapshotEntry(parameterName, ParameterType.Checkbox, checkbox.checked, parameterIndex))
             parameterIndex++
         }
     }

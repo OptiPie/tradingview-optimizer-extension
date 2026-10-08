@@ -58,8 +58,9 @@ async function getTvParameters() {
                 });
             }
             
-        } // handle checkboxes
-        else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
+        } // handle checkboxes, skipping full width rows without one (e.g. text areas)
+        else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")
+            && parameterNameElements[i].querySelector("input[type='checkbox']") != null) {
             tvParameters.push({
                 type: ParameterType.Checkbox,
                 name: parameterName

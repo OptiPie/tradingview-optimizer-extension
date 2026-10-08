@@ -357,7 +357,8 @@ async function renderInputsSnapshot() {
 
   let rows = document.getElementById("inputs-snapshot-rows")
   rows.innerHTML = ""
-  inputs.forEach(input => {
+  // only show the inputs apply can set
+  inputs.filter(input => input.type !== "Unknown").forEach(input => {
     let isPending = input.isOptimized && selectedRow == null
     let row = document.createElement("div")
     row.className = "snapshot-row"

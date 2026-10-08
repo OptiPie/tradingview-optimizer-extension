@@ -75,6 +75,7 @@
             notify("warning", "Copy parameters from a report first")
             return
         }
+        console.log(copiedParameters)
         let dialog = document.querySelector(dialogQuery)
         if (dialog == null) {
             return
@@ -164,8 +165,9 @@
                 } else if (stringParameter != null) {
                     dialogInputs.push({ name: parameterName, type: "Unknown", control: null })
                 }
-            } // handle checkboxes
-            else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
+            } // handle checkboxes, skipping full width rows without one (e.g. text areas)
+            else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")
+                && parameterNameElements[i].querySelector("input[type='checkbox']") != null) {
                 let checkbox = parameterNameElements[i].querySelector("input[type='checkbox']")
                 dialogInputs.push({ name: parameterName, type: "Checkbox", control: checkbox })
             }
