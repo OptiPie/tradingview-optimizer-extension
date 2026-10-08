@@ -61,7 +61,7 @@
         button.appendChild(document.createTextNode(`Apply`))
         button.style.cssText = `position: absolute; left: 100%; top: ${top}px; padding: 6px 8px;
             background: ${background}; color: ${color}; border: 1px solid ${border}; border-left: none;
-            border-radius: 0 8px 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.3;`
+            border-radius: 0 8px 8px 0; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.3;`
         button.addEventListener("click", function () {
             applyParameters()
         })
