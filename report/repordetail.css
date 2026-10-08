@@ -75,7 +75,41 @@
     background-color: var(--bs-dropdown-link-hover-bg);
 }
 
-/* strategy inputs modal, laid out like the strategy settings dialog */
+/* strategy inputs panel, dropped down under its button */
+#inputs-snapshot-panel {
+    position: absolute;
+    z-index: 1000;
+    width: 500px;
+    max-width: calc(100vw - 32px);
+    background-color: #ffffff;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 10px;
+    box-shadow: var(--bs-box-shadow);
+    text-align: left;
+}
+
+.inputs-snapshot-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    cursor: move;
+    user-select: none;
+}
+
+.inputs-snapshot-head strong {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.inputs-snapshot-body {
+    padding: 1rem;
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+/* strategy inputs rows, laid out like the strategy settings dialog */
 .snapshot-row {
     display: flex;
     align-items: center;

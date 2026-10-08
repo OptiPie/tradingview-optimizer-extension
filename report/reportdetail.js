@@ -23,6 +23,7 @@ let reportSeparators = { group: ",", decimal: "." }
 let isPlusUser = false
 // key of the row chosen for copying
 let selectedRowKey = null
+let isInputsPanelDragged = false
 // last chosen copy scope, "optimized" or "all"
 let copyScope = "all"
 
@@ -198,6 +199,9 @@ chrome.storage.local.get([reportKey, detailKey, "isPlusUser", "copyParametersSco
       selectedRowKey = row.parameters
       $table.find('tr.selected-row').removeClass('selected-row')
       $element.addClass('selected-row')
+      if (!$('#inputs-snapshot-panel').prop('hidden')) {
+        renderInputsSnapshot()
+      }
     })
     $copyParametersButton.prop('disabled', false).attr('title', 'Copy the selected parameters, then apply them from your strategy settings')
     $('#copy-parameters-scope').prop('disabled', false)
@@ -206,9 +210,29 @@ chrome.storage.local.get([reportKey, detailKey, "isPlusUser", "copyParametersSco
     $copyParametersButton.click(function () {
       copySelectedParameters(copyScope)
     })
-    $('#strategy-inputs').show()
-    $('#inputs-snapshot-modal').on('show.bs.modal', function () {
-      renderInputsSnapshot()
+    $('#strategy-inputs-anchor').show()
+    $('#strategy-inputs').click(function () {
+      setInputsPanelOpen($('#inputs-snapshot-panel').prop('hidden'))
+    })
+    $('#inputs-snapshot-close').click(function () {
+      setInputsPanelOpen(false)
+    })
+    $('.inputs-snapshot-head').on('mousedown', dragInputsPanel)
+    // clicks outside the panel, Escape or leaving the page close the panel, table and pagination clicks keep it open
+    $(document).on('click', function (event) {
+      let $target = $(event.target)
+      if (isInputsPanelDragged || $target.closest('#strategy-inputs-anchor, #table, .fixed-table-pagination').length > 0) {
+        return
+      }
+      setInputsPanelOpen(false)
+    })
+    $(window).on('blur', function () {
+      setInputsPanelOpen(false)
+    })
+    $(document).on('keydown', function (event) {
+      if (event.key === 'Escape') {
+        setInputsPanelOpen(false)
+      }
     })
     $('[data-copy-scope]').click(function () {
       copyScope = $(this).data('copy-scope')
@@ -259,6 +283,60 @@ function markCopyScope() {
   $('[data-copy-scope]').each(function () {
     $(this).toggleClass('active', $(this).data('copy-scope') === copyScope)
   })
+}
+
+// setInputsPanelOpen shows or hides the strategy inputs panel, opening it centered over its button
+function setInputsPanelOpen(isOpen) {
+  let panel = document.getElementById('inputs-snapshot-panel')
+  let anchor = document.getElementById('strategy-inputs-anchor')
+  panel.hidden = !isOpen
+  $('#strategy-inputs').attr('aria-expanded', String(isOpen))
+  if (isOpen) {
+    panel.style.left = (anchor.offsetWidth - panel.offsetWidth) / 2 - 18 + 'px'
+    panel.style.top = '0px'
+    renderInputsSnapshot().then(fitPageToInputsPanel)
+  } else {
+    document.body.style.minHeight = ''
+  }
+}
+
+// fitPageToInputsPanel stretches the page below the open panel so a short embedded report doesn't clip it
+function fitPageToInputsPanel() {
+  let panel = document.getElementById('inputs-snapshot-panel')
+  if (panel.hidden) {
+    return
+  }
+  document.body.style.minHeight = panel.getBoundingClientRect().bottom + window.scrollY + 16 + 'px'
+}
+
+// dragInputsPanel moves the strategy inputs panel while its header is dragged
+function dragInputsPanel(event) {
+  if (event.button !== 0 || event.target.closest('.btn-close') != null) {
+    return
+  }
+  event.preventDefault()
+  let panel = document.getElementById('inputs-snapshot-panel')
+  let startX = event.clientX
+  let startY = event.clientY
+  let startLeft = panel.offsetLeft
+  let startTop = panel.offsetTop
+
+  function move(moveEvent) {
+    isInputsPanelDragged = true
+    panel.style.left = startLeft + moveEvent.clientX - startX + 'px'
+    panel.style.top = startTop + moveEvent.clientY - startY + 'px'
+  }
+  function stop() {
+    document.removeEventListener('mousemove', move)
+    document.removeEventListener('mouseup', stop)
+    fitPageToInputsPanel()
+    // let the click that ends the drag pass before outside clicks count again
+    setTimeout(function () {
+      isInputsPanelDragged = false
+    }, 0)
+  }
+  document.addEventListener('mousemove', move)
+  document.addEventListener('mouseup', stop)
 }
 
 // renderInputsSnapshot lists the report's inputs, previewing the selected row's optimized values
