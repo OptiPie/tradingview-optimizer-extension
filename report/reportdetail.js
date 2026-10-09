@@ -193,7 +193,11 @@ chrome.storage.local.get([reportKey, detailKey, "isPlusUser", "copyParametersSco
 
   const $copyParametersButton = $('#copy-parameters')
   if (report.inputsSnapshot == null) {
-    $copyParametersButton.attr('title', 'Available on reports created with the latest version')
+    // disabled buttons get no hover, so the button group carries the tooltip
+    new bootstrap.Tooltip($copyParametersButton.parent()[0], {
+      title: 'Available on reports created with the latest version',
+      delay: { show: 500, hide: 0 }
+    })
   } else {
     $table.on('click-row.bs.table', function (event, row, $element) {
       selectedRowKey = row.parameters
