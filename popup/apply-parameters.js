@@ -83,8 +83,8 @@
             notify("warning", "Switch to the Inputs tab to apply the parameters")
             return
         }
-        let strategyName = dialog.getAttribute("data-dialog-name")
-        if (strategyName !== copiedParameters.strategyName) {
+        let strategyName = dialog.getAttribute("data-dialog-name")?.trim()
+        if (strategyName !== copiedParameters.strategyName?.trim()) {
             notify("warning", `Copied parameters belong to ${copiedParameters.strategyName}, not ${strategyName}`)
             return
         }

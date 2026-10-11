@@ -192,7 +192,7 @@ chrome.storage.local.get([reportKey, detailKey, "isPlusUser", "copyParametersSco
   })
 
   const $copyParametersButton = $('#copy-parameters')
-  if (report.inputsSnapshot == null) {
+  if (report.inputsSnapshot == null || report.inputsSnapshot.length === 0) {
     // disabled buttons get no hover, so the button group carries the tooltip
     new bootstrap.Tooltip($copyParametersButton.parent()[0], {
       title: 'Available on reports created with the latest version',
@@ -273,9 +273,9 @@ async function copySelectedParameters(scope) {
   }
   await chrome.storage.local.set({ copiedParameters })
 
-  let content = "Copied all strategy inputs to clipboard"
+  let content = "Copied all strategy inputs"
   if (scope === "optimized") {
-    content = "Copied optimized values to clipboard"
+    content = "Copied optimized values"
   }
   chrome.runtime.sendMessage({
     notify: { type: "success", content: content }
