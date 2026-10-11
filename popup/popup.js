@@ -31,6 +31,9 @@ const WFA_MIN_IS_DAYS = 14
 const WFA_MIN_OOS_DAYS = 5
 // set by updateWfaSplit when the current config produces a window below the floors; read by the launch guard
 let _wfaBelowFloor = false
+// page-independent selected report IDs (to prevent loss during pagination transitions)
+let _classicSelectedIds = new Set()
+let _wfaSelectedIds = new Set()
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -391,6 +394,35 @@ async function createReportTable() {
   $table.bootstrapTable({ data: reportData })
   $table.bootstrapTable('load', reportData)
 
+  // Page-independent selection tracking: Add/remove from Set
+  $table.on('check.bs.table', (e, row) => {
+    _classicSelectedIds.add(row.strategyID)
+    updateClassicSelectionToolbar(_classicSelectedIds.size)
+  })
+  $table.on('uncheck.bs.table', (e, row) => {
+    _classicSelectedIds.delete(row.strategyID)
+    updateClassicSelectionToolbar(_classicSelectedIds.size)
+  })
+  $table.on('check-all.bs.table', () => {
+    // rows parameter is only the current page — use getData() for all pages
+    $table.bootstrapTable('getData').forEach(r => _classicSelectedIds.add(r.strategyID))
+    updateClassicSelectionToolbar(_classicSelectedIds.size)
+  })
+  $table.on('uncheck-all.bs.table', () => {
+    // Remove all records from the Set
+    $table.bootstrapTable('getData').forEach(r => _classicSelectedIds.delete(r.strategyID))
+    updateClassicSelectionToolbar(_classicSelectedIds.size)
+  })
+  // Restore selections from the Set when page changes (pagination/sort/search)
+  $table.on('post-body.bs.table', () => {
+    if (_classicSelectedIds.size > 0) {
+      $table.bootstrapTable('checkBy', {
+        field: 'strategyID',
+        values: [..._classicSelectedIds]
+      })
+    }
+  })
+
   // init tool tip
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   tooltipTriggerList.forEach(function (tooltipTriggerEl) {
@@ -507,6 +539,35 @@ async function createWfaReportTable() {
     $wfaTable.bootstrapTable({ data: wfaData })
     $wfaTable.bootstrapTable('load', wfaData)
     requestAnimationFrame(evaluateWfaScrollHint)
+
+    // Page-independent selection tracking: Add/remove from Set
+    $wfaTable.on('check.bs.table', (e, row) => {
+      _wfaSelectedIds.add(row.wfaID)
+      updateWfaSelectionToolbar(_wfaSelectedIds.size)
+    })
+    $wfaTable.on('uncheck.bs.table', (e, row) => {
+      _wfaSelectedIds.delete(row.wfaID)
+      updateWfaSelectionToolbar(_wfaSelectedIds.size)
+    })
+    $wfaTable.on('check-all.bs.table', () => {
+      // rows parameter is only the current page — use getData() for all pages
+      $wfaTable.bootstrapTable('getData').forEach(r => _wfaSelectedIds.add(r.wfaID))
+      updateWfaSelectionToolbar(_wfaSelectedIds.size)
+    })
+    $wfaTable.on('uncheck-all.bs.table', () => {
+      // Remove all records from the Set
+      $wfaTable.bootstrapTable('getData').forEach(r => _wfaSelectedIds.delete(r.wfaID))
+      updateWfaSelectionToolbar(_wfaSelectedIds.size)
+    })
+    // Restore selections from the Set when page changes (pagination/sort/search)
+    $wfaTable.on('post-body.bs.table', () => {
+      if (_wfaSelectedIds.size > 0) {
+        $wfaTable.bootstrapTable('checkBy', {
+          field: 'wfaID',
+          values: [..._wfaSelectedIds]
+        })
+      }
+    })
   })
 }
 
@@ -568,6 +629,9 @@ window.openReportDetail = {
       field: 'strategyID',
       values: [row.strategyID]
     })
+    // Also remove from the Set after individual deletion
+    _classicSelectedIds.delete(row.strategyID)
+    updateClassicSelectionToolbar(_classicSelectedIds.size)
   }
 }
 
@@ -600,11 +664,97 @@ window.openWfaDetail = {
       field: 'wfaID',
       values: [row.wfaID]
     })
+    // Also remove from the Set after individual deletion
+    _wfaSelectedIds.delete(row.wfaID)
+    updateWfaSelectionToolbar(_wfaSelectedIds.size)
   }
 }
 
 // init AFTER openWfaDetail exists — bootstrap-table resolves data-events at build time
 createWfaReportTable()
+
+// ─── Multi-Delete Helper Functions ─────────────────────────────────────────
+
+/** Update Classic table toolbar button */
+function updateClassicSelectionToolbar(count) {
+  const btn = document.getElementById('deleteSelectedReports')
+  const counter = document.getElementById('deleteSelectedCount')
+  if (!btn || !counter) return
+  counter.textContent = count
+  btn.style.display = count > 0 ? 'inline-flex' : 'none'
+}
+
+/** Update WFA table toolbar button */
+function updateWfaSelectionToolbar(count) {
+  const btn = document.getElementById('deleteSelectedWfaReports')
+  const counter = document.getElementById('deleteSelectedWfaCount')
+  if (!btn || !counter) return
+  counter.textContent = count
+  btn.style.display = count > 0 ? 'inline-flex' : 'none'
+}
+
+/** Classic: Delete all selected reports from storage and table at once */
+document.getElementById('deleteSelectedReports').addEventListener('click', async function () {
+  const $table = $('#table')
+  if (!_classicSelectedIds.size) return
+
+  const confirmed = confirm(
+    `${_classicSelectedIds.size} reports will be permanently deleted.\n\nDo you want to confirm?`
+  )
+  if (!confirmed) return
+
+  const keys = [..._classicSelectedIds].flatMap(id => [
+    REPORT_DATA_KEY_PREFIX + id,
+    REPORT_DETAIL_KEY_PREFIX + id
+  ])
+  await chrome.storage.local.remove(keys)
+  $table.bootstrapTable('remove', {
+    field: 'strategyID',
+    values: [..._classicSelectedIds]
+  })
+  _classicSelectedIds.clear()
+  updateClassicSelectionToolbar(0)
+})
+
+/** WFA: Delete all selected reports with cascade-delete */
+document.getElementById('deleteSelectedWfaReports').addEventListener('click', async function () {
+  const $wfaTable = $('#wfaTable')
+  if (!_wfaSelectedIds.size) return
+
+  const confirmed = confirm(
+    `${_wfaSelectedIds.size} Walk-Forward reports will be permanently deleted.\n\nDo you want to confirm?`
+  )
+  if (!confirmed) return
+
+  const allKeys = []
+  for (const wfaID of _wfaSelectedIds) {
+    const wfaKey = 'wfa-' + wfaID
+    allKeys.push(wfaKey)
+    const items = await chrome.storage.local.get([wfaKey])
+    const parent = items[wfaKey]
+    if (parent && parent.windows) {
+      Object.values(parent.windows).forEach(w => {
+        if (w.is && w.is.reportID) {
+          allKeys.push(REPORT_DATA_KEY_PREFIX + w.is.reportID)
+          allKeys.push(REPORT_DETAIL_KEY_PREFIX + w.is.reportID)
+        }
+        if (w.oos && w.oos.reportID) {
+          allKeys.push(REPORT_DATA_KEY_PREFIX + w.oos.reportID)
+          allKeys.push(REPORT_DETAIL_KEY_PREFIX + w.oos.reportID)
+        }
+      })
+    }
+  }
+  await chrome.storage.local.remove(allKeys)
+  $wfaTable.bootstrapTable('remove', {
+    field: 'wfaID',
+    values: [..._wfaSelectedIds]
+  })
+  _wfaSelectedIds.clear()
+  updateWfaSelectionToolbar(0)
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // report-view nav lives in both table toolbars; keep them in sync
 function switchReportView(view) {

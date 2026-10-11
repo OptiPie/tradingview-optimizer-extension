@@ -219,6 +219,32 @@ body {
     margin-right: 0.5rem;
 }
 
+/* Multi-delete button — appears with animation in the toolbar when checkbox is selected */
+.delete-selected-btn {
+    display: none;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
+    animation: deleteBtnIn 0.18s ease-out;
+}
+
+.delete-selected-label {
+    font-size: 0.75rem;
+}
+
+@keyframes deleteBtnIn {
+    from {
+        opacity: 0;
+        transform: scale(0.88);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 /* horizontal-scroll nudge for the WFA reports table (Detail column can overflow the narrow popup) */
 #wfa-reports-pane {
     position: relative;
