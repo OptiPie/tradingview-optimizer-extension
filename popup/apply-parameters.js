@@ -75,7 +75,6 @@
             notify("warning", "Copy parameters from a report first")
             return
         }
-        console.log(copiedParameters)
         let dialog = document.querySelector(dialogQuery)
         if (dialog == null) {
             return
