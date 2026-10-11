@@ -276,14 +276,29 @@
                     <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
                   </li>
                 </ul>
-                <button id="deleteSelectedReports" class="btn btn-danger btn-sm delete-selected-btn" style="display:none;" title="Delete selected">
-                  <i class="bi bi-trash"></i> <span class="delete-selected-label">Delete (<span id="deleteSelectedCount">0</span>)</span>
-                </button>
+                <div class="btn-group ms-auto" id="bulkDeleteGroupClassic">
+                  <button id="bulkDeleteClassic" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" title="Bulk delete">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                  <button type="button"
+                          class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split bulk-delete-caret"
+                          id="bulkDeleteClassicCaret"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                    <span class="visually-hidden">More options</span>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item small py-1" href="#" id="deleteByDateClassicTrigger">
+                        <i class="bi bi-calendar-x me-1"></i> Delete before date…
+                      </a>
+                    </li>
+                  </ul>
+                </div>
               </div>
               <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
                 data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-                data-icon-size="sm" data-search-align="right" data-unique-id="strategyID"
-                data-click-to-select="true">
+                data-icon-size="sm" data-search-align="right" data-unique-id="strategyID">
                 <thead>
                   <tr>
                     <th data-field="state" data-checkbox="true"></th>
@@ -325,14 +340,29 @@
                     <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
                   </li>
                 </ul>
-                <button id="deleteSelectedWfaReports" class="btn btn-danger btn-sm delete-selected-btn" style="display:none;" title="Delete selected">
-                  <i class="bi bi-trash"></i> <span class="delete-selected-label">Delete (<span id="deleteSelectedWfaCount">0</span>)</span>
-                </button>
+                <div class="btn-group ms-auto" id="bulkDeleteGroupWfa">
+                  <button id="bulkDeleteWfa" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" title="Bulk delete">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                  <button type="button"
+                          class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split bulk-delete-caret"
+                          id="bulkDeleteWfaCaret"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false">
+                    <span class="visually-hidden">More options</span>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item small py-1" href="#" id="deleteByDateWfaTrigger">
+                        <i class="bi bi-calendar-x me-1"></i> Delete before date…
+                      </a>
+                    </li>
+                  </ul>
+                </div>
               </div>
               <table id="wfaTable" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
                 data-toolbar=".wfa-toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-                data-icon-size="sm" data-search-align="right" data-unique-id="wfaID"
-                data-click-to-select="true">
+                data-icon-size="sm" data-search-align="right" data-unique-id="wfaID">
                 <thead>
                   <tr>
                     <th data-field="state" data-checkbox="true"></th>
@@ -619,6 +649,48 @@
 
       </ul>
     </footer>
+  </div>
+  <!-- Bulk Delete Confirmation Modal -->
+  <div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header py-2 border-bottom-0">
+          <h6 class="modal-title" id="bulkDeleteModalLabel">
+            <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Delete Reports
+          </h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-1">
+          <p class="mb-0 small" id="bulkDeleteMessage"></p>
+        </div>
+        <div class="modal-footer pt-2 gap-1 border-top-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-danger" id="bulkDeleteConfirm">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Delete by Date Modal -->
+  <div class="modal fade" id="deleteByDateModal" tabindex="-1" aria-labelledby="deleteByDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header py-2 border-bottom-0">
+          <h6 class="modal-title" id="deleteByDateModalLabel">
+            <i class="bi bi-calendar-x text-danger me-1"></i> Delete by Date
+          </h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-2">
+          <p class="small mb-2 text-muted">Delete all reports created before:</p>
+          <input type="date" class="form-control form-control-sm" id="deleteBeforeDate">
+          <p class="mb-0 mt-2 small" id="deleteByDatePreview"></p>
+        </div>
+        <div class="modal-footer pt-2 gap-1 border-top-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-danger" id="deleteByDateConfirm" disabled>Delete</button>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="/libs/jquery/jquery-3.6.0.min.js"></script>
   <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>

@@ -34,6 +34,13 @@ let _wfaBelowFloor = false
 // page-independent selected report IDs (to prevent loss during pagination transitions)
 let _classicSelectedIds = new Set()
 let _wfaSelectedIds = new Set()
+// tracks whether each table is in selection mode (checkboxes visible)
+let _classicSelectionMode = false
+let _wfaSelectionMode = false
+// which table's deletion is pending in the modal ('classic' | 'wfa')
+let _activeBulkDeleteTable = null
+// which table the date-based delete applies to
+let _activeDateDeleteTable = null
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -380,6 +387,7 @@ async function createReportTable() {
         "strategyID": value.strategyID,
         "strategyName": value.strategyName,
         "date": formattedDate,
+        "createdAt": new Date(value.created).getTime(), // raw ms — used for date-based filtering
         "symbol": value.symbol,
         "timePeriod": value.timePeriod,
         "parameters": value.parameters,
@@ -524,6 +532,7 @@ async function createWfaReportTable() {
         wfaID: value.wfaID,
         strategyName: value.strategyName,
         date: formattedDate,
+        createdAt: new Date(value.created).getTime(), // raw ms — used for date-based filtering
         symbol: value.symbol,
         timePeriod: value.timePeriod,
         parameters: value.parameters || "",
@@ -675,34 +684,107 @@ createWfaReportTable()
 
 // ─── Multi-Delete Helper Functions ─────────────────────────────────────────
 
-/** Update Classic table toolbar button */
+/** Update Classic toolbar button appearance based on selection mode + count */
 function updateClassicSelectionToolbar(count) {
-  const btn = document.getElementById('deleteSelectedReports')
-  const counter = document.getElementById('deleteSelectedCount')
-  if (!btn || !counter) return
-  counter.textContent = count
-  btn.style.display = count > 0 ? 'inline-flex' : 'none'
+  const btn = document.getElementById('bulkDeleteClassic')
+  const caret = document.getElementById('bulkDeleteClassicCaret')
+  if (!btn) return
+  let cls
+  if (!_classicSelectionMode) {
+    cls = 'btn btn-sm btn-outline-secondary bulk-delete-toggle'
+    btn.innerHTML = '<i class="bi bi-trash3"></i>'
+    btn.title = 'Bulk delete'
+  } else if (count === 0) {
+    cls = 'btn btn-sm btn-outline-danger bulk-delete-toggle'
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>'
+    btn.title = 'Cancel selection'
+  } else {
+    cls = 'btn btn-sm btn-danger bulk-delete-toggle'
+    btn.innerHTML = `<i class="bi bi-trash3"></i>&nbsp;${count}`
+    btn.title = `Delete ${count} selected`
+  }
+  btn.className = cls
+  if (caret) caret.className = cls.replace('bulk-delete-toggle', 'dropdown-toggle dropdown-toggle-split bulk-delete-caret')
 }
 
-/** Update WFA table toolbar button */
+/** Update WFA toolbar button appearance based on selection mode + count */
 function updateWfaSelectionToolbar(count) {
-  const btn = document.getElementById('deleteSelectedWfaReports')
-  const counter = document.getElementById('deleteSelectedWfaCount')
-  if (!btn || !counter) return
-  counter.textContent = count
-  btn.style.display = count > 0 ? 'inline-flex' : 'none'
+  const btn = document.getElementById('bulkDeleteWfa')
+  const caret = document.getElementById('bulkDeleteWfaCaret')
+  if (!btn) return
+  let cls
+  if (!_wfaSelectionMode) {
+    cls = 'btn btn-sm btn-outline-secondary bulk-delete-toggle'
+    btn.innerHTML = '<i class="bi bi-trash3"></i>'
+    btn.title = 'Bulk delete'
+  } else if (count === 0) {
+    cls = 'btn btn-sm btn-outline-danger bulk-delete-toggle'
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>'
+    btn.title = 'Cancel selection'
+  } else {
+    cls = 'btn btn-sm btn-danger bulk-delete-toggle'
+    btn.innerHTML = `<i class="bi bi-trash3"></i>&nbsp;${count}`
+    btn.title = `Delete ${count} selected`
+  }
+  btn.className = cls
+  if (caret) caret.className = cls.replace('bulk-delete-toggle', 'dropdown-toggle dropdown-toggle-split bulk-delete-caret')
 }
 
-/** Classic: Delete all selected reports from storage and table at once */
-document.getElementById('deleteSelectedReports').addEventListener('click', async function () {
+// ─── Selection Mode Toggle ────────────────────────────────────────────────────
+
+function exitClassicSelectionMode() {
+  _classicSelectionMode = false
+  _classicSelectedIds.clear()
+  document.getElementById('table').classList.remove('selection-mode')
+  updateClassicSelectionToolbar(0)
+}
+
+function exitWfaSelectionMode() {
+  _wfaSelectionMode = false
+  _wfaSelectedIds.clear()
+  document.getElementById('wfaTable').classList.remove('selection-mode')
+  updateWfaSelectionToolbar(0)
+}
+
+document.getElementById('bulkDeleteClassic').addEventListener('click', () => {
+  if (!_classicSelectionMode) {
+    // Enter selection mode — show checkboxes
+    _classicSelectionMode = true
+    document.getElementById('table').classList.add('selection-mode')
+    updateClassicSelectionToolbar(0)
+  } else if (_classicSelectedIds.size > 0) {
+    // Has selections — open confirmation modal
+    _activeBulkDeleteTable = 'classic'
+    const n = _classicSelectedIds.size
+    document.getElementById('bulkDeleteMessage').textContent =
+      `${n} report${n > 1 ? 's' : ''} will be permanently deleted. This cannot be undone.`
+    new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show()
+  } else {
+    // No selections — exit selection mode
+    exitClassicSelectionMode()
+  }
+})
+
+document.getElementById('bulkDeleteWfa').addEventListener('click', () => {
+  if (!_wfaSelectionMode) {
+    _wfaSelectionMode = true
+    document.getElementById('wfaTable').classList.add('selection-mode')
+    updateWfaSelectionToolbar(0)
+  } else if (_wfaSelectedIds.size > 0) {
+    _activeBulkDeleteTable = 'wfa'
+    const n = _wfaSelectedIds.size
+    document.getElementById('bulkDeleteMessage').textContent =
+      `${n} Walk-Forward report${n > 1 ? 's' : ''} will be permanently deleted. This cannot be undone.`
+    new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show()
+  } else {
+    exitWfaSelectionMode()
+  }
+})
+
+// ─── Execute Delete Functions ─────────────────────────────────────────────────
+
+async function executeClassicBulkDelete() {
   const $table = $('#table')
-  if (!_classicSelectedIds.size) return
-
-  const confirmed = confirm(
-    `${_classicSelectedIds.size} reports will be permanently deleted.\n\nDo you want to confirm?`
-  )
-  if (!confirmed) return
-
   const keys = [..._classicSelectedIds].flatMap(id => [
     REPORT_DATA_KEY_PREFIX + id,
     REPORT_DETAIL_KEY_PREFIX + id
@@ -712,20 +794,10 @@ document.getElementById('deleteSelectedReports').addEventListener('click', async
     field: 'strategyID',
     values: [..._classicSelectedIds]
   })
-  _classicSelectedIds.clear()
-  updateClassicSelectionToolbar(0)
-})
+}
 
-/** WFA: Delete all selected reports with cascade-delete */
-document.getElementById('deleteSelectedWfaReports').addEventListener('click', async function () {
+async function executeWfaBulkDelete() {
   const $wfaTable = $('#wfaTable')
-  if (!_wfaSelectedIds.size) return
-
-  const confirmed = confirm(
-    `${_wfaSelectedIds.size} Walk-Forward reports will be permanently deleted.\n\nDo you want to confirm?`
-  )
-  if (!confirmed) return
-
   const allKeys = []
   for (const wfaID of _wfaSelectedIds) {
     const wfaKey = 'wfa-' + wfaID
@@ -750,11 +822,132 @@ document.getElementById('deleteSelectedWfaReports').addEventListener('click', as
     field: 'wfaID',
     values: [..._wfaSelectedIds]
   })
-  _wfaSelectedIds.clear()
-  updateWfaSelectionToolbar(0)
+}
+
+// ─── Bootstrap Modal Confirm Handler ─────────────────────────────────────────
+
+document.getElementById('bulkDeleteConfirm').addEventListener('click', async () => {
+  const modalEl = document.getElementById('bulkDeleteModal')
+  if (_activeBulkDeleteTable === 'classic') {
+    await executeClassicBulkDelete()
+    exitClassicSelectionMode()
+  } else if (_activeBulkDeleteTable === 'wfa') {
+    await executeWfaBulkDelete()
+    exitWfaSelectionMode()
+  }
+  _activeBulkDeleteTable = null
+  bootstrap.Modal.getInstance(modalEl).hide()
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Delete by Date ────────────────────────────────────────────────────────────────
+
+/** Returns all rows from the active table whose createdAt < end-of-day cutoff */
+function getReportsBeforeDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const cutoff = new Date(year, month - 1, day, 23, 59, 59, 999).getTime()
+  const selector = _activeDateDeleteTable === 'classic' ? '#table' : '#wfaTable'
+  return $(selector).bootstrapTable('getData').filter(row => row.createdAt < cutoff)
+}
+
+function openDeleteByDateModal(table) {
+  _activeDateDeleteTable = table
+  const input = document.getElementById('deleteBeforeDate')
+  const preview = document.getElementById('deleteByDatePreview')
+  const confirmBtn = document.getElementById('deleteByDateConfirm')
+  input.value = ''
+  preview.textContent = ''
+  preview.className = 'mb-0 mt-2 small'
+  confirmBtn.disabled = true
+  new bootstrap.Modal(document.getElementById('deleteByDateModal')).show()
+}
+
+document.getElementById('deleteByDateClassicTrigger').addEventListener('click', e => {
+  e.preventDefault()
+  openDeleteByDateModal('classic')
+})
+
+document.getElementById('deleteByDateWfaTrigger').addEventListener('click', e => {
+  e.preventDefault()
+  openDeleteByDateModal('wfa')
+})
+
+document.getElementById('deleteBeforeDate').addEventListener('change', () => {
+  const dateStr = document.getElementById('deleteBeforeDate').value
+  const preview = document.getElementById('deleteByDatePreview')
+  const confirmBtn = document.getElementById('deleteByDateConfirm')
+
+  if (!dateStr) {
+    preview.textContent = ''
+    confirmBtn.disabled = true
+    return
+  }
+
+  const matching = getReportsBeforeDate(dateStr)
+  if (matching.length === 0) {
+    preview.textContent = 'No reports found before this date.'
+    preview.className = 'mb-0 mt-2 small text-muted'
+    confirmBtn.disabled = true
+  } else {
+    preview.textContent = `${matching.length} report${matching.length > 1 ? 's' : ''} will be deleted.`
+    preview.className = 'mb-0 mt-2 small text-danger'
+    confirmBtn.disabled = false
+  }
+})
+
+document.getElementById('deleteByDateConfirm').addEventListener('click', async () => {
+  const dateStr = document.getElementById('deleteBeforeDate').value
+  if (!dateStr) return
+  const matching = getReportsBeforeDate(dateStr)
+  if (!matching.length) return
+
+  const modalEl = document.getElementById('deleteByDateModal')
+
+  if (_activeDateDeleteTable === 'classic') {
+    const keys = matching.flatMap(row => [
+      REPORT_DATA_KEY_PREFIX + row.strategyID,
+      REPORT_DETAIL_KEY_PREFIX + row.strategyID
+    ])
+    await chrome.storage.local.remove(keys)
+    $('#table').bootstrapTable('remove', {
+      field: 'strategyID',
+      values: matching.map(r => r.strategyID)
+    })
+    // keep selection Set consistent
+    matching.forEach(r => _classicSelectedIds.delete(r.strategyID))
+    updateClassicSelectionToolbar(_classicSelectedIds.size)
+  } else if (_activeDateDeleteTable === 'wfa') {
+    const allKeys = []
+    for (const row of matching) {
+      const wfaKey = 'wfa-' + row.wfaID
+      allKeys.push(wfaKey)
+      const items = await chrome.storage.local.get([wfaKey])
+      const parent = items[wfaKey]
+      if (parent && parent.windows) {
+        Object.values(parent.windows).forEach(w => {
+          if (w.is && w.is.reportID) {
+            allKeys.push(REPORT_DATA_KEY_PREFIX + w.is.reportID)
+            allKeys.push(REPORT_DETAIL_KEY_PREFIX + w.is.reportID)
+          }
+          if (w.oos && w.oos.reportID) {
+            allKeys.push(REPORT_DATA_KEY_PREFIX + w.oos.reportID)
+            allKeys.push(REPORT_DETAIL_KEY_PREFIX + w.oos.reportID)
+          }
+        })
+      }
+    }
+    await chrome.storage.local.remove(allKeys)
+    $('#wfaTable').bootstrapTable('remove', {
+      field: 'wfaID',
+      values: matching.map(r => r.wfaID)
+    })
+    // keep selection Set consistent
+    matching.forEach(r => _wfaSelectedIds.delete(r.wfaID))
+    updateWfaSelectionToolbar(_wfaSelectedIds.size)
+  }
+
+  _activeDateDeleteTable = null
+  bootstrap.Modal.getInstance(modalEl).hide()
+})
 
 // report-view nav lives in both table toolbars; keep them in sync
 function switchReportView(view) {

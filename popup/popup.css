@@ -219,30 +219,29 @@ body {
     margin-right: 0.5rem;
 }
 
-/* Multi-delete button — appears with animation in the toolbar when checkbox is selected */
-.delete-selected-btn {
-    display: none;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    white-space: nowrap;
-    animation: deleteBtnIn 0.18s ease-out;
+/* Bulk delete toggle button — always visible, minimal, positioned right */
+.bulk-delete-toggle {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    font-size: 0.72rem;
+    line-height: 1;
 }
 
-.delete-selected-label {
-    font-size: 0.75rem;
+/* Checkbox column — hidden by default, revealed only in selection mode */
+table#table th.bs-checkbox,
+table#table td.bs-checkbox,
+table#wfaTable th.bs-checkbox,
+table#wfaTable td.bs-checkbox {
+    display: none !important;
+    width: 0;
+    padding: 0;
 }
 
-@keyframes deleteBtnIn {
-    from {
-        opacity: 0;
-        transform: scale(0.88);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+table#table.selection-mode th.bs-checkbox,
+table#table.selection-mode td.bs-checkbox,
+table#wfaTable.selection-mode th.bs-checkbox,
+table#wfaTable.selection-mode td.bs-checkbox {
+    display: table-cell !important;
+    width: auto;
 }
 
 /* horizontal-scroll nudge for the WFA reports table (Detail column can overflow the narrow popup) */
