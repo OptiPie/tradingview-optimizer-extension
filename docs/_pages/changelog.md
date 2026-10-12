@@ -8,6 +8,12 @@ title: "News"
 
 > **Found a winner? Apply it in one click. No more typing inputs by hand.**
 
+<div align="left">
+      <a href="https://youtu.be/kiIy7XOCSIk">
+         <img src="../images/snapshot_with_play_button.png" alt="OptiPie Apply Best Parameters in One Click" style="width:100%;">
+      </a>
+</div>
+
 - **Copy Parameters** on the report detail page. Select any row and copy its values: the optimized values only, or every strategy input as it was when the report ran.
 - **Apply** them from your strategy settings. The new **Apply** button fills in every input, you review and press Ok. Open OptiPie once on the chart tab to make it appear.
 - **Strategy Inputs** on the report detail page. See every input of the run, and click through rows to preview each result's values.
