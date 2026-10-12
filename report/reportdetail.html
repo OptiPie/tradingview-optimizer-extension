@@ -57,6 +57,40 @@
                 class="bi bi-cloud-download"></i>
               Download
               Report</button>
+            <div class="btn-group float-end me-2">
+              <button type="button" class="btn btn-outline-primary" id="copy-parameters" data-bs-toggle="tooltip" data-bs-delay='{"show": 500, "hide": 0}'
+                title="Select a row to copy" disabled><i class="bi bi-clipboard"></i>
+                Copy Parameters</button>
+              <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split"
+                id="copy-parameters-scope" data-bs-toggle="dropdown" aria-expanded="false" disabled><span
+                  class="visually-hidden">Choose what to copy</span></button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><button type="button" class="dropdown-item" data-copy-scope="optimized"><i
+                      class="bi bi-check-lg copy-scope-check"></i>Copy optimized values only <i
+                      class="bi bi-info-circle copy-scope-info" data-bs-toggle="tooltip"
+                      title="Applies only the optimized values. Every other input keeps its current setting."></i></button></li>
+                <li><button type="button" class="dropdown-item" data-copy-scope="all"><i
+                      class="bi bi-check-lg copy-scope-check"></i>Copy all strategy inputs <i
+                      class="bi bi-info-circle copy-scope-info" data-bs-toggle="tooltip"
+                      title="Applies the optimized values and every other input as it was when this report ran."></i></button></li>
+              </ul>
+            </div>
+            <div class="position-relative float-end me-2" id="strategy-inputs-anchor" style="display: none;">
+              <button type="button" class="btn btn-light border" id="strategy-inputs" aria-expanded="false"><i
+                  class="bi bi-sliders"></i>
+                Strategy Inputs</button>
+              <div id="inputs-snapshot-panel" role="dialog" aria-labelledby="inputs-snapshot-title" hidden>
+                <div class="inputs-snapshot-head">
+                  <strong id="inputs-snapshot-title">Strategy Inputs</strong>
+                  <button type="button" class="btn-close" id="inputs-snapshot-close" aria-label="Close"></button>
+                </div>
+                <div class="inputs-snapshot-body">
+                  <div class="alert alert-primary py-2 mb-3" id="inputs-snapshot-notice"><i class="bi bi-hand-index me-2"></i>Select
+                    a row in the table to preview its optimized values.</div>
+                  <div id="inputs-snapshot-rows"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -64,7 +98,7 @@
       <table id="table" data-toggle="table" data-sort-class="table-active" data-sortable="true" data-toolbar="#toolbar"
         data-toolbar-align="right" data-custom-sort="customSort" data-pagination="true" data-search="true"
         data-show-columns="true" data-search-align="left" data-buttons-align="left" data-visible-search="true"
-        data-unique-id="parameters" style="font-size: 16px;">
+        data-unique-id="parameters" data-row-style="selectedRowStyle" style="font-size: 16px;">
         <thead>
           <tr>
             <th data-field="parameters" data-sortable="true">Parameters</th>
