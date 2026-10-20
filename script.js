@@ -754,8 +754,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     // Re-open strategy settings window
     let reportTitleButton =
-        document.querySelector("div[class*='menuButton' i] button") ||
-        document.querySelector("div[class*='menu-button' i] button");
+        document.querySelector("[data-qa-id='backtesting'] ~ [data-qa-id='backtesting-open-context-menu'] [data-qa-id='tab-menu-trigger']") ||
+        document.querySelector("div[data-qa-id*='backtesting-open-context-menu' i] button");
 
     reportTitleButton.click()
     await sleep(50)
