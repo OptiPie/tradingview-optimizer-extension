@@ -44,7 +44,7 @@ const ParameterType = {
   Selectable: "Selectable",
   Numeric: "Numeric",
   Checkbox: "Checkbox",
-  DatePicker: "DatePicker" // not supported atm
+  Unknown: "Unknown" // not supported atm
 }
 
 // Get current settings from storage
@@ -80,8 +80,19 @@ async function initStrategyContext() {
   })
 }
 
+// Inject apply-parameters.js for all users to add the apply button into the strategy dialog
+async function initApplyParameters() {
+  const tab = await getCurrentTab()
+  if (!tab?.id) return
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['popup/apply-parameters.js']
+  })
+}
+
 initPopupParametersByState()
 initStrategyContext()
+initApplyParameters()
 
 // Tab event listeners to change body width
 addTabEventListeners()
@@ -822,7 +833,7 @@ async function autoFillParameters(tvParameters) {
     // build an array of the tvParameter indices we actually want to fill
     const autoFillIndices = tvParameters
       .map((p, idx) => ({ p, idx }))
-      .filter(({ p }) => p.type !== ParameterType.DatePicker)
+      .filter(({ p }) => p.type !== ParameterType.Unknown)
       .map(({ idx }) => idx);
 
     const siKey = STRATEGY_INPUTS_KEY_PREFIX + _currentStrategyKey
@@ -847,7 +858,7 @@ async function autoFillParameters(tvParameters) {
         sel.style.display = "inline-block";
         tvParameters.forEach((param, j) => {
           const opt = new Option(param.name, j);
-          if (param.type === ParameterType.DatePicker) opt.hidden = true;
+          if (param.type === ParameterType.Unknown) opt.hidden = true;
           sel.add(opt);
         });
       }
@@ -857,7 +868,7 @@ async function autoFillParameters(tvParameters) {
       let pickIdx = null;
       if (
         userIdx != null &&
-        tvParameters[userIdx]?.type !== ParameterType.DatePicker &&
+        tvParameters[userIdx]?.type !== ParameterType.Unknown &&
         userIdx < tvParameters.length
       ) {
         pickIdx = userIdx;
@@ -1871,8 +1882,9 @@ function getNumericTvParameters() {
       } else if (stringParameter != null) {
         parameterIndex++
       }
-    } // handle checkboxes
-    else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")) {
+    } // handle checkboxes, skipping full width rows without one (e.g. text areas)
+    else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")
+      && parameterNameElements[i].querySelector("input[type='checkbox']") != null) {
       parameterIndex++
     }
   }
