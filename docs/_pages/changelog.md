@@ -4,7 +4,7 @@ title: "News"
 ---
 
 ## What's New!
-### Version: v2.2.0
+### Version: v2.2.0-v2.2.1
 
 > **Found a winner? Apply it in one click. No more typing inputs by hand.**
 
@@ -19,6 +19,7 @@ title: "News"
 - **Strategy Inputs** on the report detail page. See every input of the run, and click through rows to preview each result's values.
 - Available for everyone, on new reports.
 - General small bug fixes.
+- Hotfix to match latest TradingView changes.
 
 ## Previous Updates
 ### Version: v2.1.0
