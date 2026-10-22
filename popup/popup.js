@@ -841,10 +841,10 @@ document.getElementById('bulkDeleteConfirm').addEventListener('click', async () 
 
 // ─── Delete by Date ────────────────────────────────────────────────────────────────
 
-/** Returns all rows from the active table whose createdAt < end-of-day cutoff */
+/** Returns all rows from the active table created before the start of the picked day */
 function getReportsBeforeDate(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number)
-  const cutoff = new Date(year, month - 1, day, 23, 59, 59, 999).getTime()
+  const cutoff = new Date(year, month - 1, day).getTime()
   const selector = _activeDateDeleteTable === 'classic' ? '#table' : '#wfaTable'
   return $(selector).bootstrapTable('getData').filter(row => row.createdAt < cutoff)
 }
