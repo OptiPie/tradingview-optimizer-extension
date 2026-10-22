@@ -232,8 +232,6 @@ table#table td.bs-checkbox,
 table#wfaTable th.bs-checkbox,
 table#wfaTable td.bs-checkbox {
     display: none !important;
-    width: 0;
-    padding: 0;
 }
 
 table#table.selection-mode th.bs-checkbox,
@@ -241,7 +239,6 @@ table#table.selection-mode td.bs-checkbox,
 table#wfaTable.selection-mode th.bs-checkbox,
 table#wfaTable.selection-mode td.bs-checkbox {
     display: table-cell !important;
-    width: auto;
 }
 
 /* horizontal-scroll nudge for the WFA reports table (Detail column can overflow the narrow popup) */

@@ -276,12 +276,12 @@
                     <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
                   </li>
                 </ul>
-                <div class="btn-group ms-auto" id="bulkDeleteGroupClassic">
+                <div class="btn-group ms-auto">
                   <button id="bulkDeleteClassic" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" title="Bulk delete">
                     <i class="bi bi-trash3"></i>
                   </button>
                   <button type="button"
-                          class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split bulk-delete-caret"
+                          class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split"
                           id="bulkDeleteClassicCaret"
                           data-bs-toggle="dropdown"
                           aria-expanded="false">
@@ -289,7 +289,7 @@
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <a class="dropdown-item small py-1" href="#" id="deleteByDateClassicTrigger">
+                      <a class="dropdown-item small py-1 delete-by-date-trigger" href="#">
                         <i class="bi bi-calendar-x me-1"></i> Delete before date…
                       </a>
                     </li>
@@ -298,7 +298,7 @@
               </div>
               <table id="table" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
                 data-toolbar=".toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-                data-icon-size="sm" data-search-align="right" data-unique-id="strategyID">
+                data-icon-size="sm" data-search-align="right" data-unique-id="strategyID" data-maintain-meta-data="true">
                 <thead>
                   <tr>
                     <th data-field="state" data-checkbox="true"></th>
@@ -340,12 +340,12 @@
                     <button class="nav-link" data-report-view="wfa" type="button">Walk-Forward</button>
                   </li>
                 </ul>
-                <div class="btn-group ms-auto" id="bulkDeleteGroupWfa">
+                <div class="btn-group ms-auto">
                   <button id="bulkDeleteWfa" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" title="Bulk delete">
                     <i class="bi bi-trash3"></i>
                   </button>
                   <button type="button"
-                          class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split bulk-delete-caret"
+                          class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split"
                           id="bulkDeleteWfaCaret"
                           data-bs-toggle="dropdown"
                           aria-expanded="false">
@@ -353,7 +353,7 @@
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <a class="dropdown-item small py-1" href="#" id="deleteByDateWfaTrigger">
+                      <a class="dropdown-item small py-1 delete-by-date-trigger" href="#">
                         <i class="bi bi-calendar-x me-1"></i> Delete before date…
                       </a>
                     </li>
@@ -362,7 +362,7 @@
               </div>
               <table id="wfaTable" data-sortable="true" data-search="true" data-pagination="true" data-page-size="5"
                 data-toolbar=".wfa-toolbar" data-show-columns="true" data-sort-name="date" data-sort-order="desc"
-                data-icon-size="sm" data-search-align="right" data-unique-id="wfaID">
+                data-icon-size="sm" data-search-align="right" data-unique-id="wfaID" data-maintain-meta-data="true">
                 <thead>
                   <tr>
                     <th data-field="state" data-checkbox="true"></th>
