@@ -586,38 +586,25 @@ createWfaReportTable()
 
 // ─── Bulk Delete ───────────────────────────────────────────────────────────────
 
-// per-view wiring for the two report tables, keyed like _reportView
-const REPORT_TABLES = {
-  classic: { selector: '#table', idField: 'strategyID', btnId: 'bulkDeleteClassic', caretId: 'bulkDeleteClassicCaret', label: 'report', remove: deleteClassicReports },
-  wfa: { selector: '#wfaTable', idField: 'wfaID', btnId: 'bulkDeleteWfa', caretId: 'bulkDeleteWfaCaret', label: 'Walk-Forward report', remove: deleteWfaReports }
+// table events that change the selection count
+const SELECTION_EVENTS = 'check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table post-body.bs.table'
+
+// returns the IDs of the selected classic reports
+function selectedClassicIds() {
+  return $('#table').bootstrapTable('getSelections').map(row => row.strategyID)
 }
 
-function activeReportTable() {
-  return REPORT_TABLES[_reportView]
+// returns the IDs of the selected WFA reports
+function selectedWfaIds() {
+  return $('#wfaTable').bootstrapTable('getSelections').map(row => row.wfaID)
 }
 
-function selectedReportIds(view) {
-  const t = REPORT_TABLES[view]
-  return $(t.selector).bootstrapTable('getSelections').map(row => row[t.idField])
-}
-
-// the selection-mode class (checkboxes visible) is the only record of the mode
-function isSelectionMode(view) {
-  return $(REPORT_TABLES[view].selector).hasClass('selection-mode')
-}
-
-function setSelectionMode(view, on) {
-  $(REPORT_TABLES[view].selector).toggleClass('selection-mode', on)
-  updateSelectionToolbar(view)
-}
-
-/** Trash button: idle → cancel (selection mode, nothing picked) → delete N */
-function updateSelectionToolbar(view) {
-  const t = REPORT_TABLES[view]
-  const btn = document.getElementById(t.btnId)
-  const count = selectedReportIds(view).length
+// sets the classic trash button to idle, cancel or delete N
+function updateClassicSelectionToolbar() {
+  const btn = document.getElementById('bulkDeleteClassic')
+  const count = selectedClassicIds().length
   let style
-  if (!isSelectionMode(view)) {
+  if (!$('#table').hasClass('selection-mode')) {
     style = 'btn-outline-secondary'
     btn.innerHTML = '<i class="bi bi-trash3"></i>'
     btn.title = 'Bulk delete'
@@ -631,34 +618,85 @@ function updateSelectionToolbar(view) {
     btn.title = `Delete ${count} selected`
   }
   btn.className = `btn btn-sm ${style} bulk-delete-toggle`
-  document.getElementById(t.caretId).className = `btn btn-sm ${style} dropdown-toggle dropdown-toggle-split`
+  document.getElementById('bulkDeleteClassicCaret').className = `btn btn-sm ${style} dropdown-toggle dropdown-toggle-split`
 }
 
-// Selection state lives in the tables (data-maintain-meta-data keeps it across pages);
-// these only refresh the count. post-body covers load / remove / page changes.
-const SELECTION_EVENTS = 'check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table post-body.bs.table'
+// sets the WFA trash button to idle, cancel or delete N
+function updateWfaSelectionToolbar() {
+  const btn = document.getElementById('bulkDeleteWfa')
+  const count = selectedWfaIds().length
+  let style
+  if (!$('#wfaTable').hasClass('selection-mode')) {
+    style = 'btn-outline-secondary'
+    btn.innerHTML = '<i class="bi bi-trash3"></i>'
+    btn.title = 'Bulk delete'
+  } else if (count === 0) {
+    style = 'btn-outline-danger'
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>'
+    btn.title = 'Cancel selection'
+  } else {
+    style = 'btn-danger'
+    btn.innerHTML = `<i class="bi bi-trash3"></i>&nbsp;${count}`
+    btn.title = `Delete ${count} selected`
+  }
+  btn.className = `btn btn-sm ${style} bulk-delete-toggle`
+  document.getElementById('bulkDeleteWfaCaret').className = `btn btn-sm ${style} dropdown-toggle dropdown-toggle-split`
+}
 
-for (const [view, t] of Object.entries(REPORT_TABLES)) {
-  $(t.selector).on(SELECTION_EVENTS, () => updateSelectionToolbar(view))
+$('#table').on(SELECTION_EVENTS, updateClassicSelectionToolbar)
+$('#wfaTable').on(SELECTION_EVENTS, updateWfaSelectionToolbar)
 
-  document.getElementById(t.btnId).addEventListener('click', () => {
-    const n = selectedReportIds(view).length
-    if (!isSelectionMode(view)) {
-      setSelectionMode(view, true)
-    } else if (n > 0) {
-      document.getElementById('bulkDeleteMessage').textContent =
-        `${n} ${t.label}${n > 1 ? 's' : ''} will be permanently deleted. This cannot be undone.`
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkDeleteModal')).show()
-    } else {
-      setSelectionMode(view, false)
+// enters selection mode, opens the delete confirm, or exits when nothing is selected
+document.getElementById('bulkDeleteClassic').addEventListener('click', () => {
+  const n = selectedClassicIds().length
+  if (!$('#table').hasClass('selection-mode')) {
+    $('#table').addClass('selection-mode')
+    updateClassicSelectionToolbar()
+  } else if (n > 0) {
+    let noun = 'reports'
+    if (n === 1) {
+      noun = 'report'
     }
-  })
-}
+    document.getElementById('bulkDeleteMessage').textContent =
+      `${n} ${noun} will be permanently deleted. This cannot be undone.`
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkDeleteModal')).show()
+  } else {
+    $('#table').removeClass('selection-mode')
+    updateClassicSelectionToolbar()
+  }
+})
 
+// enters selection mode, opens the delete confirm, or exits when nothing is selected
+document.getElementById('bulkDeleteWfa').addEventListener('click', () => {
+  const n = selectedWfaIds().length
+  if (!$('#wfaTable').hasClass('selection-mode')) {
+    $('#wfaTable').addClass('selection-mode')
+    updateWfaSelectionToolbar()
+  } else if (n > 0) {
+    let noun = 'Walk-Forward reports'
+    if (n === 1) {
+      noun = 'Walk-Forward report'
+    }
+    document.getElementById('bulkDeleteMessage').textContent =
+      `${n} ${noun} will be permanently deleted. This cannot be undone.`
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkDeleteModal')).show()
+  } else {
+    $('#wfaTable').removeClass('selection-mode')
+    updateWfaSelectionToolbar()
+  }
+})
+
+// deletes the selected reports of the shown table and exits selection mode
 document.getElementById('bulkDeleteConfirm').addEventListener('click', async () => {
-  await activeReportTable().remove(selectedReportIds(_reportView))
-  // the selected rows are gone, so leaving the mode needs no unchecking
-  setSelectionMode(_reportView, false)
+  if (_reportView === 'wfa') {
+    await deleteWfaReports(selectedWfaIds())
+    $('#wfaTable').removeClass('selection-mode')
+    updateWfaSelectionToolbar()
+  } else {
+    await deleteClassicReports(selectedClassicIds())
+    $('#table').removeClass('selection-mode')
+    updateClassicSelectionToolbar()
+  }
   bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide()
 })
 
@@ -693,7 +731,11 @@ async function deleteWfaReports(wfaIDs) {
 function getReportsBeforeDate(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number)
   const cutoff = new Date(year, month - 1, day).getTime()
-  return $(activeReportTable().selector).bootstrapTable('getData').filter(row => row.createdAt < cutoff)
+  let selector = '#table'
+  if (_reportView === 'wfa') {
+    selector = '#wfaTable'
+  }
+  return $(selector).bootstrapTable('getData').filter(row => row.createdAt < cutoff)
 }
 
 document.querySelectorAll('.delete-by-date-trigger').forEach(el => el.addEventListener('click', e => {
@@ -709,7 +751,10 @@ document.querySelectorAll('.delete-by-date-trigger').forEach(el => el.addEventLi
 document.getElementById('deleteBeforeDate').addEventListener('change', e => {
   const preview = document.getElementById('deleteByDatePreview')
   const confirmBtn = document.getElementById('deleteByDateConfirm')
-  const n = e.target.value ? getReportsBeforeDate(e.target.value).length : 0
+  let n = 0
+  if (e.target.value) {
+    n = getReportsBeforeDate(e.target.value).length
+  }
 
   confirmBtn.disabled = n === 0
   if (!e.target.value) {
@@ -718,16 +763,23 @@ document.getElementById('deleteBeforeDate').addEventListener('change', e => {
     preview.textContent = 'No reports found before this date.'
     preview.className = 'mb-0 mt-2 small text-muted'
   } else {
-    preview.textContent = `${n} report${n > 1 ? 's' : ''} will be deleted.`
+    let noun = 'reports'
+    if (n === 1) {
+      noun = 'report'
+    }
+    preview.textContent = `${n} ${noun} will be deleted.`
     preview.className = 'mb-0 mt-2 small text-danger'
   }
 })
 
-// the confirm button is only enabled once a date with matching reports is picked
+// deletes the shown table's reports created before the picked day
 document.getElementById('deleteByDateConfirm').addEventListener('click', async () => {
-  const t = activeReportTable()
   const matching = getReportsBeforeDate(document.getElementById('deleteBeforeDate').value)
-  await t.remove(matching.map(row => row[t.idField]))
+  if (_reportView === 'wfa') {
+    await deleteWfaReports(matching.map(row => row.wfaID))
+  } else {
+    await deleteClassicReports(matching.map(row => row.strategyID))
+  }
   bootstrap.Modal.getInstance(document.getElementById('deleteByDateModal')).hide()
 })
 
