@@ -379,7 +379,7 @@ async function createReportTable() {
         "strategyID": value.strategyID,
         "strategyName": value.strategyName,
         "date": formattedDate,
-        "createdAt": new Date(value.created).getTime(), // raw ms — used for date-based filtering
+        "createdAt": new Date(value.created).getTime(),
         "symbol": value.symbol,
         "timePeriod": value.timePeriod,
         "parameters": value.parameters,
@@ -495,7 +495,7 @@ async function createWfaReportTable() {
         wfaID: value.wfaID,
         strategyName: value.strategyName,
         date: formattedDate,
-        createdAt: new Date(value.created).getTime(), // raw ms — used for date-based filtering
+        createdAt: new Date(value.created).getTime(),
         symbol: value.symbol,
         timePeriod: value.timePeriod,
         parameters: value.parameters || "",
