@@ -586,6 +586,52 @@ createWfaReportTable()
 
 // ─── Bulk Delete ───────────────────────────────────────────────────────────────
 
+// renders the classic bulk delete group next to the table options button
+function classicBulkDeleteButtons() {
+  return {
+    bulkDelete: {
+      html: `<div class="btn-group">
+        <button id="bulkDeleteClassic" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" type="button" title="Bulk delete">
+          <i class="bi bi-trash3"></i>
+        </button>
+        <button id="bulkDeleteClassicCaret" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="visually-hidden">More options</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item small py-1 delete-by-date-trigger" href="#">
+              <i class="bi bi-calendar-x me-1"></i> Delete before date…
+            </a>
+          </li>
+        </ul>
+      </div>`
+    }
+  }
+}
+
+// renders the WFA bulk delete group next to the table options button
+function wfaBulkDeleteButtons() {
+  return {
+    bulkDelete: {
+      html: `<div class="btn-group">
+        <button id="bulkDeleteWfa" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" type="button" title="Bulk delete">
+          <i class="bi bi-trash3"></i>
+        </button>
+        <button id="bulkDeleteWfaCaret" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="visually-hidden">More options</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item small py-1 delete-by-date-trigger" href="#">
+              <i class="bi bi-calendar-x me-1"></i> Delete before date…
+            </a>
+          </li>
+        </ul>
+      </div>`
+    }
+  }
+}
+
 // table events that change the selection count
 const SELECTION_EVENTS = 'check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table post-body.bs.table'
 
@@ -647,7 +693,7 @@ $('#table').on(SELECTION_EVENTS, updateClassicSelectionToolbar)
 $('#wfaTable').on(SELECTION_EVENTS, updateWfaSelectionToolbar)
 
 // enters selection mode, opens the delete confirm, or exits when nothing is selected
-document.getElementById('bulkDeleteClassic').addEventListener('click', () => {
+$(document).on('click', '#bulkDeleteClassic', () => {
   const n = selectedClassicIds().length
   if (!$('#table').hasClass('selection-mode')) {
     $('#table').addClass('selection-mode')
@@ -667,7 +713,7 @@ document.getElementById('bulkDeleteClassic').addEventListener('click', () => {
 })
 
 // enters selection mode, opens the delete confirm, or exits when nothing is selected
-document.getElementById('bulkDeleteWfa').addEventListener('click', () => {
+$(document).on('click', '#bulkDeleteWfa', () => {
   const n = selectedWfaIds().length
   if (!$('#wfaTable').hasClass('selection-mode')) {
     $('#wfaTable').addClass('selection-mode')
@@ -738,7 +784,7 @@ function getReportsBeforeDate(dateStr) {
   return $(selector).bootstrapTable('getData').filter(row => row.createdAt < cutoff)
 }
 
-document.querySelectorAll('.delete-by-date-trigger').forEach(el => el.addEventListener('click', e => {
+$(document).on('click', '.delete-by-date-trigger', e => {
   e.preventDefault()
   document.getElementById('deleteBeforeDate').value = ''
   const preview = document.getElementById('deleteByDatePreview')
@@ -746,7 +792,7 @@ document.querySelectorAll('.delete-by-date-trigger').forEach(el => el.addEventLi
   preview.className = 'mb-0 mt-2 small'
   document.getElementById('deleteByDateConfirm').disabled = true
   bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteByDateModal')).show()
-}))
+})
 
 document.getElementById('deleteBeforeDate').addEventListener('change', e => {
   const preview = document.getElementById('deleteByDatePreview')
