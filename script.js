@@ -32,7 +32,7 @@ var ParameterType = {
     Selectable: "Selectable",
     Numeric: "Numeric",
     Checkbox: "Checkbox",
-    DatePicker: "DatePicker" // not supported atm
+    Unknown: "Unknown" // not supported atm
 }
 
 var isReportDataEmptySelector = "div[class*='emptyState' i]"
@@ -475,7 +475,8 @@ function prepareInitialReport() {
         "reportData": [], // NOT READY
         "status": "STARTED",
         "dateRange": dateRange, // solely for analytics
-        "separators": getLocaleSeparators() // tradingview's number format, for rendering and sorting later
+        "separators": getLocaleSeparators(), // tradingview's number format, for rendering and sorting later
+        "inputsSnapshot": buildInputsSnapshot()
     }
 
     // enrich as a WFA child when a window is running (classic leaves wfaContext null)
@@ -753,8 +754,8 @@ async function OptimizeParams(tvParameterIndex, stepSize) {
 
     // Re-open strategy settings window
     let reportTitleButton =
-        document.querySelector("div[class*='menuButton' i] button") ||
-        document.querySelector("div[class*='menu-button' i] button");
+        document.querySelector("[data-qa-id='backtesting'] ~ [data-qa-id='backtesting-open-context-menu'] [data-qa-id='tab-menu-trigger']") ||
+        document.querySelector("div[data-qa-id*='backtesting-open-context-menu' i] button");
 
     reportTitleButton.click()
     await sleep(50)
@@ -861,6 +862,67 @@ function snapshotWinningInputs() {
         }
         return { parameterIndex: input.parameterIndex, type: input.type, value }
     })
+}
+
+// buildInputsSnapshot captures the raw strategy dialog as [{name, type, value, parameterIndex, isOptimized}], mirroring get-tv-parameters.js.
+function buildInputsSnapshot() {
+    let snapshot = []
+    let parameterIndex = 0
+    let parameterNameElements = document.querySelectorAll("div[data-name='indicator-properties-dialog'] div[class*='content'] div");
+
+    for (let i = 0; i < parameterNameElements.length; i++) {
+        let className = parameterNameElements[i].className;
+        let parameterName = parameterNameElements[i].innerText;
+
+        // handle selectable and numeric parameters
+        if (className.includes("cell") && className.includes("first")) {
+            let valueCell = parameterNameElements[i].nextSibling
+            let selectableParameter = valueCell?.querySelector("button[role='combobox']");
+            let numericParameter = valueCell?.querySelector("input[inputmode*='numeric' i]");
+            let stringParameter = valueCell?.querySelector("input[maxlength*='4096' i]");
+            let dateParameter = valueCell?.querySelector("div[class*='datePicker' i]");
+            let colorParameter = valueCell?.querySelector("div[class*='colorPicker' i]");
+
+            if (selectableParameter != null) {
+                snapshot.push(snapshotEntry(parameterName, ParameterType.Selectable, selectableParameter.innerText, parameterIndex))
+                parameterIndex++
+            } else if (numericParameter != null) {
+                snapshot.push(snapshotEntry(parameterName, ParameterType.Numeric, numericParameter.value, parameterIndex))
+                parameterIndex++
+            } else if (dateParameter != null) {
+                snapshot.push(snapshotEntry(parameterName, ParameterType.Unknown, readRawValue(valueCell), parameterIndex))
+                parameterIndex++
+            } else if (colorParameter != null) {
+                snapshot.push(snapshotEntry(parameterName, ParameterType.Unknown, readRawValue(valueCell), parameterIndex))
+                parameterIndex++
+            } else if (stringParameter != null) {
+                snapshot.push(snapshotEntry(parameterName, ParameterType.Unknown, readRawValue(valueCell), parameterIndex))
+                parameterIndex++
+            }
+        } // handle checkboxes, skipping full width rows without one (e.g. text areas)
+        else if (className.includes("cell") && className.includes("fill") && !className.includes("checkableTitle")
+            && parameterNameElements[i].querySelector("input[type='checkbox']") != null) {
+            let checkbox = parameterNameElements[i].querySelector("input[type='checkbox']")
+            snapshot.push(snapshotEntry(parameterName, ParameterType.Checkbox, checkbox.checked, parameterIndex))
+            parameterIndex++
+        }
+    }
+    return snapshot
+}
+
+// snapshotEntry builds one snapshot entry, flagging inputs swept by this run.
+function snapshotEntry(name, type, value, parameterIndex) {
+    let isOptimized = userInputs.some(input => input.parameterIndex === parameterIndex)
+    return { name, type, value, parameterIndex, isOptimized }
+}
+
+// readRawValue returns the joined values of an element's inputs, else its text.
+function readRawValue(element) {
+    let values = Array.from(element.querySelectorAll("input")).map(input => input.value)
+    if (values.length > 0) {
+        return values.join(" ")
+    }
+    return element.innerText?.trim() ?? ""
 }
 
 // pinAndRunOOS applies the IS winner to every input, then fires ONE OptimizeParams to backtest + record the single OOS combo.
@@ -998,12 +1060,11 @@ function GetParametersFromWindow() {
             parameters += parameterValue + ", "
         }
 
-        if (userInput.parameterName != null) {
-            result.detailedParameters.push({
-                name: userInput.parameterName,
-                value: parameterValue,
-            })
-        }
+        result.detailedParameters.push({
+            name: userInput.parameterName,
+            value: parameterValue,
+            parameterIndex: userInput.parameterIndex,
+        })
     }
     result.parameters = parameters
     return result
