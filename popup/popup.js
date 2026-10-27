@@ -31,6 +31,8 @@ const WFA_MIN_IS_DAYS = 14
 const WFA_MIN_OOS_DAYS = 5
 // set by updateWfaSplit when the current config produces a window below the floors; read by the launch guard
 let _wfaBelowFloor = false
+// currently shown reports table ('classic' | 'wfa')
+let _reportView = "classic"
 // resolves when popup rows have been added and are ready for value restoration
 let _resolvePopupInitDone;
 const popupInitDone = new Promise(resolve => { _resolvePopupInitDone = resolve; });
@@ -388,6 +390,7 @@ async function createReportTable() {
         "strategyID": value.strategyID,
         "strategyName": value.strategyName,
         "date": formattedDate,
+        "createdAt": new Date(value.created).getTime(),
         "symbol": value.symbol,
         "timePeriod": value.timePeriod,
         "parameters": value.parameters,
@@ -503,6 +506,7 @@ async function createWfaReportTable() {
         wfaID: value.wfaID,
         strategyName: value.strategyName,
         date: formattedDate,
+        createdAt: new Date(value.created).getTime(),
         symbol: value.symbol,
         timePeriod: value.timePeriod,
         parameters: value.parameters || "",
@@ -573,12 +577,7 @@ window.openReportDetail = {
   },
   // Remove Report from both storage and table
   'click #remove-report': function (e, value, row, index) {
-    var $table = $('#table')
-    chrome.storage.local.remove([REPORT_DATA_KEY_PREFIX + row.strategyID, REPORT_DETAIL_KEY_PREFIX + row.strategyID])
-    $table.bootstrapTable('remove', {
-      field: 'strategyID',
-      values: [row.strategyID]
-    })
+    deleteClassicReports([row.strategyID])
   }
 }
 
@@ -588,37 +587,262 @@ window.openWfaDetail = {
     chrome.tabs.create({ url: 'report/wfa-reportdetail.html?wfaID=' + row.wfaID })
   },
   // Remove WFA report parent and cascade-delete its per-window child report-data-* entries.
-  'click #remove-wfa-report': async function (e, value, row, index) {
-    var $wfaTable = $('#wfaTable')
-    const wfaKey = "wfa-" + row.wfaID
-    const items = await chrome.storage.local.get([wfaKey])
-    const parent = items[wfaKey]
-    const keys = [wfaKey]
-    if (parent && parent.windows) {
-      Object.values(parent.windows).forEach(w => {
-        if (w.is && w.is.reportID) {
-          keys.push(REPORT_DATA_KEY_PREFIX + w.is.reportID)
-          keys.push(REPORT_DETAIL_KEY_PREFIX + w.is.reportID)
-        }
-        if (w.oos && w.oos.reportID) {
-          keys.push(REPORT_DATA_KEY_PREFIX + w.oos.reportID)
-          keys.push(REPORT_DETAIL_KEY_PREFIX + w.oos.reportID)
-        }
-      })
-    }
-    await chrome.storage.local.remove(keys)
-    $wfaTable.bootstrapTable('remove', {
-      field: 'wfaID',
-      values: [row.wfaID]
-    })
+  'click #remove-wfa-report': function (e, value, row, index) {
+    deleteWfaReports([row.wfaID])
   }
 }
 
 // init AFTER openWfaDetail exists — bootstrap-table resolves data-events at build time
 createWfaReportTable()
 
+// ─── Bulk Delete ───────────────────────────────────────────────────────────────
+
+// renders the classic bulk delete group next to the table options button
+function classicBulkDeleteButtons() {
+  return {
+    bulkDelete: {
+      html: `<div class="btn-group">
+        <button id="bulkDeleteClassic" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" type="button" title="Bulk delete">
+          <i class="bi bi-trash3"></i>
+        </button>
+        <button id="bulkDeleteClassicCaret" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="visually-hidden">More options</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item small py-1 delete-by-date-trigger" href="#">
+              <i class="bi bi-calendar-x me-1"></i> Delete before date…
+            </a>
+          </li>
+        </ul>
+      </div>`
+    }
+  }
+}
+
+// renders the WFA bulk delete group next to the table options button
+function wfaBulkDeleteButtons() {
+  return {
+    bulkDelete: {
+      html: `<div class="btn-group">
+        <button id="bulkDeleteWfa" class="btn btn-sm btn-outline-secondary bulk-delete-toggle" type="button" title="Bulk delete">
+          <i class="bi bi-trash3"></i>
+        </button>
+        <button id="bulkDeleteWfaCaret" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="visually-hidden">More options</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item small py-1 delete-by-date-trigger" href="#">
+              <i class="bi bi-calendar-x me-1"></i> Delete before date…
+            </a>
+          </li>
+        </ul>
+      </div>`
+    }
+  }
+}
+
+// table events that change the selection count
+const SELECTION_EVENTS = 'check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table post-body.bs.table'
+
+// returns the IDs of the selected classic reports
+function selectedClassicIds() {
+  return $('#table').bootstrapTable('getSelections').map(row => row.strategyID)
+}
+
+// returns the IDs of the selected WFA reports
+function selectedWfaIds() {
+  return $('#wfaTable').bootstrapTable('getSelections').map(row => row.wfaID)
+}
+
+// sets the classic trash button to idle, cancel or delete N
+function updateClassicSelectionToolbar() {
+  const btn = document.getElementById('bulkDeleteClassic')
+  const count = selectedClassicIds().length
+  let style
+  if (!$('#table').hasClass('selection-mode')) {
+    style = 'btn-outline-secondary'
+    btn.innerHTML = '<i class="bi bi-trash3"></i>'
+    btn.title = 'Bulk delete'
+  } else if (count === 0) {
+    style = 'btn-outline-danger'
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>'
+    btn.title = 'Cancel selection'
+  } else {
+    style = 'btn-danger'
+    btn.innerHTML = `<i class="bi bi-trash3"></i>&nbsp;${count}`
+    btn.title = `Delete ${count} selected`
+  }
+  btn.className = `btn btn-sm ${style} bulk-delete-toggle`
+  document.getElementById('bulkDeleteClassicCaret').className = `btn btn-sm ${style} dropdown-toggle dropdown-toggle-split`
+}
+
+// sets the WFA trash button to idle, cancel or delete N
+function updateWfaSelectionToolbar() {
+  const btn = document.getElementById('bulkDeleteWfa')
+  const count = selectedWfaIds().length
+  let style
+  if (!$('#wfaTable').hasClass('selection-mode')) {
+    style = 'btn-outline-secondary'
+    btn.innerHTML = '<i class="bi bi-trash3"></i>'
+    btn.title = 'Bulk delete'
+  } else if (count === 0) {
+    style = 'btn-outline-danger'
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>'
+    btn.title = 'Cancel selection'
+  } else {
+    style = 'btn-danger'
+    btn.innerHTML = `<i class="bi bi-trash3"></i>&nbsp;${count}`
+    btn.title = `Delete ${count} selected`
+  }
+  btn.className = `btn btn-sm ${style} bulk-delete-toggle`
+  document.getElementById('bulkDeleteWfaCaret').className = `btn btn-sm ${style} dropdown-toggle dropdown-toggle-split`
+}
+
+$('#table').on(SELECTION_EVENTS, updateClassicSelectionToolbar)
+$('#wfaTable').on(SELECTION_EVENTS, updateWfaSelectionToolbar)
+
+// enters selection mode, opens the delete confirm, or exits when nothing is selected
+$(document).on('click', '#bulkDeleteClassic', () => {
+  const n = selectedClassicIds().length
+  if (!$('#table').hasClass('selection-mode')) {
+    $('#table').addClass('selection-mode')
+    updateClassicSelectionToolbar()
+  } else if (n > 0) {
+    let noun = 'reports'
+    if (n === 1) {
+      noun = 'report'
+    }
+    document.getElementById('bulkDeleteMessage').textContent =
+      `${n} ${noun} will be permanently deleted. This cannot be undone.`
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkDeleteModal')).show()
+  } else {
+    $('#table').removeClass('selection-mode')
+    updateClassicSelectionToolbar()
+  }
+})
+
+// enters selection mode, opens the delete confirm, or exits when nothing is selected
+$(document).on('click', '#bulkDeleteWfa', () => {
+  const n = selectedWfaIds().length
+  if (!$('#wfaTable').hasClass('selection-mode')) {
+    $('#wfaTable').addClass('selection-mode')
+    updateWfaSelectionToolbar()
+  } else if (n > 0) {
+    let noun = 'Walk-Forward reports'
+    if (n === 1) {
+      noun = 'Walk-Forward report'
+    }
+    document.getElementById('bulkDeleteMessage').textContent =
+      `${n} ${noun} will be permanently deleted. This cannot be undone.`
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkDeleteModal')).show()
+  } else {
+    $('#wfaTable').removeClass('selection-mode')
+    updateWfaSelectionToolbar()
+  }
+})
+
+// deletes the selected reports of the shown table and exits selection mode
+document.getElementById('bulkDeleteConfirm').addEventListener('click', async () => {
+  if (_reportView === 'wfa') {
+    await deleteWfaReports(selectedWfaIds())
+    $('#wfaTable').removeClass('selection-mode')
+    updateWfaSelectionToolbar()
+  } else {
+    await deleteClassicReports(selectedClassicIds())
+    $('#table').removeClass('selection-mode')
+    updateClassicSelectionToolbar()
+  }
+  bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide()
+})
+
+// removes classic reports from storage and the table
+async function deleteClassicReports(strategyIDs) {
+  const keys = strategyIDs.flatMap(id => [REPORT_DATA_KEY_PREFIX + id, REPORT_DETAIL_KEY_PREFIX + id])
+  await chrome.storage.local.remove(keys)
+  $('#table').bootstrapTable('remove', { field: 'strategyID', values: strategyIDs })
+}
+
+// removes WFA parents together with their per-window child report-data-* / report-detail-* entries
+async function deleteWfaReports(wfaIDs) {
+  const wfaKeys = wfaIDs.map(id => 'wfa-' + id)
+  const parents = await chrome.storage.local.get(wfaKeys)
+  const keys = [...wfaKeys]
+  for (const parent of Object.values(parents)) {
+    for (const w of Object.values(parent.windows || {})) {
+      for (const child of [w.is, w.oos]) {
+        if (child?.reportID) {
+          keys.push(REPORT_DATA_KEY_PREFIX + child.reportID, REPORT_DETAIL_KEY_PREFIX + child.reportID)
+        }
+      }
+    }
+  }
+  await chrome.storage.local.remove(keys)
+  $('#wfaTable').bootstrapTable('remove', { field: 'wfaID', values: wfaIDs })
+}
+
+// ─── Delete by Date ────────────────────────────────────────────────────────────
+
+/** Rows of the shown table created before the start of the picked day */
+function getReportsBeforeDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const cutoff = new Date(year, month - 1, day).getTime()
+  let selector = '#table'
+  if (_reportView === 'wfa') {
+    selector = '#wfaTable'
+  }
+  return $(selector).bootstrapTable('getData').filter(row => row.createdAt < cutoff)
+}
+
+$(document).on('click', '.delete-by-date-trigger', e => {
+  e.preventDefault()
+  document.getElementById('deleteBeforeDate').value = ''
+  const preview = document.getElementById('deleteByDatePreview')
+  preview.textContent = ''
+  preview.className = 'mb-0 mt-2 small'
+  document.getElementById('deleteByDateConfirm').disabled = true
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteByDateModal')).show()
+})
+
+document.getElementById('deleteBeforeDate').addEventListener('change', e => {
+  const preview = document.getElementById('deleteByDatePreview')
+  const confirmBtn = document.getElementById('deleteByDateConfirm')
+  let n = 0
+  if (e.target.value) {
+    n = getReportsBeforeDate(e.target.value).length
+  }
+
+  confirmBtn.disabled = n === 0
+  if (!e.target.value) {
+    preview.textContent = ''
+  } else if (n === 0) {
+    preview.textContent = 'No reports found before this date.'
+    preview.className = 'mb-0 mt-2 small text-muted'
+  } else {
+    let noun = 'reports'
+    if (n === 1) {
+      noun = 'report'
+    }
+    preview.textContent = `${n} ${noun} will be deleted.`
+    preview.className = 'mb-0 mt-2 small text-danger'
+  }
+})
+
+// deletes the shown table's reports created before the picked day
+document.getElementById('deleteByDateConfirm').addEventListener('click', async () => {
+  const matching = getReportsBeforeDate(document.getElementById('deleteBeforeDate').value)
+  if (_reportView === 'wfa') {
+    await deleteWfaReports(matching.map(row => row.wfaID))
+  } else {
+    await deleteClassicReports(matching.map(row => row.strategyID))
+  }
+  bootstrap.Modal.getInstance(document.getElementById('deleteByDateModal')).hide()
+})
+
 // report-view nav lives in both table toolbars; keep them in sync
 function switchReportView(view) {
+  _reportView = view
   const isWfa = view === "wfa"
   const classicPane = document.getElementById("classic-reports-pane")
   const wfaPane = document.getElementById("wfa-reports-pane")

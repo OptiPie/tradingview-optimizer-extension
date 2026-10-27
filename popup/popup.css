@@ -219,6 +219,28 @@ body {
     margin-right: 0.5rem;
 }
 
+/* bulk delete toggle button */
+.bulk-delete-toggle {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
+/* checkbox column, shown only in selection mode */
+table#table th.bs-checkbox,
+table#table td.bs-checkbox,
+table#wfaTable th.bs-checkbox,
+table#wfaTable td.bs-checkbox {
+    display: none !important;
+}
+
+table#table.selection-mode th.bs-checkbox,
+table#table.selection-mode td.bs-checkbox,
+table#wfaTable.selection-mode th.bs-checkbox,
+table#wfaTable.selection-mode td.bs-checkbox {
+    display: table-cell !important;
+}
+
 /* horizontal-scroll nudge for the WFA reports table (Detail column can overflow the narrow popup) */
 #wfa-reports-pane {
     position: relative;
