@@ -4,7 +4,7 @@ title: "News"
 ---
 
 ## What's New!
-### Version: v2.2.0-v2.2.1
+### Version: v2.2.0-v2.2.2
 
 > **Found a winner? Apply it in one click. No more typing inputs by hand.**
 
@@ -18,6 +18,7 @@ title: "News"
 - **Apply** them from your strategy settings. The new **Apply** button fills in every input, you review and press Ok. Open OptiPie once on the chart tab to make it appear.
 - **Strategy Inputs** on the report detail page. See every input of the run, and click through rows to preview each result's values.
 - Available for everyone, on new reports.
+- **Bulk Delete** on the Reports tab. Select several reports, or everything before a date, and remove them at once.
 - General small bug fixes.
 - Hotfix to match latest TradingView changes.
 
