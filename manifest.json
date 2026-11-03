@@ -1,7 +1,7 @@
 {
   "name": "OptiPie TradingView Optimizer",
-  "description": "TradingView Parameter Optimizer as an extension",
-  "version": "2.2.2",
+  "description": "Optimize TradingView strategies in seconds, run Walk-Forward Analysis, analyze results instantly.",
+  "version": "2.2.3",
   "minimum_chrome_version": "130",
   "manifest_version": 3,
   "icons": {
